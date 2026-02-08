@@ -7,3 +7,5 @@ out/
 build/
 .DS_Store
 *.log
+
+.vercel
