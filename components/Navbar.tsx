@@ -123,7 +123,7 @@ export default function Navbar() {
                 )}
               </Link>
               {(role === 'admin' || role === 'moderator') && (
-                <Link href="/moderation" className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Moderation">
+                <Link href="/admin/dashboard" className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Admin Panel">
                   <Shield size={20} />
                 </Link>
               )}
