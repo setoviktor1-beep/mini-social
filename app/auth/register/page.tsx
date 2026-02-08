@@ -26,6 +26,10 @@ export default function Register() {
       return
     }
 
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      window.location.origin
+
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -34,7 +38,8 @@ export default function Register() {
           username: username.toLowerCase(),
           display_name: displayName || username,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // Avoid localhost links in emails by using a stable public URL in production.
+        emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     })
 
