@@ -161,19 +161,25 @@ export default function ChatPage() {
     setNewMessage('')
     setSending(true)
 
-    // Insert the message
-    const { error } = await supabase.from('messages').insert({
+    // Insert the message and get it back with real ID
+    const { data: inserted, error } = await supabase.from('messages').insert({
       conversation_id: conversationId,
       sender_id: currentUserId,
       content
-    })
+    }).select().single()
 
-    if (error) {
+    if (error || !inserted) {
       console.error('Error sending message:', error)
       setNewMessage(content) // Restore the message on error
       setSending(false)
       return
     }
+
+    // Add to local state immediately (Realtime dedup will prevent duplicates)
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === inserted.id)) return prev
+      return [...prev, inserted as Message]
+    })
 
     // Update conversation's last_message_at
     await supabase
