@@ -64,8 +64,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     .select('*', { count: 'exact', head: true })
     .eq('follower_id', profile.id)
 
-  // 4. Check liked posts
+  // 4. Check liked posts and user role
   let likedPostIds: Set<string> = new Set()
+  let currentUserRole: string | undefined
   if (currentUser) {
     const { data: userLikes } = await supabase
       .from('likes')
@@ -74,6 +75,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     if (userLikes) {
       likedPostIds = new Set(userLikes.map(l => l.post_id))
     }
+    const { data: curProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', currentUser.id)
+      .single()
+    currentUserRole = curProfile?.role
   }
 
   const postsWithLikeStatus = posts?.map(post => ({
@@ -140,7 +147,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           <h2 className="font-bold text-gray-900 text-xl">Posts</h2>
         </div>
         {postsWithLikeStatus.map((post) => (
-          <PostCard key={post.id} post={post} currentUserId={currentUser?.id} />
+          <PostCard key={post.id} post={post} currentUserId={currentUser?.id} currentUserRole={currentUserRole} />
         ))}
         {postsWithLikeStatus.length === 0 && (
           <div className="p-20 text-center text-gray-400">

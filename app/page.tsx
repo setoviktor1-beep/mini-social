@@ -22,8 +22,9 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(20)
 
-  // Check which posts the current user has liked
+  // Check user role and liked posts
   let likedPostIds: Set<string> = new Set()
+  let userRole: string | undefined
   if (user) {
     const { data: userLikes } = await supabase
       .from('likes')
@@ -32,6 +33,12 @@ export default async function Home() {
     if (userLikes) {
       likedPostIds = new Set(userLikes.map(l => l.post_id))
     }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    userRole = profile?.role
   }
 
   const postsWithLikeStatus = posts?.map(post => ({
@@ -51,7 +58,7 @@ export default async function Home() {
 
       <div className="divide-y divide-gray-100 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {postsWithLikeStatus.map((post) => (
-          <PostCard key={post.id} post={post} currentUserId={user?.id} />
+          <PostCard key={post.id} post={post} currentUserId={user?.id} currentUserRole={userRole} />
         ))}
         {postsWithLikeStatus.length === 0 && (
           <div className="p-10 text-center text-gray-500">

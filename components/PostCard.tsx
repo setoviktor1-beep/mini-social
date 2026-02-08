@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, AlertCircle, Send, X } from 'lucide-react'
+import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 interface PostCardProps {
@@ -11,6 +11,7 @@ interface PostCardProps {
     id: string
     content: string
     created_at: string
+    user_id?: string
     youtube_video_id?: string
     profiles?: { username: string; display_name: string; avatar_path?: string }
     post_media?: { storage_path: string }[]
@@ -19,9 +20,10 @@ interface PostCardProps {
     user_liked?: boolean
   }
   currentUserId?: string
+  currentUserRole?: string
 }
 
-export default function PostCard({ post, currentUserId }: PostCardProps) {
+export default function PostCard({ post, currentUserId, currentUserRole }: PostCardProps) {
   const supabase = createClient()
   const router = useRouter()
   const [liked, setLiked] = useState(post.user_liked || false)
@@ -34,13 +36,24 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportSent, setReportSent] = useState(false)
+  const [showShareMenu, setShowShareMenu] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [deleted, setDeleted] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const isOwner = currentUserId === post.user_id
+  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'moderator'
+  const canDelete = isOwner || isAdmin
 
   const publicUrl = (path: string) =>
     supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
 
+  const postUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/u/${post.profiles?.username}`
+    : ''
+
   const handleLike = async () => {
     if (!currentUserId) return
-
     if (liked) {
       await supabase.from('likes').delete().eq('user_id', currentUserId).eq('post_id', post.id)
       setLiked(false)
@@ -65,9 +78,7 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
   }
 
   const toggleComments = async () => {
-    if (!showComments) {
-      await loadComments()
-    }
+    if (!showComments) await loadComments()
     setShowComments(!showComments)
   }
 
@@ -101,6 +112,45 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
     }, 1500)
   }
 
+  const handleDelete = async () => {
+    await supabase.from('posts').update({ status: 'deleted' }).eq('id', post.id)
+    setDeleted(true)
+    setShowDeleteConfirm(false)
+    router.refresh()
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(postUrl)
+    setCopied(true)
+    setTimeout(() => { setCopied(false); setShowShareMenu(false) }, 1500)
+  }
+
+  const handleShareNative = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Post by ${post.profiles?.display_name}`,
+        text: post.content?.slice(0, 100),
+        url: postUrl,
+      }).catch(() => {})
+    }
+    setShowShareMenu(false)
+  }
+
+  const shareToTwitter = () => {
+    const text = encodeURIComponent(post.content?.slice(0, 200) || '')
+    const url = encodeURIComponent(postUrl)
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank')
+    setShowShareMenu(false)
+  }
+
+  const shareToFacebook = () => {
+    const url = encodeURIComponent(postUrl)
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank')
+    setShowShareMenu(false)
+  }
+
+  if (deleted) return null
+
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
 
   return (
@@ -128,6 +178,16 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
               </Link>
               <span className="text-gray-400 text-sm">· {timeAgo}</span>
             </div>
+            {/* Delete button (owner/admin) */}
+            {canDelete && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                title="Delete post"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
           </div>
 
           <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-wrap mb-3">{post.content}</p>
@@ -151,7 +211,7 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center gap-8 mt-4 text-gray-500">
+          <div className="flex items-center gap-6 mt-4 text-gray-500">
             <button onClick={handleLike} className={`flex items-center gap-2 transition-colors ${liked ? 'text-red-500' : 'hover:text-red-600'}`}>
               <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
               <span className="text-sm">{likeCount}</span>
@@ -160,7 +220,54 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
               <MessageCircle size={20} />
               <span className="text-sm">{commentCount}</span>
             </button>
-            {currentUserId && (
+            {/* Share */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShareMenu(!showShareMenu)}
+                className="flex items-center gap-2 hover:text-green-600 transition-colors"
+              >
+                <Share2 size={20} />
+              </button>
+              {showShareMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)} />
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-lg border border-gray-100 py-2 w-48 z-50">
+                    <button
+                      onClick={handleCopyLink}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                    >
+                      {copied ? <Check size={16} className="text-green-500" /> : <LinkIcon size={16} />}
+                      {copied ? 'Copied!' : 'Copy link'}
+                    </button>
+                    {typeof navigator !== 'undefined' && 'share' in navigator && (
+                      <button
+                        onClick={handleShareNative}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                      >
+                        <Share2 size={16} />
+                        Share via...
+                      </button>
+                    )}
+                    <button
+                      onClick={shareToTwitter}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      Post on X
+                    </button>
+                    <button
+                      onClick={shareToFacebook}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                      Share on Facebook
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Report */}
+            {currentUserId && !isOwner && (
               <button
                 onClick={() => setShowReportModal(true)}
                 className="flex items-center gap-2 hover:text-yellow-600 transition-colors ml-auto opacity-0 group-hover:opacity-100"
@@ -223,6 +330,30 @@ export default function PostCard({ post, currentUserId }: PostCardProps) {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+                <h3 className="font-bold text-lg mb-2">Delete Post?</h3>
+                <p className="text-gray-500 text-sm mb-6">This action cannot be undone. The post will be permanently removed.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 border border-gray-200 text-gray-700 py-2.5 rounded-full font-bold hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 bg-red-600 text-white py-2.5 rounded-full font-bold hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
