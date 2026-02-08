@@ -1,8 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, CheckCircle } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 
 export default function Register() {
   const [email, setEmail] = useState('')
@@ -13,6 +14,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const supabase = createClient()
+  const router = useRouter()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,6 +68,11 @@ export default function Register() {
     } else {
       setSuccess(true)
       setLoading(false)
+      // Auto-confirmed, redirect to home after a moment
+      setTimeout(() => {
+        router.push('/')
+        router.refresh()
+      }, 1500)
     }
   }
 
@@ -75,23 +82,10 @@ export default function Register() {
         <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="text-green-500" size={32} />
         </div>
-        <h1 className="text-2xl font-bold mb-2">Check your email!</h1>
-        <p className="text-gray-500 mb-2">
-          We sent a confirmation link to:
+        <h1 className="text-2xl font-bold mb-2">Welcome to MiniSocial!</h1>
+        <p className="text-gray-500 mb-6">
+          Your account has been created. Redirecting you...
         </p>
-        <p className="font-bold text-gray-900 mb-6 flex items-center justify-center gap-2">
-          <Mail size={18} className="text-blue-500" />
-          {email}
-        </p>
-        <p className="text-sm text-gray-400 mb-6">
-          Click the link in the email to activate your account. Check your spam folder if you don&apos;t see it.
-        </p>
-        <Link
-          href="/auth/login"
-          className="block w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-        >
-          Go to Login
-        </Link>
       </div>
     )
   }
