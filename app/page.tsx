@@ -15,11 +15,29 @@ export default async function Home() {
       *,
       profiles:user_id(username, display_name, avatar_path),
       post_media(storage_path),
-      likes(count)
+      likes(count),
+      comments(count)
     `)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(20)
+
+  // Check which posts the current user has liked
+  let likedPostIds: Set<string> = new Set()
+  if (user) {
+    const { data: userLikes } = await supabase
+      .from('likes')
+      .select('post_id')
+      .eq('user_id', user.id)
+    if (userLikes) {
+      likedPostIds = new Set(userLikes.map(l => l.post_id))
+    }
+  }
+
+  const postsWithLikeStatus = posts?.map(post => ({
+    ...post,
+    user_liked: likedPostIds.has(post.id)
+  })) || []
 
   return (
     <div className="space-y-6">
@@ -32,10 +50,10 @@ export default async function Home() {
       )}
 
       <div className="divide-y divide-gray-100 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {posts?.map((post: any) => (
+        {postsWithLikeStatus.map((post) => (
           <PostCard key={post.id} post={post} currentUserId={user?.id} />
         ))}
-        {(!posts || posts.length === 0) && (
+        {postsWithLikeStatus.length === 0 && (
           <div className="p-10 text-center text-gray-500">
             No posts yet. Start the trend!
           </div>

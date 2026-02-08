@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { Suspense, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-export default function AuthCodeErrorPage() {
+function AuthCodeErrorContent() {
   const sp = useSearchParams()
 
   const details = useMemo(() => {
@@ -47,3 +47,14 @@ export default function AuthCodeErrorPage() {
   )
 }
 
+export default function AuthCodeErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-2xl shadow-sm border border-gray-100 text-center text-gray-500">
+        Loading...
+      </div>
+    }>
+      <AuthCodeErrorContent />
+    </Suspense>
+  )
+}
