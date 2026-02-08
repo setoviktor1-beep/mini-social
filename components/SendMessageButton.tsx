@@ -1,0 +1,46 @@
+'use client'
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import { MessageCircle } from 'lucide-react'
+
+interface SendMessageButtonProps {
+  otherUserId: string
+}
+
+export default function SendMessageButton({ otherUserId }: SendMessageButtonProps) {
+  const supabase = createClient()
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+
+  const handleClick = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('get_or_create_conversation', {
+        other_user_id: otherUserId
+      })
+
+      if (error) {
+        console.error('Error creating conversation:', error)
+        setLoading(false)
+        return
+      }
+
+      router.push(`/messages/${data}`)
+    } catch (err) {
+      console.error('Error:', err)
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="flex items-center gap-2 border-2 border-gray-200 text-gray-700 px-6 py-2.5 rounded-full font-bold hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all disabled:opacity-50"
+    >
+      <MessageCircle size={18} />
+      {loading ? 'Opening...' : 'Message'}
+    </button>
+  )
+}

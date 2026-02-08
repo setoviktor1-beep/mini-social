@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/server-supabase'
 import PostCard from '@/components/PostCard'
 import ProfileActions from '@/components/ProfileActions'
+import SendMessageButton from '@/components/SendMessageButton'
 import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -119,12 +120,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </span>
             </div>
           </div>
-          <ProfileActions
-            profileId={profile.id}
-            currentUserId={currentUser?.id}
-            isFollowing={isFollowing}
-            profile={profile}
-          />
+          <div className="flex flex-col gap-2">
+            <ProfileActions
+              profileId={profile.id}
+              currentUserId={currentUser?.id}
+              isFollowing={isFollowing}
+              profile={profile}
+            />
+            {currentUser && currentUser.id !== profile.id && (
+              <SendMessageButton otherUserId={profile.id} />
+            )}
+          </div>
         </div>
       </div>
 
