@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import ImageLightbox from './ImageLightbox'
 
 interface PostCardProps {
   post: {
@@ -40,6 +41,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [copied, setCopied] = useState(false)
   const [deleted, setDeleted] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const isOwner = currentUserId === post.user_id
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'moderator'
@@ -195,9 +197,23 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           {post.post_media && post.post_media.length > 0 && (
             <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-100 ${post.post_media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
               {post.post_media.map((m, i) => (
-                <img key={i} src={publicUrl(m.storage_path)} className="w-full h-64 object-cover hover:scale-105 transition-transform cursor-pointer" alt="" />
+                <img
+                  key={i}
+                  src={publicUrl(m.storage_path)}
+                  className="w-full h-64 object-cover hover:scale-105 transition-transform cursor-pointer"
+                  alt=""
+                  onClick={() => setLightboxIndex(i)}
+                />
               ))}
             </div>
+          )}
+
+          {lightboxIndex !== null && post.post_media && (
+            <ImageLightbox
+              images={post.post_media.map(m => publicUrl(m.storage_path))}
+              initialIndex={lightboxIndex}
+              onClose={() => setLightboxIndex(null)}
+            />
           )}
 
           {post.youtube_video_id && (

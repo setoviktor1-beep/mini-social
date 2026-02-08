@@ -1,10 +1,10 @@
 'use client'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
-import { Shield, MessageSquare, MessagesSquare } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
+import { Shield, MessageSquare, MessagesSquare, Search } from 'lucide-react'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
@@ -12,26 +12,19 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0)
   const supabase = createClient()
   const router = useRouter()
+  const pathname = usePathname()
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-      if (data.user) {
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-          .then(({ data: profile }) => setRole(profile?.role || 'user'))
-
-        // Check unread messages
-        fetchUnread(data.user.id)
-      }
-    })
+  const fetchUserData = useCallback(async (u: User) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, username')
+      .eq('id', u.id)
+      .single()
+    setRole(profile?.role || 'user')
+    fetchUnread(u.id)
   }, [])
 
   const fetchUnread = async (userId: string) => {
-    // Get conversations where user is participant
     const { data: convos } = await supabase
       .from('conversations')
       .select('id')
@@ -45,10 +38,59 @@ export default function Navbar() {
         .in('conversation_id', convoIds)
         .neq('sender_id', userId)
         .eq('is_read', false)
-
       setUnreadCount(count || 0)
     }
   }
+
+  useEffect(() => {
+    // Initial check
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      if (data.user) fetchUserData(data.user)
+    })
+
+    // Listen for auth changes (login, logout, signup)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+        fetchUserData(session.user)
+        if (event === 'SIGNED_IN') {
+          router.refresh()
+        }
+      } else {
+        setUser(null)
+        setRole(null)
+        setUnreadCount(0)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Re-check unread when navigating back to pages
+  useEffect(() => {
+    if (user) fetchUnread(user.id)
+  }, [pathname])
+
+  // Real-time unread message listener
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel('navbar-messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+      }, (payload: any) => {
+        if (payload.new.sender_id !== user.id) {
+          setUnreadCount(prev => prev + 1)
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id])
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -63,7 +105,10 @@ export default function Navbar() {
         <Link href="/" className="font-black text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
           MiniSocial
         </Link>
-        <div className="flex items-center gap-3 text-sm font-bold text-gray-600">
+        <div className="flex items-center gap-2 text-sm font-bold text-gray-600">
+          <Link href="/search" className="p-2 hover:bg-blue-50 text-gray-500 hover:text-blue-600 rounded-lg transition-colors" title="Search">
+            <Search size={20} />
+          </Link>
           {user ? (
             <>
               <Link href="/discussions" className="p-2 hover:bg-blue-50 text-gray-500 hover:text-blue-600 rounded-lg transition-colors" title="Discussions">
@@ -72,7 +117,7 @@ export default function Navbar() {
               <Link href="/messages" className="p-2 hover:bg-blue-50 text-gray-500 hover:text-blue-600 rounded-lg transition-colors relative" title="Messages">
                 <MessagesSquare size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -82,13 +127,13 @@ export default function Navbar() {
                   <Shield size={20} />
                 </Link>
               )}
-              <Link href={`/u/${user.user_metadata.username}`} className="hover:text-blue-600 transition-colors">Profile</Link>
-              <button onClick={signOut} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-200 transition-all">Logout</button>
+              <Link href={`/u/${user.user_metadata?.username}`} className="hover:text-blue-600 transition-colors ml-1">Profile</Link>
+              <button onClick={signOut} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-200 transition-all ml-1">Logout</button>
             </>
           ) : (
             <>
               <Link href="/discussions" className="hover:text-blue-600 transition-colors">Discussions</Link>
-              <Link href="/auth/login" className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
+              <Link href="/auth/login" className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 ml-1">
                 Login
               </Link>
             </>
