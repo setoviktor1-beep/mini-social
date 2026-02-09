@@ -16,6 +16,23 @@ export default function SendMessageButton({ otherUserId }: SendMessageButtonProp
   const handleClick = async () => {
     setLoading(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        setLoading(false)
+        return
+      }
+
+      const [{ data: blocksByMe }, { data: blocksMe }] = await Promise.all([
+        supabase.from('blocks').select('id').eq('blocker_id', user.id).eq('blocked_id', otherUserId),
+        supabase.from('blocks').select('id').eq('blocker_id', otherUserId).eq('blocked_id', user.id),
+      ])
+      const isBlocked = !!(blocksByMe && blocksByMe.length) || !!(blocksMe && blocksMe.length)
+      if (isBlocked) {
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase.rpc('get_or_create_conversation', {
         other_user_id: otherUserId
       })

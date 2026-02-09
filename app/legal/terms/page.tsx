@@ -21,7 +21,7 @@ export default function TermsOfService() {
 
       <section className="mb-8">
         <h2 className="text-xl font-bold mb-3">4. Disclaimer</h2>
-        <p>The service is provided "as is". We are not liable for any damages resulting from your use of the platform or the content posted by other users.</p>
+        <p>The service is provided &quot;as is&quot;. We are not liable for any damages resulting from your use of the platform or the content posted by other users.</p>
       </section>
     </div>
   )

@@ -34,6 +34,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null)
+  const [blocked, setBlocked] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -85,6 +86,13 @@ export default function ChatPage() {
 
       const other = convo.user1_id === user.id ? convo.user2 : convo.user1
       setOtherUser(other as OtherUser)
+
+      const [{ data: blocksByMe }, { data: blocksMe }] = await Promise.all([
+        supabase.from('blocks').select('id').eq('blocker_id', user.id).eq('blocked_id', (other as any).id),
+        supabase.from('blocks').select('id').eq('blocker_id', (other as any).id).eq('blocked_id', user.id),
+      ])
+      const isBlocked = !!(blocksByMe && blocksByMe.length) || !!(blocksMe && blocksMe.length)
+      setBlocked(isBlocked)
 
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
@@ -144,7 +152,7 @@ export default function ChatPage() {
   }, [messages, scrollToBottom])
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !currentUserId || sending) return
+    if (!newMessage.trim() || !currentUserId || sending || blocked) return
 
     const content = newMessage.trim()
     setNewMessage('')
@@ -255,6 +263,11 @@ export default function ChatPage() {
 
       {/* Message Input */}
       <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 sm:p-3 flex-shrink-0">
+        {blocked && (
+          <div className="mb-2 text-xs sm:text-sm bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-700 dark:text-red-300 rounded-2xl px-3 py-2">
+            Messaging is disabled because one of you blocked the other.
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <textarea
             value={newMessage}
@@ -264,6 +277,7 @@ export default function ChatPage() {
             rows={1}
             className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-3 sm:px-4 py-2.5 text-sm sm:text-[15px] outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 resize-none max-h-32 overflow-y-auto dark:text-gray-200 dark:placeholder-gray-500"
             style={{ minHeight: '44px' }}
+            disabled={blocked}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement
               target.style.height = '44px'
@@ -272,7 +286,7 @@ export default function ChatPage() {
           />
           <button
             onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
+            disabled={!newMessage.trim() || sending || blocked}
             className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 disabled:opacity-40 transition-colors flex-shrink-0 shadow-sm shadow-blue-100 dark:shadow-blue-900/30 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Send size={18} />

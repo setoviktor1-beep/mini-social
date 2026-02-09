@@ -17,10 +17,20 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
   const [status, setStatus] = useState<FriendStatus>('none')
   const [loading, setLoading] = useState(false)
   const [requestId, setRequestId] = useState<string | null>(null)
+  const [blocked, setBlocked] = useState(false)
 
   useEffect(() => {
     if (!currentUserId || currentUserId === profileId) return
-    checkStatus()
+    const init = async () => {
+      const [{ data: blocksByMe }, { data: blocksMe }] = await Promise.all([
+        supabase.from('blocks').select('id').eq('blocker_id', currentUserId).eq('blocked_id', profileId),
+        supabase.from('blocks').select('id').eq('blocker_id', profileId).eq('blocked_id', currentUserId),
+      ])
+      const isBlocked = !!(blocksByMe && blocksByMe.length) || !!(blocksMe && blocksMe.length)
+      setBlocked(isBlocked)
+      if (!isBlocked) checkStatus()
+    }
+    init()
   }, [currentUserId, profileId])
 
   const checkStatus = async () => {
@@ -56,7 +66,7 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
   }
 
   const sendRequest = async () => {
-    if (!currentUserId) return
+    if (!currentUserId || blocked) return
     setLoading(true)
     const { data } = await supabase
       .from('friend_requests')
@@ -71,7 +81,7 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
   }
 
   const acceptRequest = async () => {
-    if (!requestId) return
+    if (!requestId || blocked) return
     setLoading(true)
     await supabase
       .from('friend_requests')
@@ -95,7 +105,7 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
     router.refresh()
   }
 
-  if (!currentUserId || currentUserId === profileId) return null
+  if (!currentUserId || currentUserId === profileId || blocked) return null
 
   if (status === 'friends') {
     return (
