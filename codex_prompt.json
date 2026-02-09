@@ -1,0 +1,59 @@
+{
+  "project": "mini-social",
+  "path": "C:\\Users\\setov\\OneDrive\\Documents\\gemini projekty\\mini-social",
+  "tech_stack": "Next.js 14, React 18, Supabase, Tailwind CSS, TypeScript, lucide-react",
+  "instructions": "Tu esi profesionalus full-stack programuotojas. Dirbi su Next.js 14 + Supabase socialinio tinklo projektu 'mini-social'. Visos spalvos PRIVALO turėti dark: variantą. Responsive design su sm:/md:/lg: prefixais. Touch targets min 44px. Stilius: rounded-2xl kortelės, blue-600 primary, font-bold headings. Supabase browser client: import { createClient } from '@/lib/supabase'. Server client: import { createClient } from '@/lib/server-supabase'. Ikonėlės iš lucide-react.",
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Avatar Upload UI patobulinimas",
+      "priority": "high",
+      "prompt": "Mini-social projekte Settings puslapyje (app/settings/page.tsx) avatar upload jau veikia ir saugomas Supabase Storage 'post-images' bucket kaip 'avatars/{userId}/{timestamp}.{ext}'. Dabar reikia kad avatariai rodosi VISUR: 1) PostCard komentaruose - components/PostCard.tsx komentarų sekcijoje vietoj pirmos raidės rodyti avatar jei yra avatar_path, 2) Navbar - components/Navbar.tsx pridėti mažą (w-7 h-7) avatar circle prie Profile nuorodos, fetchinti avatar_path kartu su role, 3) Messages - app/messages/page.tsx ir components/MessageBubble.tsx jau rodo avatarus bet patikrink ar teisingai, 4) Discussion replies - app/discussions/[id]/page.tsx atsakymuose rodyti avatarus, 5) Search rezultatuose - app/search/page.tsx. Avatar URL pattern: supabase.storage.from('post-images').getPublicUrl(avatar_path).data.publicUrl. Nepamirsk dark: klasių.",
+      "files": ["components/PostCard.tsx", "components/Navbar.tsx", "app/messages/page.tsx", "components/MessageBubble.tsx", "app/discussions/[id]/page.tsx", "app/search/page.tsx"]
+    },
+    {
+      "id": 2,
+      "title": "Live Notifikacijų sistema",
+      "priority": "high",
+      "prompt": "Sukurk pilną live notifikacijų sistemą mini-social projektui. PIRMA: sukurk SQL migraciją faile scripts/migration-v4-notifications.sql su notifications table (id UUID PK, user_id UUID FK profiles, type TEXT CHECK IN ('like','comment','follow','new_post'), actor_id UUID FK profiles, target_id UUID, target_type TEXT, is_read BOOLEAN DEFAULT false, created_at TIMESTAMPTZ). Pridėk RLS policies ir realtime. ANTRA: sukurk components/NotificationBell.tsx - varpelis su Bell ikona iš lucide-react, unread count badge (kaip messages badge), dropdown su paskutinėmis 20 notifikacijų, mark all as read mygtukas, Supabase Realtime subscription naujoms notifikacijoms. TREČIA: sukurk app/notifications/page.tsx - pilnas notifikacijų sąrašas su infinite scroll. KETVIRTA: pridėk NotificationBell į components/Navbar.tsx šalia messages ikonėlės. PENKTA: modifikuok components/PostCard.tsx handleLike ir handleComment kad insertintų notification gavėjui. ŠEŠTA: modifikuok components/ProfileActions.tsx follow handler kad insertintų notification. Stilius: dark: klasės, responsive, 44px touch targets.",
+      "files": ["scripts/migration-v4-notifications.sql", "components/NotificationBell.tsx", "app/notifications/page.tsx", "components/Navbar.tsx", "components/PostCard.tsx", "components/ProfileActions.tsx"]
+    },
+    {
+      "id": 3,
+      "title": "User Blocking/Muting",
+      "priority": "medium",
+      "prompt": "Implementuok user blocking sistemą. PIRMA: SQL migracija scripts/migration-v5-blocks.sql - blocks table (id UUID PK, blocker_id UUID FK, blocked_id UUID FK, created_at, UNIQUE(blocker_id,blocked_id), CHECK blocker!=blocked). RLS: users manage own blocks, users can see if they're blocked. ANTRA: app/u/[username]/page.tsx - pridėk Block/Unblock mygtuką (Ban ikona iš lucide-react) kai žiūri kito vartotojo profilį. TREČIA: app/settings/page.tsx - pridėk 'Blocked Users' sekciją su sąrašu ir unblock mygtukais. KETVIRTA: app/page.tsx - filtruok blocked vartotojų postus iš feed'o (SELECT blocked_id FROM blocks WHERE blocker_id = current_user, tada .not('user_id','in',blocked_ids)). PENKTA: app/messages/page.tsx - nerodyti conversations su blocked users. Stilius: dark: klasės, responsive.",
+      "files": ["scripts/migration-v5-blocks.sql", "app/u/[username]/page.tsx", "app/settings/page.tsx", "app/page.tsx", "app/messages/page.tsx"]
+    },
+    {
+      "id": 4,
+      "title": "Discussion Pin/Lock UI",
+      "priority": "medium",
+      "prompt": "DB jau turi is_pinned ir is_locked boolean laukus discussions lentelėje. Reikia tik UI. PIRMA: app/discussions/[id]/page.tsx - pridėk Pin/Unpin ir Lock/Unlock mygtukus (Pin, Lock ikonos iš lucide-react) matomus tik admin/moderator vartotojams. Pin: supabase.from('discussions').update({is_pinned: !current}).eq('id', id). Lock: analogiškai is_locked. Kai diskusija locked - nerodyti reply formos, vietoj jos rodyti pranešimą 'This discussion is locked'. ANTRA: components/DiscussionCard.tsx - rodyti Pin ir Lock ikonėles prie diskusijos title kai is_pinned arba is_locked yra true. Pinned diskusijos jau rodomos viršuje (ORDER BY is_pinned DESC). Stilius: dark: klasės, responsive, 44px touch targets.",
+      "files": ["app/discussions/[id]/page.tsx", "components/DiscussionCard.tsx"]
+    },
+    {
+      "id": 5,
+      "title": "Hashtag/Mention sistema",
+      "priority": "low",
+      "prompt": "Sukurk hashtag ir mention parsing sistemą. PIRMA: sukurk lib/parseContent.tsx - React komponentas/utility kuris priima tekstą ir grąžina React elementus: #hashtag -> <Link href='/search?q=%23hashtag' className='text-blue-600 dark:text-blue-400 hover:underline'>#hashtag</Link>, @username -> <Link href='/u/username' className='text-blue-600 dark:text-blue-400 hover:underline'>@username</Link>, likęs tekstas lieka kaip yra. Naudok regex: /#(\\w+)/g ir /@(\\w+)/g. ANTRA: components/PostCard.tsx - vietoj <p>{post.content}</p> naudok <ParsedContent content={post.content} />. Taip pat komentaruose. TREČIA: app/discussions/[id]/page.tsx - discussion content ir replies. Nedaryk auto-complete, tik parsing ir linkavimas.",
+      "files": ["lib/parseContent.tsx", "components/PostCard.tsx", "app/discussions/[id]/page.tsx"]
+    },
+    {
+      "id": 6,
+      "title": "Feed algoritmas",
+      "priority": "low",
+      "prompt": "Patobulink home feed su tabs. app/page.tsx: PIRMA: pridėk 3 tabs viršuje: 'For You', 'Following', 'Latest'. Naudok URL searchParams (?tab=following). Tabs stilius kaip discussions kategorijų tabs (rounded-full pills, blue-600 active). ANTRA: 'Latest' tab - dabartinis chronologinis feed (jau veikia, tiesiog pernaudok). TREČIA: 'Following' tab - tik postai iš vartotojų kuriuos seki. Query: pirma gauk followed user IDs iš follows table (follower_id = current_user), tada posts.in('user_id', followedIds). KETVIRTA: 'For You' tab - postai iš paskutinių 48h surikiuoti pagal (likes count + comments count) DESC. Nenaudok subquery, tiesiog fetchink postus su likes(count) ir comments(count), ir surikiuok client-side arba naudok .order(). Neprisijungę vartotojai mato tik 'Latest'. Stilius: dark: klasės, responsive.",
+      "files": ["app/page.tsx"]
+    }
+  ],
+  "workflow_order": [1, 2, 3, 4, 5, 6],
+  "global_rules": {
+    "styling": "Visos naujos klasės PRIVALO turėti dark: variantą. bg-white -> bg-white dark:bg-gray-900. text-gray-900 -> text-gray-900 dark:text-gray-100. border-gray-100 -> border-gray-100 dark:border-gray-800",
+    "responsive": "Mobile-first su sm:/md:/lg: prefixais. Touch targets min-h-[44px] min-w-[44px]",
+    "icons": "Naudoti lucide-react ikonėles",
+    "supabase_browser": "import { createClient } from '@/lib/supabase'",
+    "supabase_server": "import { createClient } from '@/lib/server-supabase'",
+    "components": "rounded-2xl kortelės, blue-600 primary spalva, font-bold/font-black headings, shadow-sm borders"
+  }
+}

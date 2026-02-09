@@ -26,7 +26,6 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
   const checkStatus = async () => {
     if (!currentUserId) return
 
-    // Check if I sent a request
     const { data: sent } = await supabase
       .from('friend_requests')
       .select('id, status')
@@ -40,7 +39,6 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
       return
     }
 
-    // Check if they sent me a request
     const { data: received } = await supabase
       .from('friend_requests')
       .select('id, status')
@@ -102,14 +100,14 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
   if (status === 'friends') {
     return (
       <div className="flex gap-2">
-        <span className="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-green-600 bg-green-50 border border-green-200 text-sm">
+        <span className="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-green-600 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm">
           <UserCheck size={16} />
           Friends
         </span>
         <button
           onClick={declineOrCancel}
           disabled={loading}
-          className="p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+          className="p-2.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
           title="Unfriend"
         >
           <UserX size={16} />
@@ -123,7 +121,7 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
       <button
         onClick={declineOrCancel}
         disabled={loading}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-gray-500 bg-gray-100 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors text-sm"
+        className="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 hover:border-red-200 dark:hover:border-red-700 transition-colors text-sm"
       >
         <Clock size={16} />
         {loading ? '...' : 'Request Sent'}
@@ -145,7 +143,7 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
         <button
           onClick={declineOrCancel}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-gray-500 bg-gray-100 hover:bg-red-50 hover:text-red-600 transition-colors text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 transition-colors text-sm"
         >
           <UserX size={16} />
         </button>

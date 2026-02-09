@@ -78,17 +78,17 @@ export default function AdminAuditLogPage() {
   const allActions = Object.keys(actionLabels)
 
   return (
-    <div>
-      <h1 className="text-2xl font-black text-gray-900 mb-6">Audit Log</h1>
+    <div className="mt-12 lg:mt-0">
+      <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">Audit Log</h1>
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <select value={actionFilter} onChange={e => { setActionFilter(e.target.value); setPage(1) }} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <select value={actionFilter} onChange={e => { setActionFilter(e.target.value); setPage(1) }} className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-200 min-h-[44px] w-full sm:w-auto">
           <option value="all">All Actions</option>
           {allActions.map(a => (
             <option key={a} value={a}>{actionLabels[a]}</option>
           ))}
         </select>
-        <select value={actorFilter} onChange={e => { setActorFilter(e.target.value); setPage(1) }} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+        <select value={actorFilter} onChange={e => { setActorFilter(e.target.value); setPage(1) }} className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-200 min-h-[44px] w-full sm:w-auto">
           <option value="all">All Actors</option>
           {actors.map(a => (
             <option key={a.id} value={a.id}>@{a.username}</option>
@@ -96,46 +96,81 @@ export default function AdminAuditLogPage() {
         </select>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
-            <tr>
-              <th className="px-6 py-3">Actor</th>
-              <th className="px-6 py-3">Action</th>
-              <th className="px-6 py-3">Target</th>
-              <th className="px-6 py-3">Details</th>
-              <th className="px-6 py-3">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {loading ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400">Loading...</td></tr>
-            ) : actions.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400">No audit log entries.</td></tr>
-            ) : actions.map(action => (
-              <tr key={action.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-3 font-medium text-gray-900">@{action.actor?.username || 'unknown'}</td>
-                <td className="px-6 py-3">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${actionColors[action.action] || 'text-gray-600 bg-gray-100'}`}>
-                    {actionLabels[action.action] || action.action}
-                  </span>
-                </td>
-                <td className="px-6 py-3">
-                  <span className="text-xs text-gray-500 uppercase font-bold">{action.target_type}</span>
-                  <span className="text-xs text-gray-400 ml-1">{action.target_id?.slice(0, 8)}</span>
-                </td>
-                <td className="px-6 py-3 text-xs text-gray-500 max-w-xs truncate">
-                  {action.details && Object.keys(action.details).length > 0
-                    ? Object.entries(action.details).map(([k, v]) => `${k}: ${v}`).join(', ')
-                    : '—'}
-                </td>
-                <td className="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">
-                  {new Date(action.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </td>
+      {/* Desktop table */}
+      <div className="hidden md:block bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-3">Actor</th>
+                <th className="px-6 py-3">Action</th>
+                <th className="px-6 py-3">Target</th>
+                <th className="px-6 py-3">Details</th>
+                <th className="px-6 py-3">Timestamp</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              {loading ? (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">Loading...</td></tr>
+              ) : actions.length === 0 ? (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">No audit log entries.</td></tr>
+              ) : actions.map(action => (
+                <tr key={action.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">@{action.actor?.username || 'unknown'}</td>
+                  <td className="px-6 py-3">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${actionColors[action.action] || 'text-gray-600 bg-gray-100'}`}>
+                      {actionLabels[action.action] || action.action}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className="text-xs text-gray-500 uppercase font-bold">{action.target_type}</span>
+                    <span className="text-xs text-gray-400 ml-1">{action.target_id?.slice(0, 8)}</span>
+                  </td>
+                  <td className="px-6 py-3 text-xs text-gray-500 max-w-xs truncate">
+                    {action.details && Object.keys(action.details).length > 0
+                      ? Object.entries(action.details).map(([k, v]) => `${k}: ${v}`).join(', ')
+                      : '\u2014'}
+                  </td>
+                  <td className="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">
+                    {new Date(action.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile card layout */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center text-gray-400 dark:text-gray-500">Loading...</div>
+        ) : actions.length === 0 ? (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center text-gray-400 dark:text-gray-500">No audit log entries.</div>
+        ) : actions.map(action => (
+          <div key={action.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-medium text-gray-900 text-sm">@{action.actor?.username || 'unknown'}</span>
+              <span className="text-xs text-gray-400">
+                {new Date(action.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            <div className="mb-2">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-block ${actionColors[action.action] || 'text-gray-600 bg-gray-100'}`}>
+                {actionLabels[action.action] || action.action}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+              <span className="uppercase font-bold">{action.target_type}</span>
+              <span className="text-gray-400">{action.target_id?.slice(0, 8)}</span>
+            </div>
+            {action.details && Object.keys(action.details).length > 0 && (
+              <p className="text-xs text-gray-500 mt-1 break-words">
+                {Object.entries(action.details).map(([k, v]) => `${k}: ${v}`).join(', ')}
+              </p>
+            )}
+          </div>
+        ))}
       </div>
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalItems={total} perPage={PER_PAGE} />

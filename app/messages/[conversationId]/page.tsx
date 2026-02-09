@@ -42,7 +42,6 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  // Mark unread messages as read
   const markAsRead = useCallback(async (userId: string) => {
     await supabase
       .from('messages')
@@ -56,7 +55,6 @@ export default function ChatPage() {
     let channel: ReturnType<typeof supabase.channel> | null = null
 
     const initialize = async () => {
-      // Check auth
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
@@ -64,7 +62,6 @@ export default function ChatPage() {
       }
       setCurrentUserId(user.id)
 
-      // Fetch conversation details to get the other user
       const { data: convo, error: convoError } = await supabase
         .from('conversations')
         .select(`
@@ -81,17 +78,14 @@ export default function ChatPage() {
         return
       }
 
-      // Verify user is part of this conversation
       if (convo.user1_id !== user.id && convo.user2_id !== user.id) {
         router.push('/messages')
         return
       }
 
-      // Set the other user
       const other = convo.user1_id === user.id ? convo.user2 : convo.user1
       setOtherUser(other as OtherUser)
 
-      // Fetch messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('*')
@@ -105,10 +99,8 @@ export default function ChatPage() {
       setMessages(messagesData || [])
       setLoading(false)
 
-      // Mark messages as read
       await markAsRead(user.id)
 
-      // Set up real-time subscription
       channel = supabase
         .channel(`messages:${conversationId}`)
         .on(
@@ -122,12 +114,10 @@ export default function ChatPage() {
           (payload) => {
             const newMsg = payload.new as Message
             setMessages((prev) => {
-              // Avoid duplicates (in case we already added it optimistically)
               if (prev.some((m) => m.id === newMsg.id)) return prev
               return [...prev, newMsg]
             })
 
-            // If the message is from the other user, mark it as read
             if (newMsg.sender_id !== user.id) {
               supabase
                 .from('messages')
@@ -149,7 +139,6 @@ export default function ChatPage() {
     }
   }, [conversationId])
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
@@ -161,7 +150,6 @@ export default function ChatPage() {
     setNewMessage('')
     setSending(true)
 
-    // Insert the message and get it back with real ID
     const { data: inserted, error } = await supabase.from('messages').insert({
       conversation_id: conversationId,
       sender_id: currentUserId,
@@ -170,18 +158,16 @@ export default function ChatPage() {
 
     if (error || !inserted) {
       console.error('Error sending message:', error)
-      setNewMessage(content) // Restore the message on error
+      setNewMessage(content)
       setSending(false)
       return
     }
 
-    // Add to local state immediately (Realtime dedup will prevent duplicates)
     setMessages((prev) => {
       if (prev.some((m) => m.id === inserted.id)) return prev
       return [...prev, inserted as Message]
     })
 
-    // Update conversation's last_message_at
     await supabase
       .from('conversations')
       .update({ last_message_at: new Date().toISOString() })
@@ -211,28 +197,28 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden" style={{ height: 'calc(100vh - 10rem)' }}>
+    <div className="flex flex-col bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden" style={{ height: 'calc(100vh - 7rem)', minHeight: '400px' }}>
       {/* Chat Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex-shrink-0">
         <Link
           href="/messages"
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors -ml-1"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors -ml-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
-          <ArrowLeft size={20} className="text-gray-600" />
+          <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
         </Link>
         <Link href={`/u/${otherUser?.username}`} className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             {otherUser?.avatar_path ? (
               <img src={getAvatarUrl(otherUser.avatar_path) || ''} className="w-full h-full object-cover" alt="" />
             ) : (
-              <span className="text-sm font-bold text-blue-300">
+              <span className="text-sm font-bold text-blue-300 dark:text-blue-500">
                 {otherUser?.display_name?.charAt(0).toUpperCase()}
               </span>
             )}
           </div>
           <div className="min-w-0">
-            <h2 className="font-bold text-gray-900 truncate">{otherUser?.display_name}</h2>
-            <p className="text-xs text-gray-400 truncate">@{otherUser?.username}</p>
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 truncate">{otherUser?.display_name}</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">@{otherUser?.username}</p>
           </div>
         </Link>
       </div>
@@ -240,17 +226,17 @@ export default function ChatPage() {
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50/50"
+        className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 space-y-2 sm:space-y-3 bg-gray-50/50 dark:bg-gray-950/50"
       >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mb-3">
-              <span className="text-xl font-bold text-blue-300">
+            <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-3">
+              <span className="text-xl font-bold text-blue-300 dark:text-blue-500">
                 {otherUser?.display_name?.charAt(0).toUpperCase()}
               </span>
             </div>
-            <h3 className="font-bold text-gray-900 text-lg">{otherUser?.display_name}</h3>
-            <p className="text-gray-400 text-sm mt-1">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{otherUser?.display_name}</h3>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
               This is the beginning of your conversation.
             </p>
           </div>
@@ -268,7 +254,7 @@ export default function ChatPage() {
       </div>
 
       {/* Message Input */}
-      <div className="border-t border-gray-100 bg-white p-3 flex-shrink-0">
+      <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 sm:p-3 flex-shrink-0">
         <div className="flex items-end gap-2">
           <textarea
             value={newMessage}
@@ -276,18 +262,18 @@ export default function ChatPage() {
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-[15px] outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 resize-none max-h-32 overflow-y-auto"
-            style={{ minHeight: '42px' }}
+            className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-3 sm:px-4 py-2.5 text-sm sm:text-[15px] outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 resize-none max-h-32 overflow-y-auto dark:text-gray-200 dark:placeholder-gray-500"
+            style={{ minHeight: '44px' }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement
-              target.style.height = '42px'
+              target.style.height = '44px'
               target.style.height = Math.min(target.scrollHeight, 128) + 'px'
             }}
           />
           <button
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
-            className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 disabled:opacity-40 transition-colors flex-shrink-0 shadow-sm shadow-blue-100"
+            className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 disabled:opacity-40 transition-colors flex-shrink-0 shadow-sm shadow-blue-100 dark:shadow-blue-900/30 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Send size={18} />
           </button>

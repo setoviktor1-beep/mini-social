@@ -39,11 +39,20 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
         .eq('following_id', profileId)
       setFollowing(false)
     } else {
-      await supabase.from('follows').insert({
+      const { error } = await supabase.from('follows').insert({
         follower_id: currentUserId,
         following_id: profileId
       })
-      setFollowing(true)
+      if (!error) {
+        setFollowing(true)
+        await supabase.from('notifications').insert({
+          user_id: profileId,
+          actor_id: currentUserId,
+          type: 'follow',
+          target_id: currentUserId,
+          target_type: 'user',
+        })
+      }
     }
 
     setLoading(false)
@@ -78,15 +87,15 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
   if (!currentUserId) return null
 
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-2 sm:gap-3">
       {!isOwner && (
         <button
           onClick={handleFollow}
           disabled={loading}
-          className={`px-8 py-2.5 rounded-full font-bold transition-all shadow-sm ${
+          className={`px-6 sm:px-8 py-2.5 rounded-full font-bold transition-all shadow-sm min-h-[44px] ${
             following
-              ? 'border-2 border-gray-200 text-gray-700 hover:border-red-200 hover:text-red-600 hover:bg-red-50'
-              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100'
+              ? 'border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-red-200 dark:hover:border-red-700 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30'
+              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100 dark:shadow-blue-900/30'
           }`}
         >
           {loading ? '...' : following ? 'Following' : 'Follow'}
@@ -96,17 +105,17 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
         <>
           <button
             onClick={() => setShowEditModal(true)}
-            className="border-2 border-gray-200 text-gray-700 px-8 py-2.5 rounded-full font-bold hover:bg-gray-50 transition-all"
+            className="border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all min-h-[44px]"
           >
             Edit Profile
           </button>
 
           {showEditModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
-              <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-bold text-xl">Edit Profile</h3>
-                  <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h3 className="font-bold text-lg sm:text-xl dark:text-gray-100">Edit Profile</h3>
+                  <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center">
                     <X size={20} />
                   </button>
                 </div>
@@ -115,13 +124,13 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
                   {/* Avatar upload */}
                   <div className="flex justify-center">
                     <label className="relative cursor-pointer group">
-                      <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 group-hover:border-blue-400 transition-colors">
+                      <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700 group-hover:border-blue-400 transition-colors">
                         {avatarFile ? (
                           <img src={URL.createObjectURL(avatarFile)} className="w-full h-full object-cover" alt="" />
                         ) : profile.avatar_path ? (
                           <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`} className="w-full h-full object-cover" alt="" />
                         ) : (
-                          <span className="text-2xl font-bold text-blue-200">{displayName.charAt(0).toUpperCase()}</span>
+                          <span className="text-2xl font-bold text-blue-200 dark:text-blue-500">{displayName.charAt(0).toUpperCase()}</span>
                         )}
                       </div>
                       <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full shadow-sm">
@@ -132,22 +141,22 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
                   </div>
 
                   <div>
-                    <label className="text-sm font-bold text-gray-700 block mb-1">Display Name</label>
+                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1">Display Name</label>
                     <input
                       type="text"
                       value={displayName}
                       onChange={e => setDisplayName(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white dark:bg-gray-800 dark:text-gray-200 min-h-[44px]"
                       maxLength={50}
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-bold text-gray-700 block mb-1">Bio</label>
+                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1">Bio</label>
                     <textarea
                       value={bio}
                       onChange={e => setBio(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 resize-none min-h-[80px]"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 resize-none min-h-[80px] bg-white dark:bg-gray-800 dark:text-gray-200"
                       maxLength={160}
                       placeholder="Tell us about yourself..."
                     />
@@ -157,7 +166,7 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving}
-                    className="w-full bg-blue-600 text-white py-2.5 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="w-full bg-blue-600 text-white py-2.5 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-[44px]"
                   >
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>

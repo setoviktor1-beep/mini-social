@@ -56,109 +56,113 @@ export default function Login() {
 
   if (showReset) {
     return (
-      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
-        {resetSent ? (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="text-green-500" size={32} />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Check your email</h1>
-            <p className="text-gray-500 mb-2">We sent a password reset link to:</p>
-            <p className="font-bold text-gray-900 mb-6 flex items-center justify-center gap-2">
-              <Mail size={18} className="text-blue-500" />
-              {resetEmail}
-            </p>
-            <button
-              onClick={() => { setShowReset(false); setResetSent(false) }}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-            >
-              Back to Login
-            </button>
-          </div>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold mb-2">Reset Password</h1>
-            <p className="text-gray-500 mb-6 text-sm">Enter your email and we&apos;ll send you a reset link.</p>
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Email</label>
-                <input
-                  type="email"
-                  value={resetEmail}
-                  onChange={e => setResetEmail(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  placeholder="john@example.com"
-                  required
-                />
+      <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
+        <div className="p-6 sm:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800">
+          {resetSent ? (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="text-green-500" size={32} />
               </div>
+              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Check your email</h1>
+              <p className="text-gray-500 dark:text-gray-400 mb-2 text-sm sm:text-base">We sent a password reset link to:</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center justify-center gap-2 text-sm sm:text-base break-all">
+                <Mail size={18} className="text-blue-500 flex-shrink-0" />
+                {resetEmail}
+              </p>
               <button
-                disabled={resetLoading}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                onClick={() => { setShowReset(false); setResetSent(false) }}
+                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors min-h-[44px]"
               >
-                {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                Back to Login
               </button>
-            </form>
-            <button
-              onClick={() => setShowReset(false)}
-              className="mt-4 w-full text-center text-sm text-gray-500 hover:text-blue-600"
-            >
-              Back to Login
-            </button>
-          </>
-        )}
+            </div>
+          ) : (
+            <>
+              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Reset Password</h1>
+              <p className="text-gray-500 dark:text-gray-400 mb-4 sm:mb-6 text-sm">Enter your email and we&apos;ll send you a reset link.</p>
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 min-h-[44px]"
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+                <button
+                  disabled={resetLoading}
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-[44px]"
+                >
+                  {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                </button>
+              </form>
+              <button
+                onClick={() => setShowReset(false)}
+                className="mt-4 w-full text-center text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 min-h-[44px]"
+              >
+                Back to Login
+              </button>
+            </>
+          )}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
-      <h1 className="text-2xl font-bold mb-2">Welcome Back</h1>
-      <p className="text-gray-500 mb-6 text-sm">Sign in to your account.</p>
+    <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
+      <div className="p-6 sm:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome Back</h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-4 sm:mb-6 text-sm">Sign in to your account.</p>
 
-      {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{error}</div>}
+        {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
 
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            placeholder="john@example.com"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            placeholder="••••••••"
-            required
-          />
-        </div>
-        <div className="flex justify-end">
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 min-h-[44px]"
+              placeholder="john@example.com"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 min-h-[44px]"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowReset(true)}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline min-h-[44px] flex items-center"
+            >
+              Forgot password?
+            </button>
+          </div>
           <button
-            type="button"
-            onClick={() => setShowReset(true)}
-            className="text-sm text-blue-600 hover:underline"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm shadow-blue-200 dark:shadow-blue-900/30 min-h-[44px]"
           >
-            Forgot password?
+            {loading ? 'Logging in...' : 'Login'}
           </button>
-        </div>
-        <button
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm shadow-blue-200"
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-      <p className="mt-6 text-center text-sm text-gray-500">
-        Don&apos;t have an account? <Link href="/auth/register" className="text-blue-600 font-semibold hover:underline">Register</Link>
-      </p>
+        </form>
+        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          Don&apos;t have an account? <Link href="/auth/register" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Register</Link>
+        </p>
+      </div>
     </div>
   )
 }

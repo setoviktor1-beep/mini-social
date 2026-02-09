@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Search, Users, FileText, Loader2 } from 'lucide-react'
@@ -23,6 +23,7 @@ interface PostResult {
   profiles: {
     username: string
     display_name: string
+    avatar_path: string | null
   }
 }
 
@@ -30,6 +31,7 @@ export default function SearchPage() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const supabase = useMemo(() => createClient(), [])
 
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -39,12 +41,10 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
-  // Auto-focus on mount
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
 
-  // Debounce the query
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
@@ -59,7 +59,6 @@ export default function SearchPage() {
     }
   }, [query])
 
-  // Perform search when debouncedQuery or activeTab changes
   const performSearch = useCallback(async () => {
     if (!debouncedQuery) {
       setUsers([])
@@ -70,7 +69,6 @@ export default function SearchPage() {
 
     setLoading(true)
     setHasSearched(true)
-    const supabase = createClient()
 
     try {
       if (activeTab === 'users') {
@@ -88,7 +86,7 @@ export default function SearchPage() {
       } else {
         const { data, error } = await supabase
           .from('posts')
-          .select('*, profiles:user_id(username, display_name)')
+          .select('*, profiles:user_id(username, display_name, avatar_path)')
           .ilike('content', `%${debouncedQuery}%`)
           .eq('status', 'active')
           .order('created_at', { ascending: false })
@@ -106,11 +104,16 @@ export default function SearchPage() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedQuery, activeTab])
+  }, [debouncedQuery, activeTab, supabase])
 
   useEffect(() => {
     performSearch()
   }, [performSearch])
+
+  const getAvatarUrl = (path: string | null) => {
+    if (!path) return null
+    return supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
+  }
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'users', label: 'Users', icon: <Users size={16} /> },
@@ -118,17 +121,17 @@ export default function SearchPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Search Header */}
-      <div className="flex items-center gap-3 mb-2">
-        <Search size={28} className="text-blue-600" />
-        <h1 className="text-2xl font-black text-gray-900">Search</h1>
+      <div className="flex items-center gap-2 sm:gap-3 mb-2">
+        <Search size={24} className="text-blue-600 sm:w-7 sm:h-7" />
+        <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Search</h1>
       </div>
 
       {/* Search Input */}
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-          <Search size={20} className="text-gray-400" />
+        <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none">
+          <Search size={20} className="text-gray-400 dark:text-gray-500" />
         </div>
         <input
           ref={inputRef}
@@ -136,10 +139,10 @@ export default function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search users or posts..."
-          className="w-full pl-14 pr-5 py-4 bg-gray-50 border border-gray-200 rounded-full text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 transition-all"
+          className="w-full pl-11 sm:pl-14 pr-4 sm:pr-5 py-3 sm:py-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500 transition-all dark:text-gray-200"
         />
         {loading && (
-          <div className="absolute inset-y-0 right-0 pr-5 flex items-center">
+          <div className="absolute inset-y-0 right-0 pr-4 sm:pr-5 flex items-center">
             <Loader2 size={20} className="text-blue-600 animate-spin" />
           </div>
         )}
@@ -151,10 +154,10 @@ export default function SearchPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-semibold transition-colors min-h-[40px] ${
               activeTab === tab.key
-                ? 'bg-blue-600 text-white shadow-sm shadow-blue-200'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-200 dark:shadow-blue-900/30'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {tab.icon}
@@ -164,21 +167,21 @@ export default function SearchPage() {
       </div>
 
       {/* Results */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
         {/* No query state */}
         {!debouncedQuery && !hasSearched && (
-          <div className="p-16 text-center">
-            <Search size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-lg font-semibold text-gray-500">Search for users or posts</p>
-            <p className="text-sm text-gray-400 mt-1">Type something above to get started</p>
+          <div className="p-10 sm:p-16 text-center">
+            <Search size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
+            <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">Search for users or posts</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Type something above to get started</p>
           </div>
         )}
 
         {/* Loading state */}
         {loading && debouncedQuery && (
-          <div className="p-16 text-center">
+          <div className="p-10 sm:p-16 text-center">
             <Loader2 size={32} className="mx-auto mb-3 text-blue-600 animate-spin" />
-            <p className="text-sm text-gray-500">Searching...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Searching...</p>
           </div>
         )}
 
@@ -186,33 +189,41 @@ export default function SearchPage() {
         {!loading && hasSearched && activeTab === 'users' && (
           <>
             {users.length > 0 ? (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {users.map((user) => (
                   <button
                     key={user.id}
                     onClick={() => router.push(`/u/${user.username}`)}
-                    className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left min-h-[64px]"
                   >
-                    <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg font-bold text-blue-200">
-                        {user.display_name?.charAt(0).toUpperCase() || '?'}
-                      </span>
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {user.avatar_path ? (
+                        <img
+                          src={getAvatarUrl(user.avatar_path) || ''}
+                          className="w-full h-full object-cover"
+                          alt=""
+                        />
+                      ) : (
+                        <span className="text-base sm:text-lg font-bold text-blue-200 dark:text-blue-500">
+                          {user.display_name?.charAt(0).toUpperCase() || '?'}
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-gray-900 truncate">{user.display_name}</p>
-                      <p className="text-sm text-gray-500 truncate">@{user.username}</p>
+                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">{user.display_name}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">@{user.username}</p>
                       {user.bio && (
-                        <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{user.bio}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{user.bio}</p>
                       )}
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="p-16 text-center">
-                <Users size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-lg font-semibold text-gray-500">No results found</p>
-                <p className="text-sm text-gray-400 mt-1">Try a different search term</p>
+              <div className="p-10 sm:p-16 text-center">
+                <Users size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
+                <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">No results found</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
               </div>
             )}
           </>
@@ -222,35 +233,52 @@ export default function SearchPage() {
         {!loading && hasSearched && activeTab === 'posts' && (
           <>
             {posts.length > 0 ? (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {posts.map((post) => (
                   <button
                     key={post.id}
                     onClick={() => router.push(`/u/${post.profiles.username}`)}
-                    className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
+                    className="w-full p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left min-h-[64px]"
                   >
-                    <p className="font-bold text-gray-900 text-sm">
-                      {post.profiles.display_name}
-                      <span className="font-normal text-gray-400 ml-2">
-                        @{post.profiles.username}
-                      </span>
-                    </p>
-                    <p className="text-gray-700 mt-1 text-sm leading-relaxed">
-                      {post.content.length > 150
-                        ? post.content.substring(0, 150) + '...'
-                        : post.content}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                    </p>
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {post.profiles.avatar_path ? (
+                          <img
+                            src={getAvatarUrl(post.profiles.avatar_path) || ''}
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
+                        ) : (
+                          <span className="text-sm font-bold text-blue-200 dark:text-blue-500">
+                            {post.profiles.display_name?.charAt(0).toUpperCase() || '?'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">
+                          {post.profiles.display_name}
+                          <span className="font-normal text-gray-400 dark:text-gray-500 ml-2">
+                            @{post.profiles.username}
+                          </span>
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300 mt-1 text-sm leading-relaxed break-words">
+                          {post.content.length > 150
+                            ? post.content.substring(0, 150) + '...'
+                            : post.content}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="p-16 text-center">
-                <FileText size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-lg font-semibold text-gray-500">No results found</p>
-                <p className="text-sm text-gray-400 mt-1">Try a different search term</p>
+              <div className="p-10 sm:p-16 text-center">
+                <FileText size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
+                <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">No results found</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
               </div>
             )}
           </>

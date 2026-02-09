@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
+import ParsedContent from '@/lib/parseContent'
 
 interface PostCardProps {
   post: {
@@ -64,6 +65,16 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
       setLiked(true)
       setLikeCount(prev => prev + 1)
+
+      if (post.user_id && post.user_id !== currentUserId) {
+        await supabase.from('notifications').insert({
+          user_id: post.user_id,
+          actor_id: currentUserId,
+          type: 'like',
+          target_id: post.id,
+          target_type: 'post',
+        })
+      }
     }
   }
 
@@ -71,7 +82,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     setLoadingComments(true)
     const { data } = await supabase
       .from('comments')
-      .select('*, profiles:user_id(username, display_name)')
+      .select('*, profiles:user_id(username, display_name, avatar_path)')
       .eq('post_id', post.id)
       .eq('status', 'active')
       .order('created_at', { ascending: true })
@@ -86,15 +97,25 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
   const handleComment = async () => {
     if (!currentUserId || !commentText.trim()) return
-    const { error } = await supabase.from('comments').insert({
+    const { data: newComment, error } = await supabase.from('comments').insert({
       post_id: post.id,
       user_id: currentUserId,
       content: commentText.trim()
-    })
+    }).select('id').single()
     if (!error) {
       setCommentText('')
       setCommentCount(prev => prev + 1)
       await loadComments()
+
+      if (post.user_id && post.user_id !== currentUserId) {
+        await supabase.from('notifications').insert({
+          user_id: post.user_id,
+          actor_id: currentUserId,
+          type: 'comment',
+          target_id: newComment?.id || post.id,
+          target_type: newComment?.id ? 'comment' : 'post',
+        })
+      }
     }
   }
 
@@ -156,14 +177,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
 
   return (
-    <div className="p-5 hover:bg-gray-50/50 transition-colors group">
-      <div className="flex gap-4">
+    <div className="p-3 sm:p-5 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group">
+      <div className="flex gap-3 sm:gap-4">
         <Link href={`/u/${post.profiles?.username}`} className="flex-shrink-0">
-          <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center overflow-hidden">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden">
             {post.profiles?.avatar_path ? (
               <img src={publicUrl(post.profiles.avatar_path)} className="w-full h-full object-cover" alt="" />
             ) : (
-              <span className="text-lg font-bold text-blue-300">
+              <span className="text-base sm:text-lg font-bold text-blue-300 dark:text-blue-500">
                 {post.profiles?.display_name?.charAt(0).toUpperCase()}
               </span>
             )}
@@ -171,20 +192,19 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2 truncate">
-              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-gray-900 hover:underline">
+            <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-gray-900 dark:text-gray-100 hover:underline text-sm sm:text-base">
                 {post.profiles?.display_name}
               </Link>
-              <Link href={`/u/${post.profiles?.username}`} className="text-gray-500 text-sm hover:underline">
+              <Link href={`/u/${post.profiles?.username}`} className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm hover:underline hidden sm:inline">
                 @{post.profiles?.username}
               </Link>
-              <span className="text-gray-400 text-sm">· {timeAgo}</span>
+              <span className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm">&middot; {timeAgo}</span>
             </div>
-            {/* Delete button (owner/admin) */}
             {canDelete && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
                 title="Delete post"
               >
                 <Trash2 size={16} />
@@ -192,15 +212,17 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             )}
           </div>
 
-          <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-wrap mb-3">{post.content}</p>
+          <p className="text-gray-800 dark:text-gray-200 text-base sm:text-lg leading-relaxed whitespace-pre-wrap mb-3">
+            <ParsedContent content={post.content} />
+          </p>
 
           {post.post_media && post.post_media.length > 0 && (
-            <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-100 ${post.post_media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 ${post.post_media.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               {post.post_media.map((m, i) => (
                 <img
                   key={i}
                   src={publicUrl(m.storage_path)}
-                  className="w-full h-64 object-cover hover:scale-105 transition-transform cursor-pointer"
+                  className="w-full h-48 sm:h-64 object-cover hover:scale-105 transition-transform cursor-pointer"
                   alt=""
                   onClick={() => setLightboxIndex(i)}
                 />
@@ -217,7 +239,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
 
           {post.youtube_video_id && (
-            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-gray-100 bg-black">
+            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-black">
               <iframe
                 width="100%" height="100%"
                 src={`https://www.youtube-nocookie.com/embed/${post.youtube_video_id}`}
@@ -227,12 +249,12 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center gap-6 mt-4 text-gray-500">
-            <button onClick={handleLike} className={`flex items-center gap-2 transition-colors ${liked ? 'text-red-500' : 'hover:text-red-600'}`}>
+          <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-gray-500 dark:text-gray-400">
+            <button onClick={handleLike} className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] ${liked ? 'text-red-500' : 'hover:text-red-600'}`}>
               <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
               <span className="text-sm">{likeCount}</span>
             </button>
-            <button onClick={toggleComments} className="flex items-center gap-2 hover:text-blue-600 transition-colors">
+            <button onClick={toggleComments} className="flex items-center gap-1.5 sm:gap-2 hover:text-blue-600 transition-colors min-h-[44px]">
               <MessageCircle size={20} />
               <span className="text-sm">{commentCount}</span>
             </button>
@@ -240,17 +262,17 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="relative">
               <button
                 onClick={() => setShowShareMenu(!showShareMenu)}
-                className="flex items-center gap-2 hover:text-green-600 transition-colors"
+                className="flex items-center gap-2 hover:text-green-600 transition-colors min-h-[44px]"
               >
                 <Share2 size={20} />
               </button>
               {showShareMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)} />
-                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-lg border border-gray-100 py-2 w-48 z-50">
+                  <div className="absolute bottom-8 left-0 sm:left-1/2 sm:-translate-x-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 py-2 w-48 z-50">
                     <button
                       onClick={handleCopyLink}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
                     >
                       {copied ? <Check size={16} className="text-green-500" /> : <LinkIcon size={16} />}
                       {copied ? 'Copied!' : 'Copy link'}
@@ -258,7 +280,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     {typeof navigator !== 'undefined' && 'share' in navigator && (
                       <button
                         onClick={handleShareNative}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
                       >
                         <Share2 size={16} />
                         Share via...
@@ -266,14 +288,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     )}
                     <button
                       onClick={shareToTwitter}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                       Post on X
                     </button>
                     <button
                       onClick={shareToFacebook}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                       Share on Facebook
@@ -286,7 +308,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             {currentUserId && !isOwner && (
               <button
                 onClick={() => setShowReportModal(true)}
-                className="flex items-center gap-2 hover:text-yellow-600 transition-colors ml-auto opacity-0 group-hover:opacity-100"
+                className="flex items-center gap-2 hover:text-yellow-600 transition-colors ml-auto opacity-100 sm:opacity-0 group-hover:opacity-100 min-h-[44px]"
               >
                 <AlertCircle size={18} />
               </button>
@@ -295,28 +317,38 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Comments section */}
           {showComments && (
-            <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+            <div className="mt-3 sm:mt-4 space-y-3 border-t border-gray-100 dark:border-gray-800 pt-3 sm:pt-4">
               {loadingComments ? (
                 <p className="text-sm text-gray-400">Loading comments...</p>
               ) : (
                 <>
                   {comments.map((c) => (
-                    <div key={c.id} className="flex gap-3">
-                      <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-blue-300">
-                          {c.profiles?.display_name?.charAt(0).toUpperCase()}
-                        </span>
+                    <div key={c.id} className="flex gap-2 sm:gap-3">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {c.profiles?.avatar_path ? (
+                          <img
+                            src={publicUrl(c.profiles.avatar_path)}
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-blue-300 dark:text-blue-500">
+                            {c.profiles?.display_name?.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/u/${c.profiles?.username}`} className="font-bold text-sm text-gray-900 hover:underline">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-gray-900 dark:text-gray-100 hover:underline">
                             {c.profiles?.display_name}
                           </Link>
-                          <span className="text-gray-400 text-xs">
+                          <span className="text-gray-400 dark:text-gray-500 text-xs">
                             {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
                           </span>
                         </div>
-                        <p className="text-gray-700 text-sm">{c.content}</p>
+                        <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm whitespace-pre-wrap break-words">
+                          <ParsedContent content={c.content} />
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -334,13 +366,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     onChange={e => setCommentText(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleComment()}
                     placeholder="Write a comment..."
-                    className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 text-sm outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100"
+                    className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 dark:text-gray-200 min-h-[44px]"
                     maxLength={500}
                   />
                   <button
                     onClick={handleComment}
                     disabled={!commentText.trim()}
-                    className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                   >
                     <Send size={16} />
                   </button>
@@ -351,20 +383,20 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Delete Confirmation Modal */}
           {showDeleteConfirm && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
-              <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-lg mb-2">Delete Post?</h3>
-                <p className="text-gray-500 text-sm mb-6">This action cannot be undone. The post will be permanently removed.</p>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                <h3 className="font-bold text-lg mb-2 dark:text-gray-100">Delete Post?</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 sm:mb-6">This action cannot be undone. The post will be permanently removed.</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 border border-gray-200 text-gray-700 py-2.5 rounded-full font-bold hover:bg-gray-50 transition-colors"
+                    className="flex-1 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-full font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="flex-1 bg-red-600 text-white py-2.5 rounded-full font-bold hover:bg-red-700 transition-colors"
+                    className="flex-1 bg-red-600 text-white py-2.5 rounded-full font-bold hover:bg-red-700 transition-colors min-h-[44px]"
                   >
                     Delete
                   </button>
@@ -375,11 +407,11 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Report Modal */}
           {showReportModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReportModal(false)}>
-              <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowReportModal(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg">Report Post</h3>
-                  <button onClick={() => setShowReportModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <h3 className="font-bold text-lg dark:text-gray-100">Report Post</h3>
+                  <button onClick={() => setShowReportModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center">
                     <X size={20} />
                   </button>
                 </div>
@@ -391,13 +423,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       value={reportReason}
                       onChange={e => setReportReason(e.target.value)}
                       placeholder="Why are you reporting this post?"
-                      className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-red-300 resize-none min-h-[100px]"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-red-300 resize-none min-h-[100px] bg-white dark:bg-gray-800 dark:text-gray-200"
                       maxLength={500}
                     />
                     <button
                       onClick={handleReport}
                       disabled={!reportReason.trim()}
-                      className="mt-3 w-full bg-red-600 text-white py-2 rounded-full font-bold hover:bg-red-700 disabled:opacity-50 transition-colors"
+                      className="mt-3 w-full bg-red-600 text-white py-2.5 rounded-full font-bold hover:bg-red-700 disabled:opacity-50 transition-colors min-h-[44px]"
                     >
                       Submit Report
                     </button>

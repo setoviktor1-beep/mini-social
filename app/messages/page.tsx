@@ -48,7 +48,15 @@ export default function MessagesPage() {
       }
       setCurrentUserId(user.id)
 
-      // Fetch conversations where user is either user1 or user2
+      const [{ data: blocksByMe }, { data: blocksMe }] = await Promise.all([
+        supabase.from('blocks').select('blocked_id').eq('blocker_id', user.id),
+        supabase.from('blocks').select('blocker_id').eq('blocked_id', user.id),
+      ])
+      const blockedIds = new Set<string>([
+        ...(blocksByMe || []).map((r: any) => r.blocked_id),
+        ...(blocksMe || []).map((r: any) => r.blocker_id),
+      ].filter(Boolean))
+
       const { data: convos, error } = await supabase
         .from('conversations')
         .select(`
@@ -65,10 +73,13 @@ export default function MessagesPage() {
         return
       }
 
-      // For each conversation, fetch the last message and unread count
+      const visibleConvos = (convos || []).filter((convo: any) => {
+        const otherId = convo.user1_id === user.id ? convo.user2_id : convo.user1_id
+        return !blockedIds.has(otherId)
+      })
+
       const conversationsWithDetails = await Promise.all(
-        (convos || []).map(async (convo: any) => {
-          // Get last message
+        visibleConvos.map(async (convo: any) => {
           const { data: lastMessages } = await supabase
             .from('messages')
             .select('content, sender_id, is_read')
@@ -76,7 +87,6 @@ export default function MessagesPage() {
             .order('created_at', { ascending: false })
             .limit(1)
 
-          // Get unread count (messages from the other user that are unread)
           const { count: unreadCount } = await supabase
             .from('messages')
             .select('*', { count: 'exact', head: true })
@@ -111,35 +121,35 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-gray-400 text-lg">Loading messages...</div>
+        <div className="text-gray-400 dark:text-gray-500 text-base sm:text-lg">Loading messages...</div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ArrowLeft size={22} className="text-gray-600" />
+      <div className="flex items-center gap-3 sm:gap-4">
+        <Link href="/" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
+          <ArrowLeft size={22} className="text-gray-600 dark:text-gray-400" />
         </Link>
-        <h1 className="text-2xl font-black text-gray-900">Messages</h1>
+        <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Messages</h1>
       </div>
 
       {/* Conversations list */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
         {conversations.length === 0 ? (
-          <div className="p-16 text-center">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle size={28} className="text-blue-300" />
+          <div className="p-10 sm:p-16 text-center">
+            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle size={28} className="text-blue-300 dark:text-blue-500" />
             </div>
-            <h3 className="font-bold text-gray-900 text-lg mb-1">No messages yet</h3>
-            <p className="text-gray-500 text-sm">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base sm:text-lg mb-1">No messages yet</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
               Start a conversation by visiting someone&apos;s profile and tapping Message.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {conversations.map((convo) => {
               const otherUser = getOtherUser(convo)
               const avatarUrl = getAvatarUrl(otherUser?.avatar_path)
@@ -149,14 +159,14 @@ export default function MessagesPage() {
                 <button
                   key={convo.id}
                   onClick={() => router.push(`/messages/${convo.id}`)}
-                  className="w-full flex items-center gap-4 p-4 hover:bg-gray-50/80 transition-colors text-left"
+                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors text-left min-h-[72px]"
                 >
                   {/* Avatar */}
-                  <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {avatarUrl ? (
                       <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
                     ) : (
-                      <span className="text-lg font-bold text-blue-300">
+                      <span className="text-base sm:text-lg font-bold text-blue-300 dark:text-blue-500">
                         {otherUser?.display_name?.charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -165,22 +175,22 @@ export default function MessagesPage() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <div className="flex items-center gap-2 truncate">
-                        <span className={`font-bold text-gray-900 truncate ${hasUnread ? 'text-gray-900' : ''}`}>
+                      <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+                        <span className="font-bold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">
                           {otherUser?.display_name}
                         </span>
-                        <span className="text-gray-400 text-sm truncate">
+                        <span className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm truncate hidden sm:inline">
                           @{otherUser?.username}
                         </span>
                       </div>
                       {convo.last_message_at && (
-                        <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">
                           {formatDistanceToNow(new Date(convo.last_message_at), { addSuffix: true })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className={`text-sm truncate ${hasUnread ? 'text-gray-900 font-semibold' : 'text-gray-500'}`}>
+                      <p className={`text-xs sm:text-sm truncate ${hasUnread ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
                         {convo.lastMessage
                           ? (convo.lastMessage.sender_id === currentUserId ? 'You: ' : '') + convo.lastMessage.content
                           : 'No messages yet'}

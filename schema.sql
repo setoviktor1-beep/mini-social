@@ -95,26 +95,40 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
 -- POLICIES
 -- Profiles: Public read, owner update
+DROP POLICY IF EXISTS "Public profiles" ON public.profiles;
 CREATE POLICY "Public profiles" ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Update own profile" ON public.profiles;
 CREATE POLICY "Update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Posts: Public read active, owner insert/update, mod hide
+DROP POLICY IF EXISTS "Public view active posts" ON public.posts;
 CREATE POLICY "Public view active posts" ON public.posts FOR SELECT USING (status = 'active');
+DROP POLICY IF EXISTS "Insert own posts" ON public.posts;
 CREATE POLICY "Insert own posts" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Update own posts" ON public.posts;
 CREATE POLICY "Update own posts" ON public.posts FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Mods update posts" ON public.posts;
 CREATE POLICY "Mods update posts" ON public.posts FOR UPDATE USING (public.is_admin_or_mod());
 
 -- Media, Likes, Comments, Follows (similar logic)
+DROP POLICY IF EXISTS "View active media" ON public.post_media;
 CREATE POLICY "View active media" ON public.post_media FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Insert own media" ON public.post_media;
 CREATE POLICY "Insert own media" ON public.post_media FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "View likes" ON public.likes;
 CREATE POLICY "View likes" ON public.likes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Manage own likes" ON public.likes;
 CREATE POLICY "Manage own likes" ON public.likes FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "View active comments" ON public.comments;
 CREATE POLICY "View active comments" ON public.comments FOR SELECT USING (status = 'active');
+DROP POLICY IF EXISTS "Manage own comments" ON public.comments;
 CREATE POLICY "Manage own comments" ON public.comments FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "View follows" ON public.follows;
 CREATE POLICY "View follows" ON public.follows FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Manage follows" ON public.follows;
 CREATE POLICY "Manage follows" ON public.follows FOR ALL USING (auth.uid() = follower_id);
 
 -- Trigger for profile creation
