@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Send } from 'lucide-react'
 import Link from 'next/link'
 import MessageBubble from '@/components/MessageBubble'
+import Image from 'next/image'
 
 interface Message {
   id: string
@@ -217,7 +218,9 @@ export default function ChatPage() {
         <Link href={`/u/${otherUser?.username}`} className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             {otherUser?.avatar_path ? (
-              <img src={getAvatarUrl(otherUser.avatar_path) || ''} className="w-full h-full object-cover" alt="" />
+              <div className="relative w-full h-full">
+                <Image src={getAvatarUrl(otherUser.avatar_path) || ''} alt="" fill sizes="40px" className="object-cover" />
+              </div>
             ) : (
               <span className="text-sm font-bold text-blue-300 dark:text-blue-500">
                 {otherUser?.display_name?.charAt(0).toUpperCase()}

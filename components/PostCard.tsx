@@ -1,6 +1,7 @@
 'use client'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon } from 'lucide-react'
@@ -180,9 +181,15 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     <div className="p-3 sm:p-5 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group">
       <div className="flex gap-3 sm:gap-4">
         <Link href={`/u/${post.profiles?.username}`} className="flex-shrink-0">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden relative">
             {post.profiles?.avatar_path ? (
-              <img src={publicUrl(post.profiles.avatar_path)} className="w-full h-full object-cover" alt="" />
+              <Image
+                src={publicUrl(post.profiles.avatar_path)}
+                alt=""
+                fill
+                sizes="48px"
+                className="object-cover"
+              />
             ) : (
               <span className="text-base sm:text-lg font-bold text-blue-300 dark:text-blue-500">
                 {post.profiles?.display_name?.charAt(0).toUpperCase()}
@@ -219,13 +226,19 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           {post.post_media && post.post_media.length > 0 && (
             <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 ${post.post_media.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               {post.post_media.map((m, i) => (
-                <img
+                <div
                   key={i}
-                  src={publicUrl(m.storage_path)}
-                  className="w-full h-48 sm:h-64 object-cover hover:scale-105 transition-transform cursor-pointer"
-                  alt=""
+                  className="relative w-full h-48 sm:h-64 overflow-hidden cursor-pointer"
                   onClick={() => setLightboxIndex(i)}
-                />
+                >
+                  <Image
+                    src={publicUrl(m.storage_path)}
+                    alt=""
+                    fill
+                    sizes={(post.post_media?.length || 0) > 1 ? '(min-width: 640px) 50vw, 100vw' : '100vw'}
+                    className="object-cover hover:scale-105 transition-transform"
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -324,12 +337,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 <>
                   {comments.map((c) => (
                     <div key={c.id} className="flex gap-2 sm:gap-3">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                         {c.profiles?.avatar_path ? (
-                          <img
+                          <Image
                             src={publicUrl(c.profiles.avatar_path)}
-                            className="w-full h-full object-cover"
                             alt=""
+                            fill
+                            sizes="32px"
+                            className="object-cover"
                           />
                         ) : (
                           <span className="text-xs font-bold text-blue-300 dark:text-blue-500">

@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
+import Image from 'next/image'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
@@ -160,7 +161,9 @@ export default function Navbar() {
               >
                 <div className="w-7 h-7 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden">
                   {avatarUrl ? (
-                    <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                    <div className="relative w-full h-full">
+                      <Image src={avatarUrl} alt="" fill sizes="28px" className="object-cover" />
+                    </div>
                   ) : (
                     <span className="text-xs font-bold text-blue-300 dark:text-blue-500">
                       {(username || user.user_metadata?.username || '?')?.charAt(0)?.toUpperCase()}
@@ -247,7 +250,9 @@ export default function Navbar() {
                 >
                   <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center overflow-hidden">
                     {avatarUrl ? (
-                      <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                      <div className="relative w-full h-full">
+                        <Image src={avatarUrl} alt="" fill sizes="20px" className="object-cover" />
+                      </div>
                     ) : (
                       <span className="text-xs font-bold text-blue-500">
                         {(username || user.user_metadata?.username || '?')?.charAt(0)?.toUpperCase()}

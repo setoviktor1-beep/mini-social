@@ -1,8 +1,8 @@
 // app/page.tsx
 import { createClient } from '@/lib/server-supabase'
 import PostComposer from '@/components/PostComposer'
-import PostCard from '@/components/PostCard'
 import Link from 'next/link'
+import FeedListClient from '@/components/FeedListClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -150,20 +150,12 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
         </div>
       )}
 
-      <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
-        {postsWithLikeStatus.map((post) => (
-          <PostCard key={post.id} post={post} currentUserId={user?.id} currentUserRole={userRole} />
-        ))}
-        {postsWithLikeStatus.length === 0 && (
-          <div className="p-8 sm:p-10 text-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
-            {activeTab === 'following'
-              ? 'No posts from people you follow yet.'
-              : activeTab === 'for_you'
-                ? 'No trending posts in the last 48 hours yet.'
-                : 'No posts yet. Start the trend!'}
-          </div>
-        )}
-      </div>
+      <FeedListClient
+        initialPosts={postsWithLikeStatus}
+        tab={activeTab}
+        currentUserId={user?.id}
+        currentUserRole={userRole}
+      />
     </div>
   )
 }

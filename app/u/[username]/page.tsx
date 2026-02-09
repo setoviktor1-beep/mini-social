@@ -8,6 +8,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Settings, Ban } from 'lucide-react'
 import { redirect } from 'next/navigation'
+import Image from 'next/image'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
@@ -145,10 +147,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6">
           <div className="w-20 h-20 sm:w-24 sm:h-24 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-sm overflow-hidden flex-shrink-0">
             {profile.avatar_path ? (
-              <img
+              <Image
                 src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`}
-                className="w-full h-full object-cover"
                 alt=""
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
               />
             ) : (
               <span className="text-2xl sm:text-3xl font-bold text-blue-200 dark:text-blue-500">
@@ -247,4 +251,31 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       </div>
     </div>
   )
+}
+
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const supabase = createClient()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username, display_name, bio, avatar_path')
+    .eq('username', params.username.toLowerCase())
+    .maybeSingle()
+
+  const title = profile?.display_name ? `${profile.display_name} (@${profile.username})` : `@${params.username}`
+  const description = profile?.bio || `View @${params.username} on Mini Social.`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
+  }
 }

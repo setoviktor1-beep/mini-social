@@ -6,6 +6,8 @@ import { ArrowLeft, Pin, Lock, MessageSquare } from 'lucide-react'
 import DiscussionReplyForm from './DiscussionReplyForm'
 import DiscussionAdminActions from '@/components/DiscussionAdminActions'
 import ParsedContent from '@/lib/parseContent'
+import Image from 'next/image'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,12 +114,14 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
           {/* Author info */}
           <div className="flex items-center gap-3 mb-4 sm:mb-5">
             <Link href={`/u/${discussion.profiles?.username}`} className="flex-shrink-0">
-              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden relative">
                 {discussion.profiles?.avatar_path ? (
-                  <img
+                  <Image
                     src={publicUrl(discussion.profiles.avatar_path)}
-                    className="w-full h-full object-cover"
                     alt=""
+                    fill
+                    sizes="40px"
+                    className="object-cover"
                   />
                 ) : (
                   <span className="text-sm font-bold text-blue-300 dark:text-blue-500">
@@ -162,12 +166,14 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
                 <div key={reply.id} className="p-3 sm:p-5">
                   <div className="flex gap-2 sm:gap-3">
                     <Link href={`/u/${reply.profiles?.username}`} className="flex-shrink-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden relative">
                         {reply.profiles?.avatar_path ? (
-                          <img
+                          <Image
                             src={publicUrl(reply.profiles.avatar_path)}
-                            className="w-full h-full object-cover"
                             alt=""
+                            fill
+                            sizes="36px"
+                            className="object-cover"
                           />
                         ) : (
                           <span className="text-xs font-bold text-blue-300 dark:text-blue-500">
@@ -225,4 +231,33 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
       </div>
     </div>
   )
+}
+
+export async function generateMetadata({ params }: DiscussionPageProps): Promise<Metadata> {
+  const supabase = createClient()
+  const { data: discussion } = await supabase
+    .from('discussions')
+    .select('title, content')
+    .eq('id', params.id)
+    .maybeSingle()
+
+  const title = discussion?.title ? discussion.title : 'Discussion'
+  const description = discussion?.content
+    ? String(discussion.content).slice(0, 160)
+    : 'Read and join the discussion on Mini Social.'
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
+  }
 }

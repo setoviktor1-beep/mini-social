@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { Bell, Check } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import Image from 'next/image'
 
 type NotificationType = 'like' | 'comment' | 'follow' | 'new_post'
 type TargetType = 'post' | 'comment' | 'user' | null
@@ -173,7 +174,9 @@ export default function NotificationsPage() {
                 >
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {avatarUrl ? (
-                      <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                      <div className="relative w-full h-full">
+                        <Image src={avatarUrl} alt="" fill sizes="48px" className="object-cover" />
+                      </div>
                     ) : (
                       <span className="text-base sm:text-lg font-bold text-blue-200 dark:text-blue-500">
                         {(n.actor?.display_name || n.actor?.username || '?')?.charAt(0)?.toUpperCase()}

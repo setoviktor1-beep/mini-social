@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban } from 'lucide-react'
+import Image from 'next/image'
 
 interface Profile {
   id: string
@@ -374,9 +375,9 @@ export default function SettingsPage() {
             <label className="text-sm font-bold text-gray-700 block mb-3">Profile Picture</label>
             <div className="flex items-center gap-5">
               <div className="relative">
-                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200">
+                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 relative">
                   {displayAvatarSrc ? (
-                    <img src={displayAvatarSrc} className="w-full h-full object-cover" alt="Avatar" />
+                    <Image src={displayAvatarSrc} alt="Avatar" fill sizes="80px" className="object-cover" unoptimized />
                   ) : (
                     <span className="text-2xl font-bold text-blue-200">
                       {displayName?.charAt(0)?.toUpperCase() || 'U'}
@@ -642,9 +643,9 @@ export default function SettingsPage() {
                     key={b.id}
                     className="flex items-center gap-3 sm:gap-4 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900"
                   >
-                    <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                       {avatarUrl ? (
-                        <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                        <Image src={avatarUrl} alt="" fill sizes="44px" className="object-cover" />
                       ) : (
                         <span className="text-base font-bold text-blue-200 dark:text-blue-500">
                           {(u?.display_name || u?.username || '?')?.charAt(0)?.toUpperCase()}

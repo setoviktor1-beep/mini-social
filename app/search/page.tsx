@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Search, Users, FileText, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import Image from 'next/image'
 
 type Tab = 'users' | 'posts'
 
@@ -196,12 +197,14 @@ export default function SearchPage() {
                     onClick={() => router.push(`/u/${user.username}`)}
                     className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left min-h-[64px]"
                   >
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                       {user.avatar_path ? (
-                        <img
+                        <Image
                           src={getAvatarUrl(user.avatar_path) || ''}
-                          className="w-full h-full object-cover"
                           alt=""
+                          fill
+                          sizes="48px"
+                          className="object-cover"
                         />
                       ) : (
                         <span className="text-base sm:text-lg font-bold text-blue-200 dark:text-blue-500">
@@ -241,12 +244,14 @@ export default function SearchPage() {
                     className="w-full p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left min-h-[64px]"
                   >
                     <div className="flex items-start gap-3 sm:gap-4">
-                      <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                         {post.profiles.avatar_path ? (
-                          <img
+                          <Image
                             src={getAvatarUrl(post.profiles.avatar_path) || ''}
-                            className="w-full h-full object-cover"
                             alt=""
+                            fill
+                            sizes="40px"
+                            className="object-cover"
                           />
                         ) : (
                           <span className="text-sm font-bold text-blue-200 dark:text-blue-500">

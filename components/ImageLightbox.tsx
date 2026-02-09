@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import Image from 'next/image'
 
 interface ImageLightboxProps {
   images: string[]
@@ -54,12 +55,18 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         </button>
       )}
 
-      <img
-        src={images[currentIndex]}
-        className="max-w-[95vw] sm:max-w-[90vw] max-h-[85vh] sm:max-h-[90vh] object-contain rounded-lg"
+      <div
+        className="relative w-[95vw] sm:w-[90vw] h-[85vh] sm:h-[90vh]"
         onClick={e => e.stopPropagation()}
-        alt=""
-      />
+      >
+        <Image
+          src={images[currentIndex]}
+          alt=""
+          fill
+          sizes="90vw"
+          className="object-contain rounded-lg"
+        />
+      </div>
 
       {images.length > 1 && (
         <div className="absolute bottom-4 sm:bottom-6 flex gap-2">

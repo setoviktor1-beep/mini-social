@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
+import Image from 'next/image'
 
 export default function PostComposer({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
@@ -88,7 +89,7 @@ export default function PostComposer({ userId }: { userId: string }) {
         <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto -mx-1 px-1">
           {files.map((f, i) => (
             <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-              <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" alt="" />
+              <Image src={URL.createObjectURL(f)} alt="" fill sizes="80px" className="object-cover" unoptimized />
               <button onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center">
                 <X size={14} />
               </button>

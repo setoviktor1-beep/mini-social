@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/Navbar'
 import { ThemeProvider } from './providers'
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 
 const inter = Inter({ subsets: ['latin'] })
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <ThemeProvider>
           <Navbar />
+          <ServiceWorkerRegister />
           <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-8">{children}</main>
           <footer className="max-w-2xl mx-auto px-3 sm:px-4 py-8 sm:py-12 text-center text-sm text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-800 mt-12 sm:mt-20">
             <div className="flex justify-center gap-4 sm:gap-6 mb-4">
@@ -77,4 +79,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   )
 }
-

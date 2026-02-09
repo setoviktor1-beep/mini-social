@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { MessageCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface ConversationItem {
   id: string
@@ -164,7 +165,9 @@ export default function MessagesPage() {
                   {/* Avatar */}
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {avatarUrl ? (
-                      <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                      <div className="relative w-full h-full">
+                        <Image src={avatarUrl} alt="" fill sizes="48px" className="object-cover" />
+                      </div>
                     ) : (
                       <span className="text-base sm:text-lg font-bold text-blue-300 dark:text-blue-500">
                         {otherUser?.display_name?.charAt(0).toUpperCase()}

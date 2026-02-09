@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import Image from 'next/image'
 
 type NotificationType = 'like' | 'comment' | 'follow' | 'new_post'
 type TargetType = 'post' | 'comment' | 'user' | null
@@ -195,7 +196,9 @@ export default function NotificationBell() {
                     >
                       <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {avatarUrl ? (
-                          <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
+                          <div className="relative w-full h-full">
+                            <Image src={avatarUrl} alt="" fill sizes="36px" className="object-cover" />
+                          </div>
                         ) : (
                           <span className="text-xs font-bold text-blue-300 dark:text-blue-500">
                             {(n.actor?.display_name || n.actor?.username || '?')?.charAt(0)?.toUpperCase()}
@@ -234,4 +237,3 @@ export default function NotificationBell() {
     </div>
   )
 }
-

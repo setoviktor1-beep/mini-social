@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { X, Camera } from 'lucide-react'
+import Image from 'next/image'
 
 interface ProfileActionsProps {
   profileId: string
@@ -126,9 +127,22 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
                     <label className="relative cursor-pointer group">
                       <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700 group-hover:border-blue-400 transition-colors">
                         {avatarFile ? (
-                          <img src={URL.createObjectURL(avatarFile)} className="w-full h-full object-cover" alt="" />
+                          <Image
+                            src={URL.createObjectURL(avatarFile)}
+                            className="w-full h-full object-cover"
+                            alt=""
+                            width={80}
+                            height={80}
+                            unoptimized
+                          />
                         ) : profile.avatar_path ? (
-                          <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`} className="w-full h-full object-cover" alt="" />
+                          <Image
+                            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`}
+                            className="w-full h-full object-cover"
+                            alt=""
+                            width={80}
+                            height={80}
+                          />
                         ) : (
                           <span className="text-2xl font-bold text-blue-200 dark:text-blue-500">{displayName.charAt(0).toUpperCase()}</span>
                         )}
