@@ -3,7 +3,7 @@
  * - Cache-first for static assets (scripts/styles/images/fonts)
  */
 
-const CACHE_NAME = 'mini-social-v1';
+const CACHE_NAME = 'mini-social-v2';
 const PRECACHE_URLS = ['/', '/offline', '/icon.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -26,6 +26,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
   const sameOrigin = url.origin === self.location.origin;
+  const isNextAsset = sameOrigin && url.pathname.startsWith('/_next/');
 
   const isNavigation = req.mode === 'navigate';
   const dest = req.destination;
@@ -47,6 +48,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Never cache Next.js build assets. They change on every deploy and stale chunks
+  // can cause ChunkLoadError after navigation.
+  if (isNextAsset) {
+    return;
+  }
+
   if (sameOrigin && isStatic) {
     event.respondWith(
       caches.match(req).then((cached) => {
@@ -60,4 +67,3 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
-
