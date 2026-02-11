@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Search, Users, FileText, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -30,6 +30,7 @@ interface PostResult {
 
 export default function SearchPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const supabase = useMemo(() => createClient(), [])
@@ -41,6 +42,17 @@ export default function SearchPage() {
   const [posts, setPosts] = useState<PostResult[]>([])
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+
+  useEffect(() => {
+    const q = (searchParams.get('q') || '').trim()
+    if (!q) return
+    setQuery(q)
+    setDebouncedQuery(q)
+    setHasSearched(true)
+    if (q.startsWith('#')) {
+      setActiveTab('posts')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     inputRef.current?.focus()
