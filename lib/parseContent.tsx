@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
-export default function ParsedContent({ content }: { content: string }) {
+export default function ParsedContent({ content }: { content: string | null | undefined }) {
+  const raw = typeof content === 'string' ? content : ''
   // Parses `#hashtag` and `@username` into links while keeping the rest of the text intact.
   // Note: `\w` includes letters, numbers and underscore.
   const re = /(@\w+|#\w+)/g
@@ -9,13 +10,13 @@ export default function ParsedContent({ content }: { content: string }) {
   let lastIndex = 0
   let m: RegExpExecArray | null
 
-  while ((m = re.exec(content)) !== null) {
+  while ((m = re.exec(raw)) !== null) {
     const start = m.index
     const token = m[0]
     const end = start + token.length
 
     if (start > lastIndex) {
-      nodes.push(content.slice(lastIndex, start))
+      nodes.push(raw.slice(lastIndex, start))
     }
 
     if (token.startsWith('#')) {
@@ -47,10 +48,9 @@ export default function ParsedContent({ content }: { content: string }) {
     lastIndex = end
   }
 
-  if (lastIndex < content.length) {
-    nodes.push(content.slice(lastIndex))
+  if (lastIndex < raw.length) {
+    nodes.push(raw.slice(lastIndex))
   }
 
   return <>{nodes}</>
 }
-
