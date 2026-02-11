@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Send } from 'lucide-react'
+import { notifyMentions } from '@/lib/mentions'
 
 interface DiscussionReplyFormProps {
   discussionId: string
@@ -17,16 +18,25 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
-    if (!content.trim()) return
+    const trimmed = content.trim()
+    if (!trimmed) return
 
     setLoading(true)
     const { error } = await supabase.from('discussion_replies').insert({
       discussion_id: discussionId,
       user_id: userId,
-      content: content.trim(),
-    })
+      content: trimmed,
+    }).select('id').single()
 
     if (!error) {
+      await notifyMentions({
+        supabase,
+        content: trimmed,
+        actorId: userId,
+        targetId: discussionId,
+        targetType: 'discussion',
+      })
+
       setContent('')
       router.refresh()
     }

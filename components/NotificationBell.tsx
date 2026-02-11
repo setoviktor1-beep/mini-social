@@ -6,8 +6,8 @@ import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import Image from 'next/image'
 
-type NotificationType = 'like' | 'comment' | 'follow' | 'new_post'
-type TargetType = 'post' | 'comment' | 'user' | null
+type NotificationType = 'like' | 'comment' | 'follow' | 'new_post' | 'mention' | 'share' | 'repost'
+type TargetType = 'post' | 'comment' | 'user' | 'discussion' | null
 
 interface NotificationRow {
   id: string
@@ -36,9 +36,21 @@ function formatNotificationText(n: NotificationRow) {
       return `${name} started following you`
     case 'new_post':
       return `${name} posted something new`
+    case 'mention':
+      return `${name} mentioned you`
+    case 'share':
+      return `${name} shared your post`
+    case 'repost':
+      return `${name} reposted your post`
     default:
       return `${name} sent a notification`
   }
+}
+
+function getNotificationHref(n: NotificationRow) {
+  if (n.target_type === 'discussion' && n.target_id) return `/discussions/${n.target_id}`
+  if (n.actor?.username) return `/u/${n.actor.username}`
+  return '/notifications'
 }
 
 export default function NotificationBell() {
@@ -183,7 +195,7 @@ export default function NotificationBell() {
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {items.map((n) => {
-                  const href = n.actor?.username ? `/u/${n.actor.username}` : '/notifications'
+                  const href = getNotificationHref(n)
                   const avatarUrl = getAvatarUrl(n.actor?.avatar_path || null)
                   return (
                     <Link

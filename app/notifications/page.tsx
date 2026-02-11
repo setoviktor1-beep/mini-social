@@ -7,8 +7,8 @@ import { Bell, Check } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import Image from 'next/image'
 
-type NotificationType = 'like' | 'comment' | 'follow' | 'new_post'
-type TargetType = 'post' | 'comment' | 'user' | null
+type NotificationType = 'like' | 'comment' | 'follow' | 'new_post' | 'mention' | 'share' | 'repost'
+type TargetType = 'post' | 'comment' | 'user' | 'discussion' | null
 
 interface NotificationRow {
   id: string
@@ -37,9 +37,21 @@ function formatNotificationText(n: NotificationRow) {
       return `${name} started following you`
     case 'new_post':
       return `${name} posted something new`
+    case 'mention':
+      return `${name} mentioned you`
+    case 'share':
+      return `${name} shared your post`
+    case 'repost':
+      return `${name} reposted your post`
     default:
       return `${name} sent a notification`
   }
+}
+
+function getNotificationHref(n: NotificationRow) {
+  if (n.target_type === 'discussion' && n.target_id) return `/discussions/${n.target_id}`
+  if (n.actor?.username) return `/u/${n.actor.username}`
+  return '/notifications'
 }
 
 export default function NotificationsPage() {
@@ -156,13 +168,13 @@ export default function NotificationsPage() {
           <div className="p-10 sm:p-16 text-center">
             <Bell size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
             <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">No notifications yet</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Likes, comments and follows will show up here</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Likes, comments, mentions and follows will show up here</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {items.map((n) => {
               const avatarUrl = getAvatarUrl(n.actor?.avatar_path || null)
-              const href = n.actor?.username ? `/u/${n.actor.username}` : '#'
+              const href = getNotificationHref(n)
               const timeAgo = formatDistanceToNow(new Date(n.created_at), { addSuffix: true })
               return (
                 <Link

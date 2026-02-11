@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
 import Image from 'next/image'
+import { notifyMentions } from '@/lib/mentions'
 
 export default function PostComposer({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
@@ -56,6 +57,15 @@ export default function PostComposer({ userId }: { userId: string }) {
         }))
       )
     }
+
+    await notifyMentions({
+      supabase,
+      content,
+      actorId: userId,
+      targetId: post.id,
+      targetType: 'post',
+      excludeUserIds: followerIds,
+    })
 
     if (files.length > 0) {
       for (const file of files) {

@@ -4,10 +4,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon } from 'lucide-react'
+import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
+import { notifyMentions } from '@/lib/mentions'
 
 interface PostCardProps {
   post: {
@@ -98,10 +99,11 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
   const handleComment = async () => {
     if (!currentUserId || !commentText.trim()) return
+    const content = commentText.trim()
     const { data: newComment, error } = await supabase.from('comments').insert({
       post_id: post.id,
       user_id: currentUserId,
-      content: commentText.trim()
+      content
     }).select('id').single()
     if (!error) {
       setCommentText('')
@@ -117,6 +119,15 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           target_type: newComment?.id ? 'comment' : 'post',
         })
       }
+
+      await notifyMentions({
+        supabase,
+        content,
+        actorId: currentUserId,
+        targetId: newComment?.id || post.id,
+        targetType: newComment?.id ? 'comment' : 'post',
+        excludeUserIds: post.user_id ? [post.user_id] : [],
+      })
     }
   }
 
@@ -143,19 +154,34 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     router.refresh()
   }
 
+  const notifyShare = async () => {
+    if (!currentUserId || !post.user_id || post.user_id === currentUserId) return
+    await supabase.from('notifications').insert({
+      user_id: post.user_id,
+      actor_id: currentUserId,
+      type: 'share',
+      target_id: post.id,
+      target_type: 'post',
+    })
+  }
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(postUrl)
+    void notifyShare()
     setCopied(true)
     setTimeout(() => { setCopied(false); setShowShareMenu(false) }, 1500)
   }
 
-  const handleShareNative = () => {
+  const handleShareNative = async () => {
     if (navigator.share) {
-      navigator.share({
-        title: `Post by ${post.profiles?.display_name}`,
-        text: post.content?.slice(0, 100),
-        url: postUrl,
-      }).catch(() => {})
+      try {
+        await navigator.share({
+          title: `Post by ${post.profiles?.display_name}`,
+          text: post.content?.slice(0, 100),
+          url: postUrl,
+        })
+        await notifyShare()
+      } catch {}
     }
     setShowShareMenu(false)
   }
@@ -164,13 +190,43 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     const text = encodeURIComponent(post.content?.slice(0, 200) || '')
     const url = encodeURIComponent(postUrl)
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank')
+    void notifyShare()
     setShowShareMenu(false)
   }
 
   const shareToFacebook = () => {
     const url = encodeURIComponent(postUrl)
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank')
+    void notifyShare()
     setShowShareMenu(false)
+  }
+
+  const handleRepost = async () => {
+    if (!currentUserId) return
+
+    const originalAuthor = post.profiles?.username ? `@${post.profiles.username}` : 'this user'
+    const repostContent = `Repost from ${originalAuthor}\n\n${post.content || ''}`.trim()
+
+    const { data: newPost, error } = await supabase.from('posts').insert({
+      user_id: currentUserId,
+      content: repostContent.slice(0, 2000),
+      youtube_url: post.youtube_video_id ? `https://www.youtube.com/watch?v=${post.youtube_video_id}` : null,
+      youtube_video_id: post.youtube_video_id || null,
+    }).select('id').single()
+
+    if (error) return
+
+    if (post.user_id && post.user_id !== currentUserId) {
+      await supabase.from('notifications').insert({
+        user_id: post.user_id,
+        actor_id: currentUserId,
+        type: 'repost',
+        target_id: newPost?.id || post.id,
+        target_type: 'post',
+      })
+    }
+
+    router.refresh()
   }
 
   if (deleted) return null
@@ -270,6 +326,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <button onClick={toggleComments} className="flex items-center gap-1.5 sm:gap-2 hover:text-blue-600 transition-colors min-h-[44px]">
               <MessageCircle size={20} />
               <span className="text-sm">{commentCount}</span>
+            </button>
+            <button onClick={handleRepost} className="flex items-center gap-1.5 sm:gap-2 hover:text-emerald-600 transition-colors min-h-[44px]">
+              <Repeat2 size={20} />
             </button>
             {/* Share */}
             <div className="relative">
