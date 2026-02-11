@@ -22,6 +22,14 @@ interface PostCardProps {
     reposted_by_profile?: { id?: string; username: string; display_name: string; avatar_path?: string | null }
     profiles?: { username: string; display_name: string; avatar_path?: string }
     post_media?: { storage_path: string }[]
+    quoted_post?: {
+      id: string
+      content: string
+      youtube_video_id?: string
+      status?: string
+      profiles?: { username: string; display_name: string; avatar_path?: string }
+      post_media?: { storage_path: string }[]
+    } | null
     likes?: { count: number }[]
     comments?: { count: number }[]
     reposts?: { count: number }[]
@@ -43,6 +51,10 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [commentCount, setCommentCount] = useState(post.comments?.[0]?.count || 0)
   const [reposted, setReposted] = useState(post.user_reposted || false)
   const [repostCount, setRepostCount] = useState(post.reposts?.[0]?.count || 0)
+  const [showRepostMenu, setShowRepostMenu] = useState(false)
+  const [showQuoteModal, setShowQuoteModal] = useState(false)
+  const [quoteText, setQuoteText] = useState('')
+  const [quoteLoading, setQuoteLoading] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
@@ -260,6 +272,47 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     router.refresh()
   }
 
+  const handleCreateQuote = async () => {
+    if (!currentUserId || !quoteText.trim()) return
+    setQuoteLoading(true)
+    const content = quoteText.trim()
+    const { data: newPost, error } = await supabase
+      .from('posts')
+      .insert({
+        user_id: currentUserId,
+        content,
+        quoted_post_id: post.id,
+      })
+      .select('id')
+      .single()
+
+    if (!error) {
+      await notifyMentions({
+        supabase,
+        content,
+        actorId: currentUserId,
+        targetId: newPost?.id || post.id,
+        targetType: 'post',
+        excludeUserIds: post.user_id ? [post.user_id] : [],
+      })
+
+      if (post.user_id && post.user_id !== currentUserId) {
+        await supabase.from('notifications').insert({
+          user_id: post.user_id,
+          actor_id: currentUserId,
+          type: 'repost',
+          target_id: post.id,
+          target_type: 'post',
+        })
+      }
+
+      setShowQuoteModal(false)
+      setQuoteText('')
+      router.refresh()
+    }
+    setQuoteLoading(false)
+  }
+
   if (deleted) return null
 
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
@@ -319,6 +372,22 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <ParsedContent content={post.content} />
           </p>
 
+          {post.quoted_post && post.quoted_post.status !== 'deleted' && (
+            <div className="mb-3 rounded-2xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 bg-gray-50/80 dark:bg-gray-800/50">
+              <div className="flex items-center gap-2 mb-1">
+                <Link href={`/u/${post.quoted_post.profiles?.username}`} className="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:underline">
+                  {post.quoted_post.profiles?.display_name}
+                </Link>
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  @{post.quoted_post.profiles?.username}
+                </span>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                <ParsedContent content={post.quoted_post.content} />
+              </p>
+            </div>
+          )}
+
           {post.post_media && post.post_media.length > 0 && (
             <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 ${post.post_media.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               {post.post_media.map((m, i) => (
@@ -367,13 +436,40 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               <MessageCircle size={20} />
               <span className="text-sm">{commentCount}</span>
             </button>
-            <button
-              onClick={handleRepost}
-              className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] ${reposted ? 'text-emerald-600' : 'hover:text-emerald-600'}`}
-            >
-              <Repeat2 size={20} />
-              <span className="text-sm">{repostCount}</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowRepostMenu(!showRepostMenu)}
+                className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] ${reposted ? 'text-emerald-600' : 'hover:text-emerald-600'}`}
+              >
+                <Repeat2 size={20} />
+                <span className="text-sm">{repostCount}</span>
+              </button>
+              {showRepostMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowRepostMenu(false)} />
+                  <div className="absolute bottom-8 left-0 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 py-2 w-44 z-50">
+                    <button
+                      onClick={async () => {
+                        await handleRepost()
+                        setShowRepostMenu(false)
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300 min-h-[44px]"
+                    >
+                      {reposted ? 'Undo repost' : 'Repost'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowRepostMenu(false)
+                        setShowQuoteModal(true)
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300 min-h-[44px]"
+                    >
+                      Quote
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
             {/* Share */}
             <div className="relative">
               <button
@@ -496,6 +592,50 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Quote Modal */}
+          {showQuoteModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowQuoteModal(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-lg dark:text-gray-100">Quote Post</h3>
+                  <button onClick={() => setShowQuoteModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center">
+                    <X size={20} />
+                  </button>
+                </div>
+                <textarea
+                  value={quoteText}
+                  onChange={(e) => setQuoteText(e.target.value)}
+                  placeholder="Add your comment..."
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-blue-300 resize-none min-h-[110px] bg-white dark:bg-gray-800 dark:text-gray-200"
+                  maxLength={2000}
+                />
+                <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/50">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
+                    @{post.profiles?.username}
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                    <ParsedContent content={post.content} />
+                  </p>
+                </div>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowQuoteModal(false)}
+                    className="px-4 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold min-h-[44px]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateQuote}
+                    disabled={quoteLoading || !quoteText.trim()}
+                    className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50 min-h-[44px]"
+                  >
+                    {quoteLoading ? 'Posting...' : 'Post'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

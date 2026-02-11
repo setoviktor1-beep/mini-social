@@ -41,6 +41,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       *,
       profiles:user_id(username, display_name, avatar_path),
       post_media(storage_path),
+      quoted_post:quoted_post_id(
+        id,
+        content,
+        youtube_video_id,
+        created_at,
+        status,
+        profiles:user_id(username, display_name, avatar_path),
+        post_media(storage_path)
+      ),
       likes(count),
       comments(count),
       reposts(count)
@@ -57,6 +66,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         *,
         profiles:user_id(username, display_name, avatar_path),
         post_media(storage_path),
+        quoted_post:quoted_post_id(
+          id,
+          content,
+          youtube_video_id,
+          created_at,
+          status,
+          profiles:user_id(username, display_name, avatar_path),
+          post_media(storage_path)
+        ),
         likes(count),
         comments(count),
         reposts(count)
