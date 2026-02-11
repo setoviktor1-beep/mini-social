@@ -49,6 +49,22 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
+  const { data: repostRows } = await supabase
+    .from('reposts')
+    .select(`
+      created_at,
+      post:posts!reposts_post_id_fkey(
+        *,
+        profiles:user_id(username, display_name, avatar_path),
+        post_media(storage_path),
+        likes(count),
+        comments(count),
+        reposts(count)
+      )
+    `)
+    .eq('user_id', profile.id)
+    .order('created_at', { ascending: false })
+
   // 3. Check follow status and counts
   let isFollowing = false
   if (currentUser && currentUser.id !== profile.id) {
@@ -120,9 +136,30 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const postsWithLikeStatus = posts?.map(post => ({
     ...post,
+    feed_key: `post-${post.id}`,
     user_liked: likedPostIds.has(post.id),
     user_reposted: repostedPostIds.has(post.id),
   })) || []
+
+  const repostedPosts = (repostRows || [])
+    .map((r: any) => {
+      const p = r.post
+      if (!p || p.status !== 'active') return null
+      return {
+        ...p,
+        feed_key: `repost-${profile.id}-${p.id}-${r.created_at}`,
+        reposted_at: r.created_at,
+        reposted_by_profile: {
+          id: profile.id,
+          username: profile.username,
+          display_name: profile.display_name,
+          avatar_path: profile.avatar_path,
+        },
+        user_liked: likedPostIds.has(p.id),
+        user_reposted: repostedPostIds.has(p.id),
+      }
+    })
+    .filter(Boolean)
 
   const isBlockedEitherWay = hasBlocked || blockedBy
 
@@ -254,6 +291,20 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         {postsWithLikeStatus.length === 0 && (
           <div className="p-10 sm:p-20 text-center text-gray-400">
             This user hasn&apos;t posted anything yet.
+          </div>
+        )}
+      </div>
+
+      <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-gray-50 dark:border-gray-800">
+          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg sm:text-xl">Reposts</h2>
+        </div>
+        {repostedPosts.map((post: any) => (
+          <PostCard key={post.feed_key || post.id} post={post} currentUserId={currentUser?.id} currentUserRole={currentUserRole} />
+        ))}
+        {repostedPosts.length === 0 && (
+          <div className="p-10 sm:p-20 text-center text-gray-400">
+            No reposts yet.
           </div>
         )}
       </div>

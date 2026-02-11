@@ -13,10 +13,13 @@ import { notifyMentions } from '@/lib/mentions'
 interface PostCardProps {
   post: {
     id: string
+    feed_key?: string
     content: string
     created_at: string
     user_id?: string
     youtube_video_id?: string
+    reposted_at?: string
+    reposted_by_profile?: { id?: string; username: string; display_name: string; avatar_path?: string | null }
     profiles?: { username: string; display_name: string; avatar_path?: string }
     post_media?: { storage_path: string }[]
     likes?: { count: number }[]
@@ -231,6 +234,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       if (!error) {
         setReposted(false)
         setRepostCount((prev) => Math.max(0, prev - 1))
+        router.refresh()
       }
       return
     }
@@ -253,11 +257,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         target_type: 'post',
       })
     }
+    router.refresh()
   }
 
   if (deleted) return null
 
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+  const repostTimeAgo = post.reposted_at ? formatDistanceToNow(new Date(post.reposted_at), { addSuffix: true }) : null
 
   return (
     <div className="p-3 sm:p-5 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group">
@@ -280,6 +286,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           </div>
         </Link>
         <div className="flex-1 min-w-0">
+          {post.reposted_by_profile && (
+            <div className="mb-1 text-xs text-emerald-600 dark:text-emerald-400">
+              <Link href={`/u/${post.reposted_by_profile.username}`} className="hover:underline font-semibold">
+                @{post.reposted_by_profile.username}
+              </Link>{' '}
+              reposted {repostTimeAgo || ''}
+            </div>
+          )}
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5 sm:gap-2 truncate">
               <Link href={`/u/${post.profiles?.username}`} className="font-bold text-gray-900 dark:text-gray-100 hover:underline text-sm sm:text-base">

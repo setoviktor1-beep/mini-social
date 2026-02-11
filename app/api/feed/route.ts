@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/server-supabase'
 
 type TabKey = 'for_you' | 'following' | 'latest'
+function sortByTimeDesc(a: any, b: any) {
+  const at = new Date(a.feed_sort_at || a.created_at).getTime()
+  const bt = new Date(b.feed_sort_at || b.created_at).getTime()
+  return bt - at
+}
 
 function parseTab(tab: string | null): TabKey {
   if (tab === 'for_you' || tab === 'following' || tab === 'latest') return tab
@@ -22,6 +27,7 @@ export async function GET(request: Request) {
   const tab = parseTab(url.searchParams.get('tab'))
   const page = parsePage(url.searchParams.get('page'))
   const pageSize = 20
+  const mergedPagePool = (page + 1) * pageSize * 3
 
   const baseSelect = `
     *,
@@ -53,6 +59,7 @@ export async function GET(request: Request) {
   }
 
   let posts: any[] = []
+  let repostItems: any[] = []
 
   if (tab === 'following' && user) {
     const { data: rows } = await supabase
@@ -69,11 +76,9 @@ export async function GET(request: Request) {
         .eq('status', 'active')
         .in('user_id', followedIds)
       q = applyBlockedFilter(q)
-      const from = page * pageSize
-      const to = from + pageSize - 1
       const { data } = await q
         .order('created_at', { ascending: false })
-        .range(from, to)
+        .limit(mergedPagePool)
       posts = data || []
     }
   } else if (tab === 'for_you' && user) {
@@ -102,12 +107,66 @@ export async function GET(request: Request) {
       .select(baseSelect)
       .eq('status', 'active')
     q = applyBlockedFilter(q)
-    const from = page * pageSize
-    const to = from + pageSize - 1
     const { data } = await q
       .order('created_at', { ascending: false })
-      .range(from, to)
+      .limit(mergedPagePool)
     posts = data || []
+  }
+
+  if (tab !== 'for_you') {
+    let repostQuery = supabase
+      .from('reposts')
+      .select(`
+        created_at,
+        reposter:profiles!reposts_user_id_fkey(id, username, display_name, avatar_path),
+        post:posts!reposts_post_id_fkey(
+          *,
+          profiles:user_id(username, display_name, avatar_path),
+          post_media(storage_path),
+          likes(count),
+          comments(count),
+          reposts(count)
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(mergedPagePool)
+
+    if (tab === 'following' && user) {
+      const { data: rows } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id)
+      const followedIds = (rows || []).map((r: any) => r.following_id).filter(Boolean)
+      if (followedIds.length > 0) {
+        repostQuery = repostQuery.in('user_id', followedIds)
+      } else {
+        repostItems = []
+      }
+    }
+
+    if (!(tab === 'following' && user && repostItems.length === 0)) {
+      const { data: repostRows } = await repostQuery
+      const blockedSet = new Set(blockedUserIds)
+      repostItems = (repostRows || [])
+        .map((r: any) => {
+          const p = r.post
+          if (!p || p.status !== 'active') return null
+          return {
+            ...p,
+            feed_key: `repost-${r.reposter?.id || 'u'}-${p.id}-${r.created_at}`,
+            reposted_at: r.created_at,
+            reposted_by_profile: r.reposter || null,
+            feed_sort_at: r.created_at,
+          }
+        })
+        .filter(Boolean)
+        .filter((p: any) => {
+          if (!user || blockedSet.size === 0) return true
+          const postAuthor = p.user_id
+          const reposterId = p.reposted_by_profile?.id
+          return !blockedSet.has(postAuthor) && !blockedSet.has(reposterId)
+        })
+    }
   }
 
   // liked status only for current user and only for returned posts
@@ -115,13 +174,13 @@ export async function GET(request: Request) {
   let repostedPostIds: Set<string> = new Set()
   let userRole: string | undefined
   if (user) {
-    const postIds = posts.map((p: any) => p.id).filter(Boolean)
+    const candidateIds = Array.from(new Set([...posts, ...repostItems].map((p: any) => p.id).filter(Boolean)))
     const [{ data: likes }, { data: reposts }, { data: profile }] = await Promise.all([
-      postIds.length > 0
-        ? supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+      candidateIds.length > 0
+        ? supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', candidateIds)
         : Promise.resolve({ data: [] as any[] }),
-      postIds.length > 0
-        ? supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+      candidateIds.length > 0
+        ? supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', candidateIds)
         : Promise.resolve({ data: [] as any[] }),
       supabase.from('profiles').select('role').eq('id', user.id).single(),
     ])
@@ -130,7 +189,17 @@ export async function GET(request: Request) {
     userRole = profile?.role
   }
 
-  const postsWithLikeStatus = posts.map((post: any) => ({
+  const baseItems = posts.map((post: any) => ({
+    ...post,
+    feed_key: `post-${post.id}`,
+    feed_sort_at: post.created_at,
+  }))
+
+  const merged = tab === 'for_you'
+    ? baseItems
+    : [...baseItems, ...repostItems].sort(sortByTimeDesc).slice(page * pageSize, (page + 1) * pageSize)
+
+  const postsWithLikeStatus = merged.map((post: any) => ({
     ...post,
     user_liked: likedPostIds.has(post.id),
     user_reposted: repostedPostIds.has(post.id),

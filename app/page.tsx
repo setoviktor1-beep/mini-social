@@ -8,6 +8,12 @@ export const dynamic = 'force-dynamic'
 
 type TabKey = 'for_you' | 'following' | 'latest'
 
+function sortByTimeDesc(a: any, b: any) {
+  const at = new Date(a.feed_sort_at || a.created_at).getTime()
+  const bt = new Date(b.feed_sort_at || b.created_at).getTime()
+  return bt - at
+}
+
 export default async function Home(props: { searchParams?: { tab?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -63,6 +69,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
   }
 
   let posts: any[] = []
+  let repostItems: any[] = []
 
   if (activeTab === 'following' && user) {
     const { data: rows } = await supabase
@@ -114,11 +121,75 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
     posts = data || []
   }
 
-  const postsWithLikeStatus = posts?.map(post => ({
+  if (activeTab !== 'for_you') {
+    let repostQuery = supabase
+      .from('reposts')
+      .select(`
+        created_at,
+        reposter:profiles!reposts_user_id_fkey(id, username, display_name, avatar_path),
+        post:posts!reposts_post_id_fkey(
+          *,
+          profiles:user_id(username, display_name, avatar_path),
+          post_media(storage_path),
+          likes(count),
+          comments(count),
+          reposts(count)
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(40)
+
+    if (activeTab === 'following' && user) {
+      const { data: rows } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id)
+      const followedIds = (rows || []).map((r: any) => r.following_id).filter(Boolean)
+      if (followedIds.length > 0) {
+        repostQuery = repostQuery.in('user_id', followedIds)
+      } else {
+        repostItems = []
+      }
+    }
+
+    if (!(activeTab === 'following' && user && repostItems.length === 0)) {
+      const { data: repostRows } = await repostQuery
+      const blockedSet = new Set(blockedUserIds)
+      repostItems = (repostRows || [])
+        .map((r: any) => {
+          const p = r.post
+          if (!p || p.status !== 'active') return null
+          return {
+            ...p,
+            feed_key: `repost-${r.reposter?.id || 'u'}-${p.id}-${r.created_at}`,
+            reposted_at: r.created_at,
+            reposted_by_profile: r.reposter || null,
+            feed_sort_at: r.created_at,
+          }
+        })
+        .filter(Boolean)
+        .filter((p: any) => {
+          if (!user || blockedSet.size === 0) return true
+          const postAuthor = p.user_id
+          const reposterId = p.reposted_by_profile?.id
+          return !blockedSet.has(postAuthor) && !blockedSet.has(reposterId)
+        })
+    }
+  }
+
+  const baseItems = posts?.map(post => ({
+    ...post,
+    feed_key: `post-${post.id}`,
+    feed_sort_at: post.created_at,
+  })) || []
+
+  const merged = [...baseItems, ...repostItems].sort(sortByTimeDesc).slice(0, 20)
+
+  const postsWithLikeStatus = merged.map(post => ({
     ...post,
     user_liked: likedPostIds.has(post.id),
     user_reposted: repostedPostIds.has(post.id),
-  })) || []
+  }))
 
   return (
     <div className="space-y-4 sm:space-y-6">

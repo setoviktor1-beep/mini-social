@@ -69,7 +69,7 @@ export default function FeedListClient(props: {
   return (
     <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} currentUserId={currentUserId} currentUserRole={currentUserRole} />
+        <PostCard key={post.feed_key || post.id} post={post} currentUserId={currentUserId} currentUserRole={currentUserRole} />
       ))}
 
       {posts.length === 0 && (
