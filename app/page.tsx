@@ -34,13 +34,16 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
 
   // Check user role and liked posts
   let likedPostIds: Set<string> = new Set()
+  let repostedPostIds: Set<string> = new Set()
   let userRole: string | undefined
   if (user) {
-    const [{ data: userLikes }, { data: profile }] = await Promise.all([
+    const [{ data: userLikes }, { data: userReposts }, { data: profile }] = await Promise.all([
       supabase.from('likes').select('post_id').eq('user_id', user.id),
+      supabase.from('reposts').select('post_id').eq('user_id', user.id),
       supabase.from('profiles').select('role').eq('id', user.id).single(),
     ])
     if (userLikes) likedPostIds = new Set(userLikes.map((l: any) => l.post_id))
+    if (userReposts) repostedPostIds = new Set(userReposts.map((r: any) => r.post_id))
     userRole = profile?.role
   }
 
@@ -49,7 +52,8 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
     profiles:user_id(username, display_name, avatar_path),
     post_media(storage_path),
     likes(count),
-    comments(count)
+    comments(count),
+    reposts(count)
   `
 
   const applyBlockedFilter = (q: any) => {
@@ -112,7 +116,8 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
 
   const postsWithLikeStatus = posts?.map(post => ({
     ...post,
-    user_liked: likedPostIds.has(post.id)
+    user_liked: likedPostIds.has(post.id),
+    user_reposted: repostedPostIds.has(post.id),
   })) || []
 
   return (

@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -21,7 +21,9 @@ interface PostCardProps {
     post_media?: { storage_path: string }[]
     likes?: { count: number }[]
     comments?: { count: number }[]
+    reposts?: { count: number }[]
     user_liked?: boolean
+    user_reposted?: boolean
   }
   currentUserId?: string
   currentUserRole?: string
@@ -36,6 +38,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState('')
   const [commentCount, setCommentCount] = useState(post.comments?.[0]?.count || 0)
+  const [reposted, setReposted] = useState(post.user_reposted || false)
+  const [repostCount, setRepostCount] = useState(post.reposts?.[0]?.count || 0)
   const [loadingComments, setLoadingComments] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
@@ -56,6 +60,18 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const postUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/u/${post.profiles?.username}`
     : ''
+
+  useEffect(() => {
+    const syncCommentCount = async () => {
+      const { count } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', post.id)
+        .eq('status', 'active')
+      setCommentCount(count || 0)
+    }
+    void syncCommentCount()
+  }, [post.id, supabase])
 
   const handleLike = async () => {
     if (!currentUserId) return
@@ -88,7 +104,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       .eq('post_id', post.id)
       .eq('status', 'active')
       .order('created_at', { ascending: true })
-    setComments(data || [])
+    const rows = data || []
+    setComments(rows)
+    setCommentCount(rows.length)
     setLoadingComments(false)
   }
 
@@ -204,29 +222,37 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const handleRepost = async () => {
     if (!currentUserId) return
 
-    const originalAuthor = post.profiles?.username ? `@${post.profiles.username}` : 'this user'
-    const repostContent = `Repost from ${originalAuthor}\n\n${post.content || ''}`.trim()
+    if (reposted) {
+      const { error } = await supabase
+        .from('reposts')
+        .delete()
+        .eq('user_id', currentUserId)
+        .eq('post_id', post.id)
+      if (!error) {
+        setReposted(false)
+        setRepostCount((prev) => Math.max(0, prev - 1))
+      }
+      return
+    }
 
-    const { data: newPost, error } = await supabase.from('posts').insert({
+    const { error } = await supabase.from('reposts').insert({
       user_id: currentUserId,
-      content: repostContent.slice(0, 2000),
-      youtube_url: post.youtube_video_id ? `https://www.youtube.com/watch?v=${post.youtube_video_id}` : null,
-      youtube_video_id: post.youtube_video_id || null,
-    }).select('id').single()
+      post_id: post.id,
+    })
 
     if (error) return
+    setReposted(true)
+    setRepostCount((prev) => prev + 1)
 
     if (post.user_id && post.user_id !== currentUserId) {
       await supabase.from('notifications').insert({
         user_id: post.user_id,
         actor_id: currentUserId,
         type: 'repost',
-        target_id: newPost?.id || post.id,
+        target_id: post.id,
         target_type: 'post',
       })
     }
-
-    router.refresh()
   }
 
   if (deleted) return null
@@ -327,8 +353,12 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               <MessageCircle size={20} />
               <span className="text-sm">{commentCount}</span>
             </button>
-            <button onClick={handleRepost} className="flex items-center gap-1.5 sm:gap-2 hover:text-emerald-600 transition-colors min-h-[44px]">
+            <button
+              onClick={handleRepost}
+              className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] ${reposted ? 'text-emerald-600' : 'hover:text-emerald-600'}`}
+            >
               <Repeat2 size={20} />
+              <span className="text-sm">{repostCount}</span>
             </button>
             {/* Share */}
             <div className="relative">

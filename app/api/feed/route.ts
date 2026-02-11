@@ -28,7 +28,8 @@ export async function GET(request: Request) {
     profiles:user_id(username, display_name, avatar_path),
     post_media(storage_path),
     likes(count),
-    comments(count)
+    comments(count),
+    reposts(count)
   `
 
   // Block list (both directions)
@@ -111,22 +112,28 @@ export async function GET(request: Request) {
 
   // liked status only for current user and only for returned posts
   let likedPostIds: Set<string> = new Set()
+  let repostedPostIds: Set<string> = new Set()
   let userRole: string | undefined
   if (user) {
     const postIds = posts.map((p: any) => p.id).filter(Boolean)
-    const [{ data: likes }, { data: profile }] = await Promise.all([
+    const [{ data: likes }, { data: reposts }, { data: profile }] = await Promise.all([
       postIds.length > 0
         ? supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+        : Promise.resolve({ data: [] as any[] }),
+      postIds.length > 0
+        ? supabase.from('reposts').select('post_id').eq('user_id', user.id).in('post_id', postIds)
         : Promise.resolve({ data: [] as any[] }),
       supabase.from('profiles').select('role').eq('id', user.id).single(),
     ])
     if (likes) likedPostIds = new Set(likes.map((l: any) => l.post_id))
+    if (reposts) repostedPostIds = new Set(reposts.map((r: any) => r.post_id))
     userRole = profile?.role
   }
 
   const postsWithLikeStatus = posts.map((post: any) => ({
     ...post,
     user_liked: likedPostIds.has(post.id),
+    user_reposted: repostedPostIds.has(post.id),
   }))
 
   return NextResponse.json({
@@ -138,4 +145,3 @@ export async function GET(request: Request) {
     hasMore: postsWithLikeStatus.length === pageSize,
   })
 }
-

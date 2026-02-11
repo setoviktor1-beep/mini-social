@@ -42,7 +42,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       profiles:user_id(username, display_name, avatar_path),
       post_media(storage_path),
       likes(count),
-      comments(count)
+      comments(count),
+      reposts(count)
     `)
     .eq('user_id', profile.id)
     .eq('status', 'active')
@@ -94,26 +95,33 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   // 4. Check liked posts and user role
   let likedPostIds: Set<string> = new Set()
+  let repostedPostIds: Set<string> = new Set()
   let currentUserRole: string | undefined
   if (currentUser) {
-    const { data: userLikes } = await supabase
-      .from('likes')
-      .select('post_id')
-      .eq('user_id', currentUser.id)
-    if (userLikes) {
-      likedPostIds = new Set(userLikes.map(l => l.post_id))
-    }
-    const { data: curProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', currentUser.id)
-      .single()
+    const [{ data: userLikes }, { data: userReposts }, { data: curProfile }] = await Promise.all([
+      supabase
+        .from('likes')
+        .select('post_id')
+        .eq('user_id', currentUser.id),
+      supabase
+        .from('reposts')
+        .select('post_id')
+        .eq('user_id', currentUser.id),
+      supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single(),
+    ])
+    if (userLikes) likedPostIds = new Set(userLikes.map(l => l.post_id))
+    if (userReposts) repostedPostIds = new Set(userReposts.map((r: any) => r.post_id))
     currentUserRole = curProfile?.role
   }
 
   const postsWithLikeStatus = posts?.map(post => ({
     ...post,
-    user_liked: likedPostIds.has(post.id)
+    user_liked: likedPostIds.has(post.id),
+    user_reposted: repostedPostIds.has(post.id),
   })) || []
 
   const isBlockedEitherWay = hasBlocked || blockedBy
