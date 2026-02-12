@@ -66,14 +66,6 @@ async function countTokens(apiKey: string, prompt: string): Promise<number> {
   return Number(json?.totalTokens || 0) || 0;
 }
 
-function extractResponseText(json: any): string {
-  const parts = json?.candidates?.[0]?.content?.parts || [];
-  return parts
-    .map((p: any) => (typeof p?.text === "string" ? p.text : ""))
-    .join("\n")
-    .trim();
-}
-
 export async function POST(request: Request) {
   console.log("AI_ROUTE_START");
 
@@ -191,7 +183,15 @@ export async function POST(request: Request) {
 
     const genJson = await genRes.json();
     console.log("AI_RESPONSE_OK");
-    const outputText = extractResponseText(genJson);
+    const outputText =
+      genJson?.candidates?.[0]?.content?.parts
+        ?.map((p: any) => p?.text ?? "")
+        .join("\n")
+        .trim() ?? "";
+
+    if (!outputText) {
+      return NextResponse.json({ error: "EMPTY_AI_RESPONSE" }, { status: 500 });
+    }
 
     const usage = genJson?.usageMetadata || {};
     let tokensIn = Number(usage.promptTokenCount || 0) || 0;
@@ -225,24 +225,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "CHARGE_FAILED", details: message }, { status: 500 });
     }
 
-    const { error: usageLogError } = await supabase.from("usage_logs").insert({
-      user_id: user.id,
-      feature,
-      model: MODEL,
-      tokens_input: tokensIn,
-      tokens_output: tokensOut,
-      cost: finalCost,
-    });
-
-    if (usageLogError) {
-      return NextResponse.json(
-        { error: "USAGE_LOG_INSERT_FAILED", details: usageLogError.message },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({
-      result: outputText,
+      text: outputText,
       balance: newBalance,
       cost: finalCost,
       tokens_input: tokensIn,

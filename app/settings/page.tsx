@@ -4,8 +4,6 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban } from 'lucide-react'
 import Image from 'next/image'
-import WalletCard from '@/components/wallet/WalletCard'
-import AITools from '@/components/ai/AITools'
 
 interface Profile {
   id: string
@@ -363,9 +361,6 @@ export default function SettingsPage() {
           <span className="text-sm font-medium">{errorMessage}</span>
         </div>
       )}
-
-      <WalletCard />
-      <AITools />
 
       {/* ==================== PROFILE SECTION ==================== */}
       <div id="profile" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
