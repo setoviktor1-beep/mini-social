@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Loader2, Sparkles } from 'lucide-react'
+import WalletCard from '@/components/wallet/WalletCard'
 
 type AIFeature = 'improve_post' | 'generate_reply' | 'toxicity_gate'
 
@@ -77,6 +78,8 @@ export default function AIToolsPage() {
 
   return (
     <div className="space-y-6">
+      <WalletCard />
+
       <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles size={20} className="text-indigo-600" />
@@ -86,7 +89,7 @@ export default function AIToolsPage() {
         <div className="mt-4 inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl px-3 py-2">
           <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Current balance:</span>
           <span className="text-sm font-bold text-indigo-900 dark:text-indigo-100">
-            {balanceLoading ? 'Loading...' : `€${balance.toFixed(2)}`}
+            {balanceLoading ? 'Loading...' : `EUR ${balance.toFixed(2)}`}
           </span>
         </div>
       </div>
@@ -150,7 +153,7 @@ export default function AIToolsPage() {
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
             <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{result.text}</p>
             <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-              Cost: €{Number(result.cost || 0).toFixed(4)} | Tokens: {result.tokens_input}/{result.tokens_output} | Balance: €{Number(result.balance || 0).toFixed(2)}
+              Cost: EUR {Number(result.cost || 0).toFixed(4)} | Tokens: {result.tokens_input}/{result.tokens_output} | Balance: EUR {Number(result.balance || 0).toFixed(2)}
             </p>
           </div>
         )}

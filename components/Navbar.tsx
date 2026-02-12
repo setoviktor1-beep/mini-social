@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { useRouter, usePathname } from 'next/navigation'
-import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings } from 'lucide-react'
+import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Sparkles } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
 import Image from 'next/image'
@@ -145,6 +145,9 @@ export default function Navbar() {
                   </span>
                 )}
               </Link>
+              <Link href="/ai-tools" className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-lg transition-colors" title="AI Tools">
+                <Sparkles size={20} />
+              </Link>
               <NotificationBell />
               {(role === 'admin' || role === 'moderator') && (
                 <Link href="/admin/dashboard" className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 rounded-lg transition-colors" title="Admin Panel">
@@ -199,6 +202,11 @@ export default function Navbar() {
               )}
             </Link>
           )}
+          {user && (
+            <Link href="/ai-tools" className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-lg transition-colors" title="AI Tools">
+              <Sparkles size={20} />
+            </Link>
+          )}
           {user && <NotificationBell />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -234,6 +242,13 @@ export default function Navbar() {
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
+                </Link>
+                <Link
+                  href="/ai-tools"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors font-medium"
+                >
+                  <Sparkles size={20} />
+                  AI Tools
                 </Link>
                 {(role === 'admin' || role === 'moderator') && (
                   <Link
