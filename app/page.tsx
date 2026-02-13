@@ -10,7 +10,6 @@ import {
   Mail,
   Users,
   Settings,
-  Bookmark,
   Sparkles,
   Plus,
   TrendingUp,
@@ -24,6 +23,48 @@ function sortByTimeDesc(a: any, b: any) {
   const at = new Date(a.feed_sort_at || a.created_at).getTime()
   const bt = new Date(b.feed_sort_at || b.created_at).getTime()
   return bt - at
+}
+
+function buildTrendingFromPosts(posts: any[]) {
+  const counts: Record<string, number> = {}
+
+  for (const post of posts) {
+    const text = [post?.content || '', post?.quoted_post?.content || ''].join('\n')
+    const tags: Record<string, boolean> = {}
+    const parts = text.split(/\s+/)
+
+    for (const part of parts) {
+      const cleaned = part.replace(/^[^#]*#/, '#').replace(/[^\w#]/g, '')
+      if (!cleaned.startsWith('#')) continue
+      const tag = cleaned.slice(1).toLowerCase()
+      if (tag.length < 2 || tag.length > 40) continue
+      tags[tag] = true
+    }
+
+    Object.keys(tags).forEach((tag) => {
+      counts[tag] = (counts[tag] || 0) + 1
+    })
+  }
+
+  const sorted = Object.entries(counts)
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1]
+      return a[0].localeCompare(b[0])
+    })
+    .slice(0, 4)
+    .map(([tag, count]) => ({
+      tag,
+      posts: `${count} ${count === 1 ? 'post' : 'posts'}`,
+    }))
+
+  if (sorted.length > 0) return sorted
+
+  return [
+    { tag: 'minisocial', posts: `${posts.length} posts` },
+    { tag: 'community', posts: 'Live now' },
+    { tag: 'updates', posts: 'Fresh posts' },
+    { tag: 'discover', posts: 'Explore' },
+  ]
 }
 
 export default async function Home(props: { searchParams?: { tab?: string } }) {
@@ -231,12 +272,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
 
   const suggestions = suggestionsRaw || []
 
-  const trending = [
-    { tag: 'MiniSocial', posts: `${postsWithLikeStatus.length} posts` },
-    { tag: 'AIAgents', posts: 'Trending now' },
-    { tag: 'WebDev', posts: 'Hot topic' },
-    { tag: 'Startups', posts: 'Community' },
-  ]
+  const trending = buildTrendingFromPosts(postsWithLikeStatus)
 
   return (
     <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen min-h-screen bg-[#0a0a0f] text-gray-100">
