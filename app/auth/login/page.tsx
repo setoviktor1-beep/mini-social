@@ -14,6 +14,7 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState('')
   const [resetSent, setResetSent] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
@@ -52,6 +53,22 @@ export default function Login() {
       setResetSent(true)
     }
     setResetLoading(false)
+  }
+
+  const handleGoogleSignIn = async () => {
+    setError('')
+    setGoogleLoading(true)
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${siteUrl}/auth/callback?next=/`,
+      },
+    })
+    if (error) {
+      setError(error.message)
+      setGoogleLoading(false)
+    }
   }
 
   if (showReset) {
@@ -123,6 +140,19 @@ export default function Login() {
         {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
 
         <form onSubmit={handleLogin} className="space-y-4">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading || loading}
+            className="w-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-3 rounded-full font-semibold disabled:opacity-50 min-h-[44px]"
+          >
+            {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+          </button>
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+            <span>or</span>
+            <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
             <input
