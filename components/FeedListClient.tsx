@@ -67,7 +67,7 @@ export default function FeedListClient(props: {
   }, [loadMoreRef.current, page, hasMore, loading, tab])
 
   return (
-    <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
+    <div className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)] overflow-hidden">
       {posts.map((post) => (
         <PostCard key={post.feed_key || post.id} post={post} currentUserId={currentUserId} currentUserRole={currentUserRole} />
       ))}
@@ -90,7 +90,7 @@ export default function FeedListClient(props: {
           ) : hasMore ? (
             <button
               onClick={loadMore}
-              className="px-6 py-2.5 rounded-full font-bold text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors min-h-[44px]"
+              className="px-6 py-2.5 rounded-full font-bold text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:border-[var(--border-focus)] border border-transparent min-h-[44px]"
             >
               Load more
             </button>

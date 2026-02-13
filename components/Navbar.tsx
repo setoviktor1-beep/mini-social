@@ -145,7 +145,7 @@ export default function Navbar() {
                   </span>
                 )}
               </Link>
-              <Link href="/ai-tools" className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-lg transition-colors" title="AI Tools">
+              <Link href="/ai-chat" className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-lg transition-colors" title="AI Chat">
                 <Sparkles size={20} />
               </Link>
               <NotificationBell />
@@ -203,7 +203,7 @@ export default function Navbar() {
             </Link>
           )}
           {user && (
-            <Link href="/ai-tools" className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-lg transition-colors" title="AI Tools">
+            <Link href="/ai-chat" className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-lg transition-colors" title="AI Chat">
               <Sparkles size={20} />
             </Link>
           )}
@@ -244,11 +244,11 @@ export default function Navbar() {
                   )}
                 </Link>
                 <Link
-                  href="/ai-tools"
+                  href="/ai-chat"
                   className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors font-medium"
                 >
                   <Sparkles size={20} />
-                  AI Tools
+                  AI Chat
                 </Link>
                 {(role === 'admin' || role === 'moderator') && (
                   <Link

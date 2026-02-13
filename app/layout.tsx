@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar'
 import { ThemeProvider } from './providers'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'] })
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export const metadata: Metadata = {
@@ -59,8 +59,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <Navbar />
           <ServiceWorkerRegister />
-          <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-8">{children}</main>
-          <footer className="max-w-2xl mx-auto px-3 sm:px-4 py-8 sm:py-12 text-center text-sm text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-800 mt-12 sm:mt-20">
+          <main className="mx-auto px-3 sm:px-4 py-4 sm:py-8" style={{ maxWidth: 'var(--content-max)' }}>{children}</main>
+          <footer className="mx-auto px-3 sm:px-4 py-8 sm:py-12 text-center text-sm text-[var(--text-secondary)] border-t border-[var(--border-subtle)] mt-12 sm:mt-20" style={{ maxWidth: 'var(--content-max)' }}>
             <div className="flex justify-center gap-4 sm:gap-6 mb-4">
               <a href="/legal/privacy" className="hover:text-blue-600 py-1">
                 Privacy

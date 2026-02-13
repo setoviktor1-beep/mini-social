@@ -22,6 +22,29 @@ module.exports = {
           900: '#28317b',
           950: '#181c4a',
         },
+        bg: {
+          primary: '#0a0a0a',
+          secondary: '#1a1a1a',
+          tertiary: '#2a2a2a',
+          input: '#1e1e1e',
+        },
+        border: {
+          subtle: '#2e2e2e',
+          focus: '#4a90d9',
+        },
+        text: {
+          primary: '#e8e8e8',
+          secondary: '#8e8e8e',
+          tertiary: '#5a5a5a',
+        },
+        accent: {
+          blue: '#0084ff',
+          'blue-hover': '#0073e6',
+          success: '#00c853',
+          warning: '#ff9800',
+          error: '#ff3b30',
+          purple: '#8b5cf6',
+        },
       },
       borderRadius: {
         '3xl': '1.5rem',

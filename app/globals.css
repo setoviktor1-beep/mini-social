@@ -1,27 +1,30 @@
+@import './design-tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 248, 250, 252;
-}
-
-.dark {
-  --foreground-rgb: 226, 232, 240;
-  --background-start-rgb: 15, 23, 42;
-  --background-end-rgb: 15, 23, 42;
-}
-
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 10% 0%, #18243a 0%, transparent 38%),
+    radial-gradient(circle at 90% 100%, #102238 0%, transparent 40%),
+    var(--bg-primary);
+  transition: all 0.15s ease;
+}
+
+.dark body {
+  color: var(--text-primary);
+}
+
+* {
+  transition: all 0.15s ease;
+}
+
+input,
+textarea,
+select {
+  color: var(--text-primary);
 }
 
 .prose h1 { @apply text-3xl font-black text-slate-900 dark:text-slate-100; }

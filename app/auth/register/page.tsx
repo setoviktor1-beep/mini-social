@@ -79,7 +79,7 @@ export default function Register() {
   if (success) {
     return (
       <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
-        <div className="p-6 sm:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 text-center">
+        <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)] text-center">
           <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="text-green-500" size={32} />
           </div>
@@ -94,7 +94,7 @@ export default function Register() {
 
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
-      <div className="p-6 sm:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800">
+      <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]">
         <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Create Account</h1>
         <p className="text-gray-500 dark:text-gray-400 mb-4 sm:mb-6 text-sm">Join our small community today.</p>
 
@@ -107,7 +107,7 @@ export default function Register() {
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 min-h-[44px]"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
               placeholder="johndoe"
               required
             />
@@ -119,7 +119,7 @@ export default function Register() {
               type="text"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
-              className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 min-h-[44px]"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
               placeholder="John Doe"
               required
             />
@@ -130,7 +130,7 @@ export default function Register() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 min-h-[44px]"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
               placeholder="john@example.com"
               required
             />
@@ -141,7 +141,7 @@ export default function Register() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 min-h-[44px]"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
               placeholder="••••••••"
               required
               minLength={6}
@@ -149,7 +149,8 @@ export default function Register() {
           </div>
           <button
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm shadow-blue-200 dark:shadow-blue-900/30 min-h-[44px]"
+            className="w-full text-white py-3 rounded-full font-bold disabled:opacity-50 transition-colors min-h-[44px]"
+            style={{ background: 'var(--accent-gradient)' }}
           >
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>

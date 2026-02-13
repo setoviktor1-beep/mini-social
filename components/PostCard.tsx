@@ -44,7 +44,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const supabase = createClient()
   const router = useRouter()
   const [liked, setLiked] = useState(post.user_liked || false)
-  const [likeCount, setLikeCount] = useState(post.likes?.[0]?.count || 0)
+  const [likeCount, setLikeCount] = useState(Number(post.likes?.[0]?.count || 0))
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState('')
@@ -319,7 +319,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const repostTimeAgo = post.reposted_at ? formatDistanceToNow(new Date(post.reposted_at), { addSuffix: true }) : null
 
   return (
-    <div className="p-3 sm:p-5 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group">
+    <div className="p-3 sm:p-5 hover:bg-[var(--bg-tertiary)] transition-colors group">
       <div className="flex gap-3 sm:gap-4">
         <Link href={`/u/${post.profiles?.username}`} className="flex-shrink-0">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden relative">
@@ -427,10 +427,10 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-[var(--text-secondary)]">
             <button onClick={handleLike} className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] ${liked ? 'text-red-500' : 'hover:text-red-600'}`}>
               <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
-              <span className="text-sm">{likeCount}</span>
+              <span className="text-sm">{Number.isFinite(likeCount) ? likeCount : 0}</span>
             </button>
             <button onClick={toggleComments} className="flex items-center gap-1.5 sm:gap-2 hover:text-blue-600 transition-colors min-h-[44px]">
               <MessageCircle size={20} />

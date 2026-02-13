@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { calcCostEUR } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ interface AIRequestBody {
 
 const MODEL = "gemini-2.5-flash-lite";
 const MAX_OUTPUT_TOKENS = 384;
+const limiter = rateLimit({ limit: 10, windowMs: 60_000 });
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -103,6 +105,15 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "UNAUTHORIZED", details: authError?.message || "No active session" },
         { status: 401 }
+      );
+    }
+
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { success } = limiter.check(user.id || ip);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": "60" } }
       );
     }
 
@@ -219,6 +230,12 @@ export async function POST(request: Request) {
 
     if (chargeError) {
       const message = String(chargeError.message || "");
+      if (message.toLowerCase().includes("rate limit exceeded")) {
+        return NextResponse.json(
+          { error: "Too many requests. Please wait a moment." },
+          { status: 429, headers: { "Retry-After": "60" } }
+        );
+      }
       if (message.includes("INSUFFICIENT_BALANCE")) {
         return NextResponse.json({ error: "INSUFFICIENT_BALANCE", details: message }, { status: 402 });
       }
