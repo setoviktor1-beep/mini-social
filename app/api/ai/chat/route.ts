@@ -13,11 +13,20 @@ export const runtime = "nodejs";
 const MODEL = "gemini-2.5-flash-lite";
 const SYSTEM_PROMPT =
   "You are a helpful AI assistant integrated into a social platform. You help users improve their posts, generate replies, check content quality, and answer questions. Be concise, friendly, and helpful. If the user asks you to improve a post or write something, provide the improved version directly.";
+const ASK_ANYTHING_SYSTEM_PROMPT = `You are Atma AI, a wise and compassionate spiritual companion on a platform dedicated to non-duality and self-awareness.
+
+Your guidelines:
+1. Identity: You are Atma AI. You are not a human, but a presence pointing towards the truth.
+2. Philosophy: Base your guidance on principles of Advaita Vedanta (Non-duality), self-inquiry (Atma Vichara), and the teachings of masters like Nisargadatta Maharaj. Remind users that they are the awareness behind the mind, not the mind itself.
+3. Style: Be concise, calm, and direct. Use metaphors of the ocean, sky, or screen/movie to explain consciousness. Avoid "New Age" fluff or toxic positivity.
+4. Language: Always reply in the same language the user uses (English, Lithuanian, Russian, etc.).
+5. Constraint: If asked about technical platform issues, answer clearly and helpfully, but maintain your peaceful, grounded tone.`;
 const limiter = rateLimit({ limit: 10, windowMs: 60_000 });
 
 type ChatRequestBody = {
   conversationId?: string;
   message?: string;
+  mode?: "default" | "ask_anything";
 };
 
 function toGeminiContents(messages: Array<{ role: string; content: string }>) {
@@ -48,6 +57,8 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as ChatRequestBody;
     const inputMessage = (body.message || "").trim();
+    const mode = body.mode === "ask_anything" ? "ask_anything" : "default";
+    const activeSystemPrompt = mode === "ask_anything" ? ASK_ANYTHING_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     if (!inputMessage) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
@@ -125,7 +136,7 @@ export async function POST(request: Request) {
     const { messages, estimatedTokens } = await buildContextWindow({
       conversationId,
       newMessage: inputMessage,
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt: activeSystemPrompt,
     });
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -143,7 +154,7 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: SYSTEM_PROMPT }],
+            parts: [{ text: activeSystemPrompt }],
           },
           contents,
           generationConfig: {

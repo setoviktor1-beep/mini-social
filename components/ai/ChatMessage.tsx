@@ -18,7 +18,7 @@ export default function ChatMessage({ role, content, createdAt }: ChatMessagePro
             <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#0084ff] to-[#00c6ff] text-white text-xs font-semibold flex items-center justify-center">
               ✦
             </div>
-            <span className="text-xs text-[var(--text-secondary)]">Meta AI</span>
+            <span className="text-xs text-[var(--text-secondary)]">Atma AI</span>
           </div>
         )}
         <p className="whitespace-pre-wrap text-sm sm:text-[15px] text-[var(--text-primary)]">{content}</p>

@@ -22,6 +22,7 @@ type Message = {
   content: string
   created_at: string
 }
+type ChatMode = 'default' | 'ask_anything'
 
 export default function AIChatPage() {
   const supabase = useMemo(() => createClient(), [])
@@ -35,6 +36,7 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [chatMode, setChatMode] = useState<ChatMode>('default')
 
   const loadConversations = async () => {
     const res = await fetch('/api/ai/conversations')
@@ -78,6 +80,7 @@ export default function AIChatPage() {
     setActiveConversationId(undefined)
     setMessages([])
     setInput('')
+    setChatMode('default')
     setDrawerOpen(false)
   }
 
@@ -101,6 +104,7 @@ export default function AIChatPage() {
       body: JSON.stringify({
         conversationId: activeConversationId,
         message,
+        mode: chatMode,
       }),
     })
 
@@ -179,7 +183,12 @@ export default function AIChatPage() {
         </div>
 
         {messages.length === 0 ? (
-          <ConversationStarters onPick={(v) => setInput(v)} />
+          <ConversationStarters
+            onPick={(key, label) => {
+              setChatMode(key === 'ask_anything' ? 'ask_anything' : 'default')
+              setInput(label)
+            }}
+          />
         ) : (
           <ChatWindow messages={messages} loading={loading} />
         )}
