@@ -67,13 +67,13 @@ export default function FeedListClient(props: {
   }, [loadMoreRef.current, page, hasMore, loading, tab])
 
   return (
-    <div className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)] overflow-hidden">
+    <div className="divide-y divide-gray-800/60 bg-transparent">
       {posts.map((post) => (
         <PostCard key={post.feed_key || post.id} post={post} currentUserId={currentUserId} currentUserRole={currentUserRole} />
       ))}
 
       {posts.length === 0 && (
-        <div className="p-8 sm:p-10 text-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
+        <div className="p-8 sm:p-10 text-center text-gray-500 text-sm sm:text-base">
           {tab === 'following'
             ? 'No posts from people you follow yet.'
             : tab === 'for_you'
@@ -86,16 +86,16 @@ export default function FeedListClient(props: {
         <div className="p-4 sm:p-5 text-center">
           <div ref={loadMoreRef} />
           {loading ? (
-            <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500">Loading more...</p>
+            <p className="text-xs sm:text-sm text-gray-400">Loading more...</p>
           ) : hasMore ? (
             <button
               onClick={loadMore}
-              className="px-6 py-2.5 rounded-full font-bold text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:border-[var(--border-focus)] border border-transparent min-h-[44px]"
+              className="px-6 py-2.5 rounded-full font-semibold text-sm bg-gray-800 text-gray-200 hover:bg-gray-700 border border-gray-700 min-h-[44px]"
             >
               Load more
             </button>
           ) : (
-            <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500">You&apos;re all caught up.</p>
+            <p className="text-xs sm:text-sm text-gray-400">You&apos;re all caught up.</p>
           )}
         </div>
       )}

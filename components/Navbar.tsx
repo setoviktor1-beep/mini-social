@@ -120,8 +120,8 @@ export default function Navbar() {
   const profileHref = `/u/${username || user?.user_metadata?.username || ''}`
 
   return (
-    <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm dark:shadow-gray-900/20 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50">
-      <div className="max-w-2xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 border-b border-gray-800/60 bg-[#0a0a0f]/85 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16">
         <Link href="/" className="font-black text-xl sm:text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
           MiniSocial
         </Link>

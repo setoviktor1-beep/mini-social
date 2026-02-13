@@ -319,7 +319,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const repostTimeAgo = post.reposted_at ? formatDistanceToNow(new Date(post.reposted_at), { addSuffix: true }) : null
 
   return (
-    <div className="p-3 sm:p-5 hover:bg-[var(--bg-tertiary)] transition-colors group">
+    <div className="group p-4 hover:bg-gray-800/20 transition-colors">
       <div className="flex gap-3 sm:gap-4">
         <Link href={`/u/${post.profiles?.username}`} className="flex-shrink-0">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden relative">
@@ -340,7 +340,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         </Link>
         <div className="flex-1 min-w-0">
           {post.reposted_by_profile && (
-            <div className="mb-1 text-xs text-emerald-600 dark:text-emerald-400">
+            <div className="mb-1 text-xs text-emerald-400">
               <Link href={`/u/${post.reposted_by_profile.username}`} className="hover:underline font-semibold">
                 @{post.reposted_by_profile.username}
               </Link>{' '}
@@ -349,18 +349,18 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-gray-900 dark:text-gray-100 hover:underline text-sm sm:text-base">
+              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-gray-100 hover:underline text-sm sm:text-base">
                 {post.profiles?.display_name}
               </Link>
-              <Link href={`/u/${post.profiles?.username}`} className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm hover:underline hidden sm:inline">
+              <Link href={`/u/${post.profiles?.username}`} className="text-gray-500 text-xs sm:text-sm hover:underline hidden sm:inline">
                 @{post.profiles?.username}
               </Link>
-              <span className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm">&middot; {timeAgo}</span>
+              <span className="text-gray-500 text-xs sm:text-sm">&middot; {timeAgo}</span>
             </div>
             {canDelete && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
                 title="Delete post"
               >
                 <Trash2 size={16} />
@@ -368,28 +368,28 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             )}
           </div>
 
-          <p className="text-gray-800 dark:text-gray-200 text-base sm:text-lg leading-relaxed whitespace-pre-wrap mb-3">
+          <p className="text-gray-100 text-[15px] leading-relaxed whitespace-pre-wrap mb-3">
             <ParsedContent content={post.content} />
           </p>
 
           {post.quoted_post && post.quoted_post.status !== 'deleted' && (
-            <div className="mb-3 rounded-2xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 bg-gray-50/80 dark:bg-gray-800/50">
+            <div className="mb-3 rounded-2xl border border-gray-700 p-3 sm:p-4 bg-gray-900/60">
               <div className="flex items-center gap-2 mb-1">
-                <Link href={`/u/${post.quoted_post.profiles?.username}`} className="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:underline">
+                <Link href={`/u/${post.quoted_post.profiles?.username}`} className="text-sm font-semibold text-gray-200 hover:underline">
                   {post.quoted_post.profiles?.display_name}
                 </Link>
-                <span className="text-xs text-gray-400 dark:text-gray-500">
+                <span className="text-xs text-gray-500">
                   @{post.quoted_post.profiles?.username}
                 </span>
               </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+              <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">
                 <ParsedContent content={post.quoted_post.content} />
               </p>
             </div>
           )}
 
           {post.post_media && post.post_media.length > 0 && (
-            <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 ${post.post_media.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-800 ${post.post_media.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               {post.post_media.map((m, i) => (
                 <div
                   key={i}
@@ -417,7 +417,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
 
           {post.youtube_video_id && (
-            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-black">
+            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-gray-800 bg-black">
               <iframe
                 width="100%" height="100%"
                 src={`https://www.youtube-nocookie.com/embed/${post.youtube_video_id}`}
@@ -427,7 +427,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-[var(--text-secondary)]">
+          <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-gray-500">
             <button onClick={handleLike} className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] ${liked ? 'text-red-500' : 'hover:text-red-600'}`}>
               <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
               <span className="text-sm">{Number.isFinite(likeCount) ? likeCount : 0}</span>
@@ -447,13 +447,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               {showRepostMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowRepostMenu(false)} />
-                  <div className="absolute bottom-8 left-0 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 py-2 w-44 z-50">
+                  <div className="absolute bottom-8 left-0 bg-[#101218] rounded-xl shadow-lg border border-gray-700 py-2 w-44 z-50">
                     <button
                       onClick={async () => {
                         await handleRepost()
                         setShowRepostMenu(false)
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-800 transition-colors text-gray-300 min-h-[44px]"
                     >
                       {reposted ? 'Undo repost' : 'Repost'}
                     </button>
@@ -462,7 +462,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         setShowRepostMenu(false)
                         setShowQuoteModal(true)
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:text-gray-300 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-800 transition-colors text-gray-300 min-h-[44px]"
                     >
                       Quote
                     </button>
@@ -481,10 +481,10 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               {showShareMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)} />
-                  <div className="absolute bottom-8 left-0 sm:left-1/2 sm:-translate-x-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 py-2 w-48 z-50">
+                  <div className="absolute bottom-8 left-0 sm:left-1/2 sm:-translate-x-1/2 bg-[#101218] rounded-xl shadow-lg border border-gray-700 py-2 w-48 z-50">
                     <button
                       onClick={handleCopyLink}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-800 flex items-center gap-3 transition-colors text-gray-300 min-h-[44px]"
                     >
                       {copied ? <Check size={16} className="text-green-500" /> : <LinkIcon size={16} />}
                       {copied ? 'Copied!' : 'Copy link'}
@@ -492,7 +492,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     {typeof navigator !== 'undefined' && 'share' in navigator && (
                       <button
                         onClick={handleShareNative}
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-800 flex items-center gap-3 transition-colors text-gray-300 min-h-[44px]"
                       >
                         <Share2 size={16} />
                         Share via...
@@ -500,14 +500,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     )}
                     <button
                       onClick={shareToTwitter}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-800 flex items-center gap-3 transition-colors text-gray-300 min-h-[44px]"
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                       Post on X
                     </button>
                     <button
                       onClick={shareToFacebook}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors dark:text-gray-300 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-800 flex items-center gap-3 transition-colors text-gray-300 min-h-[44px]"
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                       Share on Facebook
@@ -529,7 +529,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Comments section */}
           {showComments && (
-            <div className="mt-3 sm:mt-4 space-y-3 border-t border-gray-100 dark:border-gray-800 pt-3 sm:pt-4">
+            <div className="mt-3 sm:mt-4 space-y-3 border-t border-gray-800 pt-3 sm:pt-4">
               {loadingComments ? (
                 <p className="text-sm text-gray-400">Loading comments...</p>
               ) : (
@@ -553,14 +553,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-gray-900 dark:text-gray-100 hover:underline">
+                          <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-gray-100 hover:underline">
                             {c.profiles?.display_name}
                           </Link>
-                          <span className="text-gray-400 dark:text-gray-500 text-xs">
+                          <span className="text-gray-500 text-xs">
                             {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
                           </span>
                         </div>
-                        <p className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm whitespace-pre-wrap break-words">
+                        <p className="text-gray-300 text-xs sm:text-sm whitespace-pre-wrap break-words">
                           <ParsedContent content={c.content} />
                         </p>
                       </div>
@@ -580,7 +580,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     onChange={e => setCommentText(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleComment()}
                     placeholder="Write a comment..."
-                    className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 dark:text-gray-200 min-h-[44px]"
+                    className="flex-1 bg-gray-900 border border-gray-700 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-500/20 text-gray-200 min-h-[44px]"
                     maxLength={500}
                   />
                   <button

@@ -87,18 +87,18 @@ export default function PostComposer({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+    <div className="border-b border-gray-800/60 bg-transparent p-4">
       <textarea
         value={content}
         onChange={e => setContent(e.target.value)}
         placeholder="What's on your mind?"
-        className="w-full resize-none outline-none text-base sm:text-lg min-h-[80px] sm:min-h-[100px] bg-transparent dark:text-gray-200 dark:placeholder-gray-500"
+        className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-gray-100 placeholder-gray-500 outline-none"
       />
 
       {files.length > 0 && (
         <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto -mx-1 px-1">
           {files.map((f, i) => (
-            <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+            <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 border border-gray-700">
               <Image src={URL.createObjectURL(f)} alt="" fill sizes="80px" className="object-cover" unoptimized />
               <button onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center">
                 <X size={14} />
@@ -108,21 +108,21 @@ export default function PostComposer({ userId }: { userId: string }) {
         </div>
       )}
 
-      <div className="flex flex-col gap-3 border-t dark:border-gray-800 pt-3">
+      <div className="flex flex-col gap-3 border-t border-gray-800/60 pt-3">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <label className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 cursor-pointer transition-colors text-sm min-h-[44px]">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
             <ImageIcon size={18} />
             <span>Photos</span>
             <input type="file" multiple accept="image/*" className="hidden" onChange={e => e.target.files && setFiles([...files, ...Array.from(e.target.files)])} />
           </label>
-          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 focus-within:text-red-600 text-sm min-h-[44px]">
+          <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-400 focus-within:text-purple-300">
             <Youtube size={18} className="flex-shrink-0" />
             <input
               type="text"
               placeholder="YouTube URL"
               value={youtube}
               onChange={e => setYoutube(e.target.value)}
-              className="bg-transparent outline-none w-full sm:w-32 border-b border-transparent focus:border-red-200 dark:text-gray-300 min-h-[44px]"
+              className="min-h-[44px] w-full border-b border-transparent bg-transparent text-gray-200 outline-none focus:border-purple-300 sm:w-40"
             />
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function PostComposer({ userId }: { userId: string }) {
           <button
             onClick={handlePost}
             disabled={loading || (!content && files.length === 0)}
-            className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 min-h-[44px]"
+            className="min-h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
           >
             {loading ? 'Posting...' : <><Send size={16}/> Post</>}
           </button>
