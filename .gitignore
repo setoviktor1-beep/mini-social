@@ -11,3 +11,5 @@ build/
 supabase/.temp/
 
 .vercel
+audit_results/
+*_orchestrator_audit.md
