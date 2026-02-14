@@ -68,17 +68,35 @@ export function sortByTimeDesc(a: any, b: any) {
   return bt - at
 }
 
+function logFeedError(context: string, error: unknown) {
+  console.error(`[feed-service] ${context}`, error)
+}
+
+async function safeQuery<T>(context: string, query: Promise<{ data: T | null; error: any }>, fallback: T): Promise<T> {
+  try {
+    const { data, error } = await query
+    if (error) {
+      logFeedError(context, error)
+      return fallback
+    }
+    return data ?? fallback
+  } catch (error) {
+    logFeedError(context, error)
+    return fallback
+  }
+}
+
 export async function getBlockedUserIds(supabase: any, userId?: string) {
   if (!userId) return [] as string[]
 
-  const [{ data: blocksByMe }, { data: blocksMe }] = await Promise.all([
-    supabase.from('blocks').select('blocked_id').eq('blocker_id', userId),
-    supabase.from('blocks').select('blocker_id').eq('blocked_id', userId),
+  const [blocksByMe, blocksMe] = await Promise.all([
+    safeQuery<any[]>('getBlockedUserIds:blocksByMe', supabase.from('blocks').select('blocked_id').eq('blocker_id', userId), []),
+    safeQuery<any[]>('getBlockedUserIds:blocksMe', supabase.from('blocks').select('blocker_id').eq('blocked_id', userId), []),
   ])
 
   const ids = [
-    ...(blocksByMe || []).map((r: any) => r.blocked_id),
-    ...(blocksMe || []).map((r: any) => r.blocker_id),
+    ...blocksByMe.map((r: any) => r.blocked_id),
+    ...blocksMe.map((r: any) => r.blocker_id),
   ].filter(Boolean)
 
   return Array.from(new Set(ids))
@@ -92,11 +110,15 @@ function applyBlockedFilter(query: any, blockedUserIds: string[]) {
 
 async function getFollowedIds(supabase: any, userId?: string) {
   if (!userId) return [] as string[]
-  const { data: rows } = await supabase
+  const rows = await safeQuery<any[]>(
+    'getFollowedIds',
+    supabase
     .from('follows')
     .select('following_id')
-    .eq('follower_id', userId)
-  return (rows || []).map((r: any) => r.following_id).filter(Boolean)
+    .eq('follower_id', userId),
+    []
+  )
+  return rows.map((r: any) => r.following_id).filter(Boolean)
 }
 
 function rankForYou(rows: any[]) {
@@ -110,113 +132,135 @@ function rankForYou(rows: any[]) {
 }
 
 export async function getFeedItems(options: FeedQueryOptions) {
-  const {
-    supabase,
-    user,
-    tab,
-    page = 0,
-    pageSize = 20,
-    mode = 'top',
-  } = options
-  const postPoolSize = mode === 'paged' ? (page + 1) * pageSize * 3 : pageSize
-  const repostPoolSize = mode === 'paged' ? (page + 1) * pageSize * 3 : pageSize * 2
+  try {
+    const {
+      supabase,
+      user,
+      tab,
+      page = 0,
+      pageSize = 20,
+      mode = 'top',
+    } = options
+    const postPoolSize = mode === 'paged' ? (page + 1) * pageSize * 3 : pageSize
+    const repostPoolSize = mode === 'paged' ? (page + 1) * pageSize * 3 : pageSize * 2
 
-  const blockedUserIds = await getBlockedUserIds(supabase, user?.id)
-  const blockedSet = new Set(blockedUserIds)
-  const followedIds = tab === 'following' ? await getFollowedIds(supabase, user?.id) : []
+    const blockedUserIds = await getBlockedUserIds(supabase, user?.id)
+    const blockedSet = new Set(blockedUserIds)
+    const followedIds = tab === 'following' ? await getFollowedIds(supabase, user?.id) : []
 
-  let posts: any[] = []
-  let repostItems: any[] = []
+    let posts: any[] = []
+    let repostItems: any[] = []
 
-  if (tab === 'following' && user) {
-    if (followedIds.length > 0) {
+    if (tab === 'following' && user) {
+      if (followedIds.length > 0) {
+        let q = supabase
+          .from('posts')
+          .select(BASE_SELECT)
+          .eq('status', 'active')
+          .in('user_id', followedIds)
+        q = applyBlockedFilter(q, blockedUserIds)
+        posts = await safeQuery<any[]>(
+          'getFeedItems:followingPosts',
+          q.order('created_at', { ascending: false }).limit(postPoolSize),
+          []
+        )
+      }
+    } else if (tab === 'for_you' && user) {
+      const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
       let q = supabase
         .from('posts')
         .select(BASE_SELECT)
         .eq('status', 'active')
-        .in('user_id', followedIds)
+        .gte('created_at', since)
       q = applyBlockedFilter(q, blockedUserIds)
-      const { data } = await q.order('created_at', { ascending: false }).limit(postPoolSize)
-      posts = data || []
-    }
-  } else if (tab === 'for_you' && user) {
-    const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-    let q = supabase
-      .from('posts')
-      .select(BASE_SELECT)
-      .eq('status', 'active')
-      .gte('created_at', since)
-    q = applyBlockedFilter(q, blockedUserIds)
-    const { data } = await q.order('created_at', { ascending: false }).limit(200)
-    const ranked = rankForYou(data || [])
-    if (mode === 'paged') {
-      const from = page * pageSize
-      posts = ranked.slice(from, from + pageSize)
-    } else {
-      posts = ranked.slice(0, pageSize)
-    }
-  } else {
-    let q = supabase.from('posts').select(BASE_SELECT).eq('status', 'active')
-    q = applyBlockedFilter(q, blockedUserIds)
-    const { data } = await q.order('created_at', { ascending: false }).limit(postPoolSize)
-    posts = data || []
-  }
-
-  if (tab !== 'for_you') {
-    let repostQuery = supabase
-      .from('reposts')
-      .select(REPOST_SELECT)
-      .order('created_at', { ascending: false })
-      .limit(repostPoolSize)
-
-    if (tab === 'following' && user) {
-      if (followedIds.length > 0) {
-        repostQuery = repostQuery.in('user_id', followedIds)
+      const data = await safeQuery<any[]>(
+        'getFeedItems:forYouPosts',
+        q.order('created_at', { ascending: false }).limit(200),
+        []
+      )
+      const ranked = rankForYou(data)
+      if (mode === 'paged') {
+        const from = page * pageSize
+        posts = ranked.slice(from, from + pageSize)
       } else {
-        repostItems = []
+        posts = ranked.slice(0, pageSize)
+      }
+    } else {
+      let q = supabase.from('posts').select(BASE_SELECT).eq('status', 'active')
+      q = applyBlockedFilter(q, blockedUserIds)
+      posts = await safeQuery<any[]>(
+        'getFeedItems:latestPosts',
+        q.order('created_at', { ascending: false }).limit(postPoolSize),
+        []
+      )
+    }
+
+    if (tab !== 'for_you') {
+      let repostQuery = supabase
+        .from('reposts')
+        .select(REPOST_SELECT)
+        .order('created_at', { ascending: false })
+        .limit(repostPoolSize)
+
+      if (tab === 'following' && user) {
+        if (followedIds.length > 0) {
+          repostQuery = repostQuery.in('user_id', followedIds)
+        } else {
+          repostItems = []
+        }
+      }
+
+      if (!(tab === 'following' && user && followedIds.length === 0)) {
+        const repostRows = await safeQuery<any[]>(
+          'getFeedItems:reposts',
+          repostQuery,
+          []
+        )
+        repostItems = repostRows
+          .map((r: any) => {
+            const p = r.post
+            if (!p || p.status !== 'active') return null
+            return {
+              ...p,
+              feed_key: `repost-${r.reposter?.id || 'u'}-${p.id}-${r.created_at}`,
+              reposted_at: r.created_at,
+              reposted_by_profile: r.reposter || null,
+              feed_sort_at: r.created_at,
+            }
+          })
+          .filter(Boolean)
+          .filter((p: any) => {
+            if (!user || blockedSet.size === 0) return true
+            const postAuthor = p.user_id
+            const reposterId = p.reposted_by_profile?.id
+            return !blockedSet.has(postAuthor) && !blockedSet.has(reposterId)
+          })
       }
     }
 
-    if (!(tab === 'following' && user && followedIds.length === 0)) {
-      const { data: repostRows } = await repostQuery
-      repostItems = (repostRows || [])
-        .map((r: any) => {
-          const p = r.post
-          if (!p || p.status !== 'active') return null
-          return {
-            ...p,
-            feed_key: `repost-${r.reposter?.id || 'u'}-${p.id}-${r.created_at}`,
-            reposted_at: r.created_at,
-            reposted_by_profile: r.reposter || null,
-            feed_sort_at: r.created_at,
-          }
-        })
-        .filter(Boolean)
-        .filter((p: any) => {
-          if (!user || blockedSet.size === 0) return true
-          const postAuthor = p.user_id
-          const reposterId = p.reposted_by_profile?.id
-          return !blockedSet.has(postAuthor) && !blockedSet.has(reposterId)
-        })
+    const baseItems = posts.map((post: any) => ({
+      ...post,
+      feed_key: `post-${post.id}`,
+      feed_sort_at: post.created_at,
+    }))
+
+    const merged = tab === 'for_you'
+      ? baseItems
+      : [...baseItems, ...repostItems].sort(sortByTimeDesc)
+    const pageSlice = mode === 'paged'
+      ? merged.slice(page * pageSize, (page + 1) * pageSize)
+      : merged.slice(0, pageSize)
+
+    return {
+      posts: pageSlice,
+      blockedUserIds,
     }
-  }
-
-  const baseItems = posts.map((post: any) => ({
-    ...post,
-    feed_key: `post-${post.id}`,
-    feed_sort_at: post.created_at,
-  }))
-
-  const merged = tab === 'for_you'
-    ? baseItems
-    : [...baseItems, ...repostItems].sort(sortByTimeDesc)
-  const pageSlice = mode === 'paged'
-    ? merged.slice(page * pageSize, (page + 1) * pageSize)
-    : merged.slice(0, pageSize)
-
-  return {
-    posts: pageSlice,
-    blockedUserIds,
+  } catch (error) {
+    logFeedError('getFeedItems:unhandled', error)
+    return {
+      posts: [],
+      blockedUserIds: [],
+    }
   }
 }
 
@@ -233,18 +277,35 @@ export async function attachUserInteractionFlags(
     }))
   }
 
-  const candidateIds = Array.from(new Set(posts.map((p: any) => p.id).filter(Boolean)))
-  const [{ data: likes }, { data: reposts }] = await Promise.all([
-    supabase.from('likes').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
-    supabase.from('reposts').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
-  ])
+  try {
+    const candidateIds = Array.from(new Set(posts.map((p: any) => p.id).filter(Boolean)))
+    const [likes, reposts] = await Promise.all([
+      safeQuery<any[]>(
+        'attachUserInteractionFlags:likes',
+        supabase.from('likes').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
+        []
+      ),
+      safeQuery<any[]>(
+        'attachUserInteractionFlags:reposts',
+        supabase.from('reposts').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
+        []
+      ),
+    ])
 
-  const likedPostIds = new Set((likes || []).map((l: any) => l.post_id))
-  const repostedPostIds = new Set((reposts || []).map((r: any) => r.post_id))
+    const likedPostIds = new Set((likes || []).map((l: any) => l.post_id))
+    const repostedPostIds = new Set((reposts || []).map((r: any) => r.post_id))
 
-  return posts.map((post: any) => ({
-    ...post,
-    user_liked: likedPostIds.has(post.id),
-    user_reposted: repostedPostIds.has(post.id),
-  }))
+    return posts.map((post: any) => ({
+      ...post,
+      user_liked: likedPostIds.has(post.id),
+      user_reposted: repostedPostIds.has(post.id),
+    }))
+  } catch (error) {
+    logFeedError('attachUserInteractionFlags:unhandled', error)
+    return posts.map((post: any) => ({
+      ...post,
+      user_liked: false,
+      user_reposted: false,
+    }))
+  }
 }
