@@ -90,15 +90,15 @@ export default function RequestServicePage() {
       <div className="bg-gray-900/40 border border-gray-800/60 rounded-2xl p-6 shadow-sm">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2 mb-2">
           <Wrench className="text-blue-500" />
-          Ieškau Meistro
+          Reikia pagalbos?
         </h1>
         <p className="text-gray-400 text-sm mb-6">
-          Aprašykite problemą (pvz., &quot;Laša kranas vonioje&quot;, &quot;Reikia surinkti IKEA spintą&quot;) ir mūsų AI agentas iškart pateiks preliminarią sąmatą.
+          Aprašykite problemą ar poreikį (pvz., &quot;Laša kranas vonioje&quot;, &quot;Reikia vedžioti šunį&quot;) ir mūsų AI agentas paruoš užklausą.
         </p>
 
         {!profile?.address_text && (
           <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-sm">
-            Dėmesio: Tavo profilyje nenurodytas adresas. Meistrai nežinos, kur atvykti. 
+            Dėmesio: Tavo profilyje nenurodytas adresas. Paslaugų teikėjai nežinos, kur atvykti. 
             <button onClick={() => router.push("/settings")} className="ml-2 underline font-bold">Nustatyti adresą</button>
           </div>
         )}

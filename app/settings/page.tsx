@@ -547,11 +547,11 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Nextdoor / Pro Features Section */}
+          {/* Location & Pro Features Section */}
           <div className="pt-4 border-t border-gray-50 space-y-6">
             <h3 className="font-bold text-gray-900 flex items-center gap-2">
               <Palette size={18} className="text-blue-500" />
-              Nextdoor & Pro Nustatymai
+              Vietovės ir Verslo Nustatymai
             </h3>
 
             {/* Role Selection */}
@@ -578,13 +578,13 @@ export default function SettingsPage() {
                       : 'border-gray-100 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
-                  🛠️ Meistras (PRO)
+                  💼 Verslas / Paslaugos
                 </button>
               </div>
               <p className="text-xs text-gray-400 mt-2">
                 {role === 'master' 
-                  ? 'Matysi kaimynų užklausas ir galėsi siūlyti paslaugas.' 
-                  : 'Galėsi bendrauti su kaimynais ir ieškoti meistrų.'}
+                  ? 'Matysi kaimynų užklausas ir galėsi siūlyti savo paslaugas.' 
+                  : 'Galėsi bendrauti su kaimynais ir ieškoti paslaugų bei meistrų.'}
               </p>
             </div>
 

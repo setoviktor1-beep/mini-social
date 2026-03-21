@@ -109,8 +109,8 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
               {[
                 { href: '/', icon: HomeIcon, label: 'Home', show: true },
                 { href: '/services', icon: Store, label: 'Paslaugos', show: true },
-                { href: '/request-service', icon: Wrench, label: 'Ieškau Meistro', show: true },
-                { href: '/pro', icon: Briefcase, label: 'Meistro Darbalaukis', show: userRole === 'master' },
+                { href: '/request-service', icon: Wrench, label: 'Reikia pagalbos?', show: true },
+                { href: '/pro', icon: Briefcase, label: 'Verslo Darbalaukis', show: userRole === 'master' },
                 { href: '/search', icon: Search, label: 'Explore', show: true },
                 { href: '/notifications', icon: Bell, label: 'Notifications', show: true },
                 { href: '/messages', icon: Mail, label: 'Messages', show: true },
@@ -236,7 +236,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
           </Link>
           <Link href="/request-service" className="flex flex-col items-center gap-1 py-1 text-xs text-blue-500">
             <Wrench size={18} />
-            Meistras
+            Pagalba
           </Link>
           <Link href="/search" className="flex flex-col items-center gap-1 py-1 text-xs text-gray-500">
             <Search size={18} />

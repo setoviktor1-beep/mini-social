@@ -39,7 +39,7 @@ export default async function ProDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <Briefcase className="text-emerald-500" />
-              Meistro Darbalaukis
+              Verslo Darbalaukis
             </h1>
             <p className="text-gray-400 mt-1 flex items-center gap-2">
               <MapPin size={16} /> 
