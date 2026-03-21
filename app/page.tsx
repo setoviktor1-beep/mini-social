@@ -14,6 +14,8 @@ import {
   Sparkles,
   Plus,
   TrendingUp,
+  Wrench,
+  Briefcase,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -104,14 +106,16 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
           <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)]">
             <nav className="space-y-1 rounded-2xl border border-gray-800/60 bg-gray-900/40 p-2">
               {[
-                { href: '/', icon: HomeIcon, label: 'Home' },
-                { href: '/search', icon: Search, label: 'Explore' },
-                { href: '/notifications', icon: Bell, label: 'Notifications' },
-                { href: '/messages', icon: Mail, label: 'Messages' },
-                { href: '/discussions', icon: Users, label: 'Discussions' },
-                { href: '/settings', icon: Settings, label: 'Settings' },
-                { href: '/ai-chat', icon: Sparkles, label: 'AI Chat' },
-              ].map((item) => (
+                { href: '/', icon: HomeIcon, label: 'Home', show: true },
+                { href: '/request-service', icon: Wrench, label: 'Ieškau Meistro', show: true },
+                { href: '/pro', icon: Briefcase, label: 'Meistro Darbalaukis', show: userRole === 'master' },
+                { href: '/search', icon: Search, label: 'Explore', show: true },
+                { href: '/notifications', icon: Bell, label: 'Notifications', show: true },
+                { href: '/messages', icon: Mail, label: 'Messages', show: true },
+                { href: '/discussions', icon: Users, label: 'Discussions', show: true },
+                { href: '/settings', icon: Settings, label: 'Settings', show: true },
+                { href: '/ai-chat', icon: Sparkles, label: 'AI Chat', show: true },
+              ].filter(item => item.show).map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -223,10 +227,14 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-800/60 bg-[#0a0a0f]/95 backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5 py-2">
+        <div className="mx-auto grid max-w-md grid-cols-6 py-2">
           <Link href="/" className="flex flex-col items-center gap-1 py-1 text-xs text-white">
             <HomeIcon size={18} />
             Home
+          </Link>
+          <Link href="/request-service" className="flex flex-col items-center gap-1 py-1 text-xs text-blue-500">
+            <Wrench size={18} />
+            Meistras
           </Link>
           <Link href="/search" className="flex flex-col items-center gap-1 py-1 text-xs text-gray-500">
             <Search size={18} />
