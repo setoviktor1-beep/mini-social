@@ -13,3 +13,4 @@ supabase/.temp/
 .vercel
 audit_results/
 *_orchestrator_audit.md
+.env*.local
