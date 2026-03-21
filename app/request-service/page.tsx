@@ -48,7 +48,7 @@ export default function RequestServicePage() {
           Ieškau Meistro
         </h1>
         <p className="text-gray-400 text-sm mb-6">
-          Aprašykite problemą (pvz., "Laša kranas vonioje", "Reikia surinkti IKEA spintą") ir mūsų AI agentas iškart pateiks preliminarią sąmatą.
+          Aprašykite problemą (pvz., &quot;Laša kranas vonioje&quot;, &quot;Reikia surinkti IKEA spintą&quot;) ir mūsų AI agentas iškart pateiks preliminarią sąmatą.
         </p>
 
         <div className="space-y-4">

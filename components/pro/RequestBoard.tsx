@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle2, Clock, PlayCircle, MapPin, Hammer, MessageCircle } from 'lucide-react'
-import { createClient } from '@/lib/client-supabase'
+import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
 type RequestBoardProps = {
@@ -61,7 +61,7 @@ export default function RequestBoard({ initialRequests, currentUserId }: Request
                 </div>
 
                 <div className="text-sm text-gray-300 mb-4 line-clamp-3">
-                  "{req.description}"
+                  &quot;{req.description}&quot;
                 </div>
 
                 {req.estimated_price && (
