@@ -9,7 +9,7 @@ interface Request {
   description: string;
   status: string;
   created_at: string;
-  client?: { display_name: string | null; username: string } | null;
+  client?: any;
 }
 
 const STATUS_COLORS: Record<string, string> = {
