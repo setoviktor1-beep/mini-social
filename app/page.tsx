@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Wrench,
   Briefcase,
+  Store,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -107,6 +108,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
             <nav className="space-y-1 rounded-2xl border border-gray-800/60 bg-gray-900/40 p-2">
               {[
                 { href: '/', icon: HomeIcon, label: 'Home', show: true },
+                { href: '/services', icon: Store, label: 'Paslaugos', show: true },
                 { href: '/request-service', icon: Wrench, label: 'Ieškau Meistro', show: true },
                 { href: '/pro', icon: Briefcase, label: 'Meistro Darbalaukis', show: userRole === 'master' },
                 { href: '/search', icon: Search, label: 'Explore', show: true },
