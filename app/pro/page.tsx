@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/server-supabase'
 import { redirect } from 'next/navigation'
-import RequestBoard from '@/components/pro/RequestBoard'
-import { Briefcase, MapPin, Wrench } from 'lucide-react'
+import ProDashboardTabs from '@/components/pro/ProDashboardTabs'
+import { Briefcase, MapPin } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,7 @@ export default async function ProDashboard() {
   // Patikriname ar vartotojas turi 'master' rolę
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, display_name, address_text')
+    .select('role, display_name, address_text, business_name, business_category')
     .eq('id', user.id)
     .single()
 
@@ -25,8 +25,7 @@ export default async function ProDashboard() {
     redirect('/')
   }
 
-  // Ištraukiame užklausas (demo tikslais dabar ištrauksime visas,
-  // vėliau čia veiks PostGIS radius filtras)
+  // Ištraukiame užklausas
   const { data: requests } = await supabase
     .from('service_requests')
     .select('*, client:profiles!client_id(display_name, username)')
@@ -34,6 +33,7 @@ export default async function ProDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header Card */}
       <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-3xl p-6 border border-gray-800 shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -41,9 +41,14 @@ export default async function ProDashboard() {
               <Briefcase className="text-emerald-500" />
               Verslo Darbalaukis
             </h1>
-            <p className="text-gray-400 mt-1 flex items-center gap-2">
-              <MapPin size={16} /> 
-              Tavo regionas: {profile.address_text || 'Nepriskirtas (matysi visus užsakymus)'}
+            <p className="text-gray-400 mt-2 flex items-center gap-2 font-medium">
+              {profile.business_name || profile.display_name} 
+              <span className="text-emerald-500/50">•</span> 
+              <span className="text-gray-500">{profile.business_category || 'Kategorija nenustatyta'}</span>
+            </p>
+            <p className="text-gray-500 mt-1 flex items-center gap-2 text-sm">
+              <MapPin size={14} /> 
+              Regionas: {profile.address_text || 'Nepriskirtas'}
             </p>
           </div>
           <div className="flex gap-4 bg-gray-950/50 p-4 rounded-2xl border border-gray-800">
@@ -63,8 +68,9 @@ export default async function ProDashboard() {
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <RequestBoard initialRequests={requests || []} currentUserId={user.id} />
+      {/* Tabs and Content */}
+      <ProDashboardTabs initialRequests={requests || []} currentUserId={user.id} />
     </div>
   )
 }
+
