@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Inbox, Settings, Check, X, Clock } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client'; // Įsitikinkite, kad šis failas yra
+import { createClient } from '@/lib/supabase'; // Įsitikinkite, kad šis failas yra
 
 export default function ProDashboard() {
   const [activeTab, setActiveTab] = useState('inbox');
