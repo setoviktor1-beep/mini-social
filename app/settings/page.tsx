@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban } from 'lucide-react'
+import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, MapPin } from 'lucide-react'
 import Image from 'next/image'
 import WalletCard from '@/components/wallet/WalletCard'
 
@@ -13,6 +13,7 @@ interface Profile {
   bio: string | null
   avatar_path: string | null
   role: string
+  address_text: string | null
   created_at: string
 }
 
@@ -62,6 +63,10 @@ export default function SettingsPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [removeAvatar, setRemoveAvatar] = useState(false)
 
+  // Nextdoor features
+  const [addressText, setAddressText] = useState('')
+  const [role, setRole] = useState('user')
+
   // UI state
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -101,6 +106,8 @@ export default function SettingsPage() {
       setUsername(profileData.username || '')
       setBio(profileData.bio || '')
       setAvatarPath(profileData.avatar_path)
+      setAddressText(profileData.address_text || '')
+      setRole(profileData.role || 'user')
       setLoading(false)
     }
     loadProfile()
@@ -271,6 +278,8 @@ export default function SettingsPage() {
           username: username.trim().toLowerCase(),
           bio: bio.trim() || null,
           avatar_path: newAvatarPath,
+          address_text: addressText.trim() || null,
+          role: role,
         })
         .eq('id', profile.id)
 
@@ -296,6 +305,8 @@ export default function SettingsPage() {
         username: username.trim().toLowerCase(),
         bio: bio.trim() || null,
         avatar_path: newAvatarPath,
+        address_text: addressText.trim() || null,
+        role: role,
       } : null)
 
       // Update auth user metadata so navbar reflects new username
@@ -523,6 +534,64 @@ export default function SettingsPage() {
               <p className={`text-xs ${bio.length > 150 ? 'text-orange-500' : 'text-gray-400'}`}>
                 {bio.length}/160
               </p>
+            </div>
+          </div>
+
+          {/* Nextdoor / Pro Features Section */}
+          <div className="pt-4 border-t border-gray-50 space-y-6">
+            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+              <Palette size={18} className="text-blue-500" />
+              Nextdoor & Pro Nustatymai
+            </h3>
+
+            {/* Role Selection */}
+            <div>
+              <label className="text-sm font-bold text-gray-700 block mb-1.5">Vaidmuo sistemoje</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole('user')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
+                    role === 'user'
+                      ? 'bg-blue-50 border-blue-600 text-blue-700'
+                      : 'border-gray-100 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  🏠 Kaimynas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('master')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
+                    role === 'master'
+                      ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
+                      : 'border-gray-100 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  🛠️ Meistras (PRO)
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                {role === 'master' 
+                  ? 'Matysi kaimynų užklausas ir galėsi siūlyti paslaugas.' 
+                  : 'Galėsi bendrauti su kaimynais ir ieškoti meistrų.'}
+              </p>
+            </div>
+
+            {/* Address Input */}
+            <div>
+              <label className="text-sm font-bold text-gray-700 block mb-1.5">Tavo mikrorajonas / Adresas</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  value={addressText}
+                  onChange={e => setAddressText(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 transition-colors"
+                  placeholder="Pvz.: Pilaitė, Vilnius"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Reikalinga, kad matytum skelbimus ir meistrus savo spinduliu.</p>
             </div>
           </div>
 

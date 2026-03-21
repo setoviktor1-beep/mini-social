@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send, Loader2, Wrench, CheckCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function RequestServicePage() {
+  const router = useRouter();
+  const supabase = createClient();
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [estimate, setEstimate] = useState<any>(null);
   const [error, setError] = useState("");
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const getProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(data);
+      }
+    };
+    getProfile();
+  }, []);
 
   const handleEstimate = async () => {
     if (!description) return;
@@ -40,6 +57,34 @@ export default function RequestServicePage() {
     }
   };
 
+  const handleSubmitRequest = async () => {
+    if (!estimate || !profile) return;
+    setIsSubmitting(true);
+
+    try {
+      const { error: submitError } = await supabase
+        .from('service_requests')
+        .insert({
+          client_id: profile.id,
+          description: description,
+          category: estimate.category,
+          estimated_price: estimate.estimated_price_max, // Naudojame max kaip bazę
+          materials: estimate.materials,
+          address_text: profile.address_text || "Adresas nenurodytas",
+          status: 'open'
+        });
+
+      if (submitError) throw submitError;
+
+      alert("Užsakymas sėkmingai pateiktas! Meistrai jį pamatys savo darbalaukyje.");
+      router.push("/");
+    } catch (err: any) {
+      setError("Nepavyko pateikti užsakymo: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
       <div className="bg-gray-900/40 border border-gray-800/60 rounded-2xl p-6 shadow-sm">
@@ -50,6 +95,13 @@ export default function RequestServicePage() {
         <p className="text-gray-400 text-sm mb-6">
           Aprašykite problemą (pvz., &quot;Laša kranas vonioje&quot;, &quot;Reikia surinkti IKEA spintą&quot;) ir mūsų AI agentas iškart pateiks preliminarią sąmatą.
         </p>
+
+        {!profile?.address_text && (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-sm">
+            Dėmesio: Tavo profilyje nenurodytas adresas. Meistrai nežinos, kur atvykti. 
+            <button onClick={() => router.push("/settings")} className="ml-2 underline font-bold">Nustatyti adresą</button>
+          </div>
+        )}
 
         <div className="space-y-4">
           <textarea
@@ -117,8 +169,13 @@ export default function RequestServicePage() {
               </div>
             </div>
 
-            <button className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors">
-              Pateikti užsakymą meistrams
+            <button 
+              onClick={handleSubmitRequest}
+              disabled={isSubmitting}
+              className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
+              {isSubmitting ? "Siunčiama..." : "Pateikti užsakymą meistrams"}
             </button>
           </div>
         )}
@@ -126,3 +183,4 @@ export default function RequestServicePage() {
     </div>
   );
 }
+
