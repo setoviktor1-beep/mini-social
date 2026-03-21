@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from 'react';
-import { ClipboardList, Tags, MessageSquare, Settings as SettingsIcon } from 'lucide-react';
+import { ClipboardList, Tags, MessageSquare, Settings as SettingsIcon, CalendarDays } from 'lucide-react';
 import RequestBoard from './RequestBoard';
 import ServicesCatalog from './ServicesCatalog';
 import QuickReplies from './QuickReplies';
 import ProSettings from './ProSettings';
+import ProCalendar from './ProCalendar';
 
-type Tab = 'orders' | 'catalog' | 'messages' | 'settings';
+type Tab = 'orders' | 'calendar' | 'catalog' | 'messages' | 'settings';
 
 export default function ProDashboardTabs({
   initialRequests,
@@ -20,6 +21,7 @@ export default function ProDashboardTabs({
 
   const tabs = [
     { id: 'orders', label: 'Užsakymai', icon: ClipboardList },
+    { id: 'calendar', label: 'Kalendorius', icon: CalendarDays },
     { id: 'catalog', label: 'Kainoraštis', icon: Tags },
     { id: 'messages', label: 'Greiti atsakymai', icon: MessageSquare },
     { id: 'settings', label: 'Nustatymai', icon: SettingsIcon },
@@ -54,6 +56,12 @@ export default function ProDashboardTabs({
         {activeTab === 'orders' && (
           <div className="animate-in fade-in duration-300">
             <RequestBoard initialRequests={initialRequests} currentUserId={currentUserId} />
+          </div>
+        )}
+
+        {activeTab === 'calendar' && (
+          <div className="animate-in fade-in duration-300">
+            <ProCalendar proId={currentUserId} />
           </div>
         )}
 
