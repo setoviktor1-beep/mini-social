@@ -20,8 +20,8 @@ export default async function ProDashboard() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'master') {
-    // Jei ne meistras, grąžiname į pagrindinį
+  if (profile?.role !== 'master' && profile?.role !== 'admin') {
+    // Jei ne meistras ar adminas, grąžiname į pagrindinį
     redirect('/')
   }
 
