@@ -15,6 +15,8 @@ interface Profile {
   role: string
   address_text: string | null
   business_name: string | null
+  business_category: string | null
+  business_description: string | null
   phone: string | null
   created_at: string
 }
@@ -69,6 +71,8 @@ export default function SettingsPage() {
   const [addressText, setAddressText] = useState('')
   const [role, setRole] = useState('user')
   const [businessName, setBusinessName] = useState('')
+  const [businessCategory, setBusinessCategory] = useState('')
+  const [businessDescription, setBusinessDescription] = useState('')
   const [phone, setPhone] = useState('')
 
   // UI state
@@ -113,6 +117,8 @@ export default function SettingsPage() {
       setAddressText(profileData.address_text || '')
       setRole(profileData.role || 'user')
       setBusinessName(profileData.business_name || '')
+      setBusinessCategory(profileData.business_category || '')
+      setBusinessDescription(profileData.business_description || '')
       setPhone(profileData.phone || '')
       setLoading(false)
     }
@@ -287,6 +293,8 @@ export default function SettingsPage() {
           address_text: addressText.trim() || null,
           role: role,
           business_name: role === 'master' ? businessName.trim() : null,
+          business_category: role === 'master' ? businessCategory.trim() : null,
+          business_description: role === 'master' ? businessDescription.trim() : null,
           phone: phone.trim() || null,
         })
         .eq('id', profile.id)
@@ -316,6 +324,8 @@ export default function SettingsPage() {
         address_text: addressText.trim() || null,
         role: role,
         business_name: role === 'master' ? businessName.trim() : null,
+        business_category: role === 'master' ? businessCategory.trim() : null,
+        business_description: role === 'master' ? businessDescription.trim() : null,
         phone: phone.trim() || null,
       } : null)
 
@@ -620,6 +630,33 @@ export default function SettingsPage() {
                     onChange={e => setBusinessName(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors"
                     placeholder="Pvz.: Santechnikas Jonas"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-600 block mb-1">Veiklos sritis (Kategorija)</label>
+                  <select
+                    value={businessCategory}
+                    onChange={e => setBusinessCategory(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors bg-white"
+                  >
+                    <option value="">Pasirinkite kategoriją...</option>
+                    <option value="Maistas">Maistas</option>
+                    <option value="Grožis">Grožis</option>
+                    <option value="Auto">Auto</option>
+                    <option value="Sveikata">Sveikata</option>
+                    <option value="Remontas">Remontas / Santechnika / Elektra</option>
+                    <option value="Kita">Kita (Pagalba, valymas, kt.)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-600 block mb-1">Paslaugos aprašymas</label>
+                  <textarea
+                    value={businessDescription}
+                    onChange={e => setBusinessDescription(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors resize-none min-h-[80px]"
+                    placeholder="Trumpai apibūdinkite, kokias paslaugas teikiate (pvz., 'Taisau kranus, keičiu radiatorius, greitai atvykstu į vietą')."
                   />
                 </div>
 
