@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, MapPin } from 'lucide-react'
+import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, MapPin, Briefcase } from 'lucide-react'
 import Image from 'next/image'
 import WalletCard from '@/components/wallet/WalletCard'
 
@@ -14,6 +14,8 @@ interface Profile {
   avatar_path: string | null
   role: string
   address_text: string | null
+  business_name: string | null
+  phone: string | null
   created_at: string
 }
 
@@ -66,6 +68,8 @@ export default function SettingsPage() {
   // Nextdoor features
   const [addressText, setAddressText] = useState('')
   const [role, setRole] = useState('user')
+  const [businessName, setBusinessName] = useState('')
+  const [phone, setPhone] = useState('')
 
   // UI state
   const [saving, setSaving] = useState(false)
@@ -108,6 +112,8 @@ export default function SettingsPage() {
       setAvatarPath(profileData.avatar_path)
       setAddressText(profileData.address_text || '')
       setRole(profileData.role || 'user')
+      setBusinessName(profileData.business_name || '')
+      setPhone(profileData.phone || '')
       setLoading(false)
     }
     loadProfile()
@@ -280,6 +286,8 @@ export default function SettingsPage() {
           avatar_path: newAvatarPath,
           address_text: addressText.trim() || null,
           role: role,
+          business_name: role === 'master' ? businessName.trim() : null,
+          phone: phone.trim() || null,
         })
         .eq('id', profile.id)
 
@@ -307,6 +315,8 @@ export default function SettingsPage() {
         avatar_path: newAvatarPath,
         address_text: addressText.trim() || null,
         role: role,
+        business_name: role === 'master' ? businessName.trim() : null,
+        phone: phone.trim() || null,
       } : null)
 
       // Update auth user metadata so navbar reflects new username
@@ -591,8 +601,44 @@ export default function SettingsPage() {
                   placeholder="Pvz.: Pilaitė, Vilnius"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Reikalinga, kad matytum skelbimus ir meistrus savo spinduliu.</p>
+              <p className="text-xs text-gray-400 mt-2">Reikalinga, kad matytum skelbimus ir meistrus savo spinduliu.</p>
             </div>
+
+            {/* Business Details (Only for Masters) */}
+            {role === 'master' && (
+              <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2">
+                <h4 className="font-bold text-emerald-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                  <Briefcase size={16} />
+                  Tavo Verslo Informacija
+                </h4>
+                
+                <div>
+                  <label className="text-xs font-bold text-gray-600 block mb-1">Verslo pavadinimas / Vardas Pavardė</label>
+                  <input
+                    type="text"
+                    value={businessName}
+                    onChange={e => setBusinessName(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors"
+                    placeholder="Pvz.: Santechnikas Jonas"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-600 block mb-1">Kontaktinis telefonas</label>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors"
+                    placeholder="+370 600 00000"
+                  />
+                </div>
+
+                <p className="text-[10px] text-gray-400 italic">
+                  Šie duomenys bus matomi kaimynams, kai jie ieškos tavo kategorijos paslaugų.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Save Button */}
