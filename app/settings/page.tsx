@@ -607,7 +607,7 @@ export default function SettingsPage() {
                   type="text"
                   value={addressText}
                   onChange={e => setAddressText(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 text-gray-900 dark:text-white bg-transparent outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 transition-colors placeholder:text-gray-400"
                   placeholder="Pvz.: Pilaitė, Vilnius"
                 />
               </div>
@@ -628,7 +628,7 @@ export default function SettingsPage() {
                     type="text"
                     value={businessName}
                     onChange={e => setBusinessName(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
                     placeholder="Pvz.: Santechnikas Jonas"
                   />
                 </div>
@@ -638,7 +638,7 @@ export default function SettingsPage() {
                   <select
                     value={businessCategory}
                     onChange={e => setBusinessCategory(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors bg-white"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors"
                   >
                     <option value="">Pasirinkite kategoriją...</option>
                     <option value="Maistas">Maistas</option>
@@ -655,7 +655,7 @@ export default function SettingsPage() {
                   <textarea
                     value={businessDescription}
                     onChange={e => setBusinessDescription(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors resize-none min-h-[80px]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors resize-none min-h-[80px] placeholder:text-gray-400"
                     placeholder="Trumpai apibūdinkite, kokias paslaugas teikiate (pvz., 'Taisau kranus, keičiu radiatorius, greitai atvykstu į vietą')."
                   />
                 </div>
@@ -666,7 +666,7 @@ export default function SettingsPage() {
                     type="text"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-emerald-300 transition-colors"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
                     placeholder="+370 600 00000"
                   />
                 </div>
