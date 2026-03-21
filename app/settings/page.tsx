@@ -292,9 +292,9 @@ export default function SettingsPage() {
           avatar_path: newAvatarPath,
           address_text: addressText.trim() || null,
           role: role,
-          business_name: role === 'master' ? businessName.trim() : null,
-          business_category: role === 'master' ? businessCategory.trim() : null,
-          business_description: role === 'master' ? businessDescription.trim() : null,
+          business_name: (role === 'master' || role === 'admin') ? businessName.trim() : null,
+          business_category: (role === 'master' || role === 'admin') ? businessCategory.trim() : null,
+          business_description: (role === 'master' || role === 'admin') ? businessDescription.trim() : null,
           phone: phone.trim() || null,
         })
         .eq('id', profile.id)

@@ -72,7 +72,7 @@ export default function ProDashboardTabs({
             <MessageSquare className="mx-auto text-gray-600 mb-4" size={48} />
             <h2 className="text-xl font-bold text-white mb-2">Greitieji atsakymai</h2>
             <p className="text-gray-400 max-w-md mx-auto">
-              Ši skiltis bus susieta su tavo asmeninėmis žinutėmis. Galėsi vienu paspaudimu išsiųsti šablonus kaip "Esu kelyje" arba "Užsakymas paruoštas".
+              Ši skiltis bus susieta su tavo asmeninėmis žinutėmis. Galėsi vienu paspaudimu išsiųsti šablonus kaip &quot;Esu kelyje&quot; arba &quot;Užsakymas paruoštas&quot;.
             </p>
           </div>
         )}

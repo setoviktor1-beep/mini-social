@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { useRouter, usePathname } from 'next/navigation'
-import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Sparkles } from 'lucide-react'
+import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Sparkles, Briefcase } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
 import Image from 'next/image'
@@ -149,6 +149,11 @@ export default function Navbar() {
                 <Sparkles size={20} />
               </Link>
               <NotificationBell />
+              {(role === 'master' || role === 'admin') && (
+                <Link href="/pro" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors" title="Verslo Darbalaukis">
+                  <Briefcase size={20} />
+                </Link>
+              )}
               {(role === 'admin' || role === 'moderator') && (
                 <Link href="/admin/dashboard" className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 rounded-lg transition-colors" title="Admin Panel">
                   <Shield size={20} />
@@ -250,6 +255,15 @@ export default function Navbar() {
                   <Sparkles size={20} />
                   AI Chat
                 </Link>
+                {(role === 'master' || role === 'admin') && (
+                  <Link
+                    href="/pro"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"
+                  >
+                    <Briefcase size={20} />
+                    Verslo Darbalaukis
+                  </Link>
+                )}
                 {(role === 'admin' || role === 'moderator') && (
                   <Link
                     href="/admin/dashboard"
