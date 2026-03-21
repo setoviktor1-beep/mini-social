@@ -1,15 +1,9 @@
-import { createClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/server-supabase';
 import { NextResponse } from 'next/server';
 import { getPriceEstimate } from '@/lib/ai-estimator';
 
 export async function POST(req: Request) {
-  const cookieStore = cookies();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (name) => cookieStore.get(name)?.value } }
-  );
+  const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Autorizuotis būtina' }, { status: 401 });
