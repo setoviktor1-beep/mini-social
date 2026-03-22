@@ -6,6 +6,7 @@ import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, B
 import Image from 'next/image'
 import WalletCard from '@/components/wallet/WalletCard'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
+import InviteButton from '@/components/InviteButton'
 
 interface Profile {
   id: string
@@ -590,10 +591,13 @@ export default function SettingsPage() {
 
           {/* Location & Pro Features Section */}
           <div className="pt-4 border-t border-gray-50 space-y-6">
-            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-              <Palette size={18} className="text-blue-500" />
-              Vietovės ir Verslo Nustatymai
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <Palette size={18} className="text-blue-500" />
+                Vietovės ir Verslo Nustatymai
+              </h3>
+              <InviteButton />
+            </div>
 
             {/* Role Selection */}
             <div>

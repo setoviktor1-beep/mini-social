@@ -6,6 +6,46 @@ import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
 import Image from 'next/image'
 import { notifyMentions } from '@/lib/mentions'
 
+async function compressImage(file: File): Promise<File> {
+  const MAX_SIZE = 1200
+  const QUALITY = 0.85
+
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      let { width, height } = img
+      if (width > MAX_SIZE || height > MAX_SIZE) {
+        if (width > height) {
+          height = Math.round((height * MAX_SIZE) / width)
+          width = MAX_SIZE
+        } else {
+          width = Math.round((width * MAX_SIZE) / height)
+          height = MAX_SIZE
+        }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { resolve(file); return }
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return }
+          const baseName = file.name.replace(/\.[^.]+$/, '')
+          resolve(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' }))
+        },
+        'image/jpeg',
+        QUALITY
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')) }
+    img.src = objectUrl
+  })
+}
+
 export default function PostComposer({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
   const [youtube, setYoutube] = useState('')
@@ -69,8 +109,9 @@ export default function PostComposer({ userId }: { userId: string }) {
 
     if (files.length > 0) {
       for (const file of files) {
-        const path = `${userId}/${Date.now()}_${file.name}`
-        await supabase.storage.from('post-images').upload(path, file)
+        const uploadFile = file.type.startsWith('image/') ? await compressImage(file) : file
+        const path = `${userId}/${Date.now()}_${uploadFile.name}`
+        await supabase.storage.from('post-images').upload(path, uploadFile)
         await supabase.from('post_media').insert({
           post_id: post.id,
           user_id: userId,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin, Store, Utensils, Scissors, Car, Heart, Camera, Loader2, Star, BadgeCheck } from "lucide-react";
+import { MapPin, Store, Utensils, Scissors, Car, Heart, Camera, Loader2, Star, BadgeCheck, CheckCircle2, Send, X } from "lucide-react";
 import ServiceCard from "@/components/services/ServiceCard";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -45,11 +45,13 @@ export default function ServicesPage() {
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [userRadiusKm, setUserRadiusKm] = useState(5.0);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setCurrentUserId(user.id);
         const { data } = await supabase
           .from("profiles")
           .select("*, address_lat, address_lng, user_radius_km, travel_mode, travel_lat, travel_lng, travel_address_text")
@@ -129,6 +131,7 @@ export default function ServicesPage() {
           price: s.price ? `€${s.price}` : null,
           priceType: s.price_type,
           isLocal: true,
+          providerId: s.pro_id,
         };
       });
 
@@ -226,7 +229,7 @@ export default function ServicesPage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {localServices.map((s: any) => (
-                      <LocalServiceCard key={s.id} service={s} />
+                      <LocalServiceCard key={s.id} service={s} currentUserId={currentUserId} />
                     ))}
                   </div>
                 </div>
@@ -241,7 +244,7 @@ export default function ServicesPage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {googleServices.map((service: any) => (
-                      <ServiceCard key={service.id} service={service} />
+                      <ServiceCard key={service.id} service={service} currentUserId={currentUserId} />
                     ))}
                   </div>
                 </div>
@@ -260,46 +263,153 @@ export default function ServicesPage() {
   );
 }
 
-function LocalServiceCard({ service }: { service: any }) {
+function LocalServiceCard({ service, currentUserId }: { service: any; currentUserId?: string }) {
+  const supabase = createClient();
+  const [showModal, setShowModal] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [message, setMessage] = useState(`Sveiki, norėčiau užsisakyti: ${service.name}`);
+  const [notLoggedIn, setNotLoggedIn] = useState(false);
+
+  const handleContact = () => {
+    if (!currentUserId) {
+      setNotLoggedIn(true);
+      return;
+    }
+    setNotLoggedIn(false);
+    setShowModal(true);
+  };
+
+  const handleSend = async () => {
+    if (!currentUserId || !service.providerId) return;
+    setIsSending(true);
+    try {
+      const { data: conversationId, error: rpcError } = await supabase.rpc(
+        'get_or_create_conversation',
+        { other_user_id: service.providerId }
+      );
+      if (rpcError) throw rpcError;
+
+      const { error: msgError } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: currentUserId,
+        content: message,
+      });
+      if (msgError) throw msgError;
+
+      setSent(true);
+      setShowModal(false);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
-    <div className="group bg-gray-900/40 border border-emerald-500/20 rounded-3xl p-6 hover:border-emerald-500/50 transition-all hover:shadow-2xl hover:shadow-emerald-500/5 relative overflow-hidden">
-      <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all" />
+    <>
+      <div className="group bg-gray-900/40 border border-emerald-500/20 rounded-3xl p-6 hover:border-emerald-500/50 transition-all hover:shadow-2xl hover:shadow-emerald-500/5 relative overflow-hidden">
+        <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all" />
 
-      <div className="flex justify-between items-start gap-4 mb-4 relative z-10">
-        <div className="p-3 bg-gray-950 rounded-2xl border border-emerald-500/20">
-          <service.icon className="text-emerald-400" size={24} />
-        </div>
-        <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">
-          <BadgeCheck size={12} /> Vietinis
-        </span>
-      </div>
-
-      <div className="space-y-1 mb-4 relative z-10">
-        <h3 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
-          {service.name}
-        </h3>
-        <p className="text-sm text-gray-400 font-medium">{service.providerName}</p>
-        {service.description && (
-          <p className="text-sm text-gray-500 line-clamp-2">{service.description}</p>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
-        <MapPin size={13} className="text-gray-600" />
-        {service.address} · <span className="text-emerald-400/80">{service.distance}</span>
-      </div>
-
-      <div className="pt-4 border-t border-gray-800/50 flex items-center justify-between gap-4">
-        {service.price && (
-          <span className="text-lg font-black text-white">
-            {service.price}
-            {service.priceType === "hourly" && <span className="text-sm text-gray-400 font-normal">/val.</span>}
+        <div className="flex justify-between items-start gap-4 mb-4 relative z-10">
+          <div className="p-3 bg-gray-950 rounded-2xl border border-emerald-500/20">
+            <service.icon className="text-emerald-400" size={24} />
+          </div>
+          <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">
+            <BadgeCheck size={12} /> Vietinis
           </span>
-        )}
-        <button className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95 text-sm">
-          Susisiekti
-        </button>
+        </div>
+
+        <div className="space-y-1 mb-4 relative z-10">
+          <h3 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+            {service.name}
+          </h3>
+          <p className="text-sm text-gray-400 font-medium">{service.providerName}</p>
+          {service.description && (
+            <p className="text-sm text-gray-500 line-clamp-2">{service.description}</p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+          <MapPin size={13} className="text-gray-600" />
+          {service.address} · <span className="text-emerald-400/80">{service.distance}</span>
+        </div>
+
+        <div className="pt-4 border-t border-gray-800/50 space-y-3">
+          {service.price && (
+            <span className="text-lg font-black text-white block">
+              {service.price}
+              {service.priceType === "hourly" && <span className="text-sm text-gray-400 font-normal">/val.</span>}
+            </span>
+          )}
+          {notLoggedIn && (
+            <p className="text-xs text-amber-400 text-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+              Prisijunkite norėdami užsisakyti
+            </p>
+          )}
+          {sent ? (
+            <div className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-2xl font-bold animate-in zoom-in-95 duration-300">
+              <CheckCircle2 size={18} />
+              Žinutė išsiųsta! Patikrinkite savo žinutes.
+            </div>
+          ) : (
+            <button
+              onClick={handleContact}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95 text-sm"
+            >
+              Susisiekti
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-gray-900 border border-gray-700 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Susisiekti su teikėju</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-400 mb-4">
+              Jūsų žinutė paslaugos teikėjui
+            </p>
+
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 resize-none mb-4"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 py-3 rounded-2xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 font-semibold transition-all text-sm"
+              >
+                Atšaukti
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={isSending || !message.trim()}
+                className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95 text-sm"
+              >
+                {isSending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send size={16} />
+                )}
+                {isSending ? "Siunčiama..." : "Siųsti"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

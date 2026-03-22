@@ -88,6 +88,26 @@ export default function Register() {
       })
     }
 
+    // Handle referral code if present
+    if (signUpData?.user) {
+      const referralCode = localStorage.getItem('referral_code')
+      if (referralCode) {
+        const { data: referrer } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', referralCode)
+          .maybeSingle()
+
+        if (referrer) {
+          await supabase
+            .from('profiles')
+            .update({ referred_by: referrer.id })
+            .eq('id', signUpData.user.id)
+        }
+        localStorage.removeItem('referral_code')
+      }
+    }
+
     setSuccess(true)
     setLoading(false)
     setTimeout(() => {

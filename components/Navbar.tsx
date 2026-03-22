@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
+import PushNotificationToggle from './PushNotificationToggle'
 import Image from 'next/image'
 
 export default function Navbar() {
@@ -146,6 +147,7 @@ export default function Navbar() {
                 )}
               </Link>
               <NotificationBell />
+              <PushNotificationToggle />
               {(role === 'master' || role === 'admin') && (
                 <Link href="/pro" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors" title="Verslo Darbalaukis">
                   <Briefcase size={20} />
@@ -205,6 +207,7 @@ export default function Navbar() {
             </Link>
           )}
           {user && <NotificationBell />}
+          {user && <PushNotificationToggle />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"

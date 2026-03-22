@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2 } from 'lucide-react'
+import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
@@ -18,6 +18,7 @@ interface PostCardProps {
     created_at: string
     user_id?: string
     youtube_video_id?: string
+    edited_at?: string | null
     reposted_at?: string
     reposted_by_profile?: { id?: string; username: string; display_name: string; avatar_path?: string | null }
     profiles?: { username: string; display_name: string; avatar_path?: string }
@@ -63,6 +64,11 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [copied, setCopied] = useState(false)
   const [deleted, setDeleted] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editedContent, setEditedContent] = useState(post.content)
+  const [editLoading, setEditLoading] = useState(false)
+  const [localContent, setLocalContent] = useState(post.content)
+  const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const isOwner = currentUserId === post.user_id
@@ -185,6 +191,25 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     setDeleted(true)
     setShowDeleteConfirm(false)
     router.refresh()
+  }
+
+  const handleEdit = async () => {
+    if (!editedContent.trim() || editedContent.trim() === localContent) {
+      setShowEditModal(false)
+      return
+    }
+    setEditLoading(true)
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('posts')
+      .update({ content: editedContent.trim(), edited_at: now })
+      .eq('id', post.id)
+    if (!error) {
+      setLocalContent(editedContent.trim())
+      setLocalEditedAt(now)
+      setShowEditModal(false)
+    }
+    setEditLoading(false)
   }
 
   const notifyShare = async () => {
@@ -358,19 +383,35 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               <span className="text-gray-500 text-xs sm:text-sm">&middot; {timeAgo}</span>
             </div>
             {canDelete && (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
-                title="Delete post"
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="flex items-center gap-1">
+                {isOwner && (
+                  <button
+                    onClick={() => { setEditedContent(localContent); setShowEditModal(true) }}
+                    className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    title="Edit post"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  title="Delete post"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             )}
           </div>
 
-          <p className="text-gray-100 text-[15px] leading-relaxed whitespace-pre-wrap mb-3">
-            <ParsedContent content={post.content} />
+          <p className="text-gray-100 text-[15px] leading-relaxed whitespace-pre-wrap mb-1">
+            <ParsedContent content={localContent} />
           </p>
+          {localEditedAt && (
+            <p className="text-xs text-gray-500 mb-3">
+              edited {formatDistanceToNow(new Date(localEditedAt), { addSuffix: true })}
+            </p>
+          )}
 
           {post.quoted_post && post.quoted_post.status !== 'deleted' && (
             <div className="mb-3 rounded-2xl border border-gray-700 p-3 sm:p-4 bg-gray-900/60">
@@ -633,6 +674,43 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50 min-h-[44px]"
                   >
                     {quoteLoading ? 'Posting...' : 'Post'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Modal */}
+          {showEditModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-lg dark:text-gray-100">Edit Post</h3>
+                  <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center">
+                    <X size={20} />
+                  </button>
+                </div>
+                <textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  placeholder="What's on your mind?"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-blue-300 resize-none min-h-[120px] bg-white dark:bg-gray-800 dark:text-gray-200"
+                  maxLength={2000}
+                  autoFocus
+                />
+                <div className="mt-4 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold min-h-[44px]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEdit}
+                    disabled={editLoading || !editedContent.trim()}
+                    className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50 min-h-[44px]"
+                  >
+                    {editLoading ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </div>
