@@ -107,7 +107,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
               {[
                 { href: '/', icon: HomeIcon, label: 'Home', show: true },
                 { href: '/services', icon: Store, label: 'Paslaugos', show: true },
-                { href: '/pro', icon: Briefcase, label: 'Verslo Darbalaukis', show: userRole === 'master' || userRole === 'admin' },
+                { href: '/pro', icon: Briefcase, label: 'Verslo Darbalaukis', show: ['pro', 'master', 'admin'].includes(userRole ?? '') },
                 { href: '/search', icon: Search, label: 'Explore', show: true },
                 { href: '/notifications', icon: Bell, label: 'Notifications', show: true },
                 { href: '/messages', icon: Mail, label: 'Messages', show: true },

@@ -21,7 +21,7 @@ export default async function ProDashboard() {
     .eq('id', user.id)
     .single()
 
-  if (!['pro', 'admin'].includes(profile?.role || '')) {
+  if (!['pro', 'master', 'admin'].includes(profile?.role || '')) {
     redirect('/pricing')
   }
 
