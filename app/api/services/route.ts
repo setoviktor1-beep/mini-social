@@ -5,6 +5,7 @@ export async function GET(req: Request) {
   const lat = searchParams.get('lat');
   const lng = searchParams.get('lng');
   const category = searchParams.get('category') || 'restaurant';
+  const radius = Math.min(parseInt(searchParams.get('radius') || '5000'), 5000); // max 5km
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
   try {
     // Naudojame Google Places Text Search arba Nearby Search
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=2000&type=${category}&key=${apiKey}`
+      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${category}&key=${apiKey}`
     );
 
     const data = await response.json();

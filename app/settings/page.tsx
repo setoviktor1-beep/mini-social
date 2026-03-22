@@ -72,6 +72,7 @@ export default function SettingsPage() {
   const [addressText, setAddressText] = useState('')
   const [addressLat, setAddressLat] = useState<number | null>(null)
   const [addressLng, setAddressLng] = useState<number | null>(null)
+  const [userRadiusKm, setUserRadiusKm] = useState(5.0)
   const [role, setRole] = useState('user')
   const [businessName, setBusinessName] = useState('')
   const [businessCategory, setBusinessCategory] = useState('')
@@ -118,6 +119,7 @@ export default function SettingsPage() {
       setBio(profileData.bio || '')
       setAvatarPath(profileData.avatar_path)
       setAddressText(profileData.address_text || '')
+      setUserRadiusKm(profileData.user_radius_km ?? 5.0)
       setRole(profileData.role || 'user')
       setBusinessName(profileData.business_name || '')
       setBusinessCategory(profileData.business_category || '')
@@ -294,6 +296,7 @@ export default function SettingsPage() {
           bio: bio.trim() || null,
           avatar_path: newAvatarPath,
           address_text: addressText.trim() || null,
+          user_radius_km: userRadiusKm,
           role: role,
           business_name: (role === 'master' || role === 'admin') ? businessName.trim() : null,
           business_category: (role === 'master' || role === 'admin') ? businessCategory.trim() : null,
@@ -624,6 +627,34 @@ export default function SettingsPage() {
                 }}
               />
               <p className="text-xs text-gray-400 mt-2">Reikalinga, kad matytum skelbimus ir meistrus savo spinduliu.</p>
+            </div>
+
+            {/* Radius Slider */}
+            <div>
+              <label className="text-sm font-bold text-gray-700 block mb-1.5">
+                Matomumo spindulys
+                <span className="ml-2 text-blue-500 font-black">
+                  {userRadiusKm < 1 ? `${Math.round(userRadiusKm * 1000)} m` : `${userRadiusKm} km`}
+                </span>
+              </label>
+              <input
+                type="range"
+                min={0.1}
+                max={5}
+                step={0.1}
+                value={userRadiusKm}
+                onChange={e => setUserRadiusKm(parseFloat(e.target.value))}
+                className="w-full accent-blue-500"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>100 m</span>
+                <span>1 km</span>
+                <span>2.5 km</span>
+                <span>5 km</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Matysi postus ir paslaugas tik iš vartotojų per {userRadiusKm < 1 ? `${Math.round(userRadiusKm * 1000)} m` : `${userRadiusKm} km`} nuo tavęs.
+              </p>
             </div>
 
             {/* Business Details (Only for Masters) */}

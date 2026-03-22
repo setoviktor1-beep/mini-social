@@ -17,16 +17,26 @@ export default function ServicesPage() {
   const [error, setError] = useState("");
 
   // 1. Užkrauname vartotojo profilį ir lokaciją
+  const [userLat, setUserLat] = useState<number | null>(null);
+  const [userLng, setUserLng] = useState<number | null>(null);
+  const [userRadiusKm, setUserRadiusKm] = useState(5.0);
+
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        const { data } = await supabase
+          .from('profiles')
+          .select('*, address_lat, address_lng, user_radius_km')
+          .eq('id', user.id)
+          .single();
         setProfile(data);
-        if (data?.address_text) {
-          // Čia būtų gerai turėti tikras koordinates, bet kol kas testuosime
-          // Jei turime lokaciją (lat/lng), traukiame duomenis
-          fetchRealServices(54.71, 25.18); // Pilaitės koordinatės kaip pavyzdys
+        const radius = data?.user_radius_km ?? 5.0;
+        setUserRadiusKm(radius);
+        if (data?.address_lat && data?.address_lng) {
+          setUserLat(data.address_lat);
+          setUserLng(data.address_lng);
+          fetchRealServices(data.address_lat, data.address_lng, radius);
         } else {
           setIsLoading(false);
         }
@@ -38,17 +48,15 @@ export default function ServicesPage() {
   }, []);
 
   // 2. Traukiame tikrus duomenis iš mūsų API
-  const fetchRealServices = async (lat: number, lng: number) => {
+  const fetchRealServices = async (lat: number, lng: number, radiusKm?: number) => {
     setIsLoading(true);
     setError("");
     try {
-      // Žemėlapių tipų konvertavimas į Google tipus
-      const googleType = activeCategory === "Maistas" ? "restaurant" : 
+      const googleType = activeCategory === "Maistas" ? "restaurant" :
                          activeCategory === "Grožis" ? "beauty_salon" : "store";
-      
-      const res = await fetch(`/api/services?lat=${lat}&lng=${lng}&category=${googleType}`);
+      const radius = (radiusKm ?? userRadiusKm) * 1000; // convert to meters
+      const res = await fetch(`/api/services?lat=${lat}&lng=${lng}&category=${googleType}&radius=${radius}`);
       const data = await res.json();
-      
       if (data.error) throw new Error(data.error);
       setServices(data);
     } catch (err: any) {
@@ -60,8 +68,8 @@ export default function ServicesPage() {
 
   // Perskaičiuojame, kai pasikeičia kategorija
   useEffect(() => {
-    if (profile?.address_text) {
-      fetchRealServices(54.71, 25.18);
+    if (userLat && userLng) {
+      fetchRealServices(userLat, userLng);
     }
   }, [activeCategory]);
 

@@ -68,6 +68,12 @@ export function sortByTimeDesc(a: any, b: any) {
   return bt - at
 }
 
+function applyLocationFilter(q: any, nearbyPostIds: string[] | null) {
+  if (nearbyPostIds === null) return q
+  if (nearbyPostIds.length === 0) return q.in('id', ['00000000-0000-0000-0000-000000000000']) // no results
+  return q.in('id', nearbyPostIds)
+}
+
 function logFeedError(context: string, error: unknown) {
   console.error(`[feed-service] ${context}`, error)
 }
@@ -148,6 +154,24 @@ export async function getFeedItems(options: FeedQueryOptions) {
     const blockedSet = new Set(blockedUserIds)
     const followedIds = tab === 'following' ? await getFollowedIds(supabase, user?.id) : []
 
+    // Location-based filtering: fetch user's radius + nearby post IDs
+    let nearbyPostIds: string[] | null = null
+    if (user) {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('user_radius_km, location')
+        .eq('id', user.id)
+        .single()
+
+      if (userProfile?.location && userProfile?.user_radius_km) {
+        const { data: nearby } = await supabase.rpc('get_nearby_post_ids', {
+          p_user_id: user.id,
+          p_radius_km: userProfile.user_radius_km,
+        })
+        nearbyPostIds = (nearby || []).map((r: { post_id: string }) => r.post_id)
+      }
+    }
+
     let posts: any[] = []
     let repostItems: any[] = []
 
@@ -159,6 +183,7 @@ export async function getFeedItems(options: FeedQueryOptions) {
           .eq('status', 'active')
           .in('user_id', followedIds)
         q = applyBlockedFilter(q, blockedUserIds)
+        q = applyLocationFilter(q, nearbyPostIds)
         posts = await safeQuery<any[]>(
           'getFeedItems:followingPosts',
           q.order('created_at', { ascending: false }).limit(postPoolSize),
@@ -173,6 +198,7 @@ export async function getFeedItems(options: FeedQueryOptions) {
         .eq('status', 'active')
         .gte('created_at', since)
       q = applyBlockedFilter(q, blockedUserIds)
+      q = applyLocationFilter(q, nearbyPostIds)
       const data = await safeQuery<any[]>(
         'getFeedItems:forYouPosts',
         q.order('created_at', { ascending: false }).limit(200),
@@ -188,6 +214,7 @@ export async function getFeedItems(options: FeedQueryOptions) {
     } else {
       let q = supabase.from('posts').select(BASE_SELECT).eq('status', 'active')
       q = applyBlockedFilter(q, blockedUserIds)
+      q = applyLocationFilter(q, nearbyPostIds)
       posts = await safeQuery<any[]>(
         'getFeedItems:latestPosts',
         q.order('created_at', { ascending: false }).limit(postPoolSize),
