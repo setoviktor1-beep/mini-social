@@ -14,3 +14,4 @@ supabase/.temp/
 audit_results/
 *_orchestrator_audit.md
 .env*.local
+VAPID_KEYS.txt

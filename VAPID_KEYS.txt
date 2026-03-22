@@ -1,6 +1,0 @@
-# VAPID Keys for Web Push Notifications
-# Add these to Vercel environment variables (Settings → Environment Variables)
-
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=BBEN9qsPJbmwAPMeKcgsx05Gub4Qua4cRAinOYwiOgvGie-AYrBae8LkbhizWileE2xQmEOegwwk3GnGMl8UFNE
-VAPID_PRIVATE_KEY=GxC4rm1MiUBgybbub5XAMpH7AtbTuOrCLexT4Q2y42g
-VAPID_EMAIL=mailto:support@minisocial.lt
