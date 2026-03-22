@@ -296,6 +296,8 @@ export default function SettingsPage() {
           bio: bio.trim() || null,
           avatar_path: newAvatarPath,
           address_text: addressText.trim() || null,
+          address_lat: addressLat,
+          address_lng: addressLng,
           user_radius_km: userRadiusKm,
           role: role,
           business_name: (role === 'master' || role === 'admin') ? businessName.trim() : null,

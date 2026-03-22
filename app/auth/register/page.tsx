@@ -3,13 +3,17 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, MapPin } from 'lucide-react'
+import AddressAutocomplete from '@/components/AddressAutocomplete'
 
 export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [addressText, setAddressText] = useState('')
+  const [addressLat, setAddressLat] = useState<number | null>(null)
+  const [addressLng, setAddressLng] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -23,18 +27,17 @@ export default function Register() {
     setError('')
 
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-      setError('Username must be 3-20 characters, only letters, numbers and underscore.')
+      setError('Vartotojo vardas turi būti 3-20 simbolių (raidės, skaičiai, _).')
       setLoading(false)
       return
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
+      setError('Slaptažodis turi būti bent 6 simboliai.')
       setLoading(false)
       return
     }
 
-    // Check if username is taken
     const { data: existingUser } = await supabase
       .from('profiles')
       .select('username')
@@ -42,16 +45,14 @@ export default function Register() {
       .maybeSingle()
 
     if (existingUser) {
-      setError('This username is already taken.')
+      setError('Šis vartotojo vardas jau užimtas.')
       setLoading(false)
       return
     }
 
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      window.location.origin
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -66,15 +67,33 @@ export default function Register() {
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
-    } else {
-      setSuccess(true)
-      setLoading(false)
-      // Auto-confirmed, redirect to home after a moment
-      setTimeout(() => {
-        router.push('/')
-        router.refresh()
-      }, 1500)
+      return
     }
+
+    // Save address if provided
+    if (signUpData?.user && addressText && addressLat !== null && addressLng !== null) {
+      await supabase
+        .from('profiles')
+        .update({
+          address_text: addressText,
+          address_lat: addressLat,
+          address_lng: addressLng,
+        })
+        .eq('id', signUpData.user.id)
+
+      await supabase.rpc('update_profile_location', {
+        user_id: signUpData.user.id,
+        lat: addressLat,
+        lng: addressLng,
+      })
+    }
+
+    setSuccess(true)
+    setLoading(false)
+    setTimeout(() => {
+      router.push('/')
+      router.refresh()
+    }, 1500)
   }
 
   const handleGoogleSignIn = async () => {
@@ -83,9 +102,7 @@ export default function Register() {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${siteUrl}/auth/callback?next=/`,
-      },
+      options: { redirectTo: `${siteUrl}/auth/callback?next=/` },
     })
     if (error) {
       setError(error.message)
@@ -100,9 +117,9 @@ export default function Register() {
           <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="text-green-500" size={32} />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome to MiniSocial!</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm sm:text-base">
-            Your account has been created. Redirecting you...
+          <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">Sveiki atvykę į MiniSocial!</h1>
+          <p className="text-[var(--text-secondary)] mb-6 text-sm sm:text-base">
+            Paskyra sukurta. Nukreipiame jus...
           </p>
         </div>
       </div>
@@ -112,10 +129,14 @@ export default function Register() {
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
       <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]">
-        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Create Account</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-4 sm:mb-6 text-sm">Join our small community today.</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">Sukurti paskyrą</h1>
+        <p className="text-[var(--text-secondary)] mb-4 sm:mb-6 text-sm">Prisijunkite prie savo kaimynų bendruomenės.</p>
 
-        {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
+        {error && (
+          <div className="bg-red-500/10 text-red-400 border border-red-500/20 p-3 rounded-lg text-sm mb-4">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleRegister} className="space-y-4">
           <button
@@ -124,70 +145,103 @@ export default function Register() {
             disabled={googleLoading || loading}
             className="w-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-3 rounded-full font-semibold disabled:opacity-50 min-h-[44px]"
           >
-            {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+            {googleLoading ? 'Jungiamasi...' : 'Tęsti su Google'}
           </button>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+
+          <div className="flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
             <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-            <span>or</span>
+            <span>arba</span>
             <div className="h-px flex-1 bg-[var(--border-subtle)]" />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Username</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Vartotojo vardas</label>
             <input
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
-              placeholder="johndoe"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+              placeholder="vardenis"
               required
             />
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">3-20 characters, letters, numbers, underscore</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">3-20 simbolių, tik raidės, skaičiai, _</p>
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Display Name</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Vardas</label>
             <input
               type="text"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
-              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
-              placeholder="John Doe"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+              placeholder="Vardenis Pavardenis"
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">El. paštas</label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
-              placeholder="john@example.com"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+              placeholder="vardas@gmail.com"
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Password</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Slaptažodis</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="••••••••"
               required
               minLength={6}
             />
           </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">
+              <MapPin size={14} className="inline mr-1 text-blue-400" />
+              Jūsų rajonas / Adresas
+              <span className="text-[var(--text-tertiary)] font-normal ml-1">(neprivaloma)</span>
+            </label>
+            <AddressAutocomplete
+              value={addressText}
+              onChange={(addr, lat, lng) => {
+                setAddressText(addr)
+                if (lat !== undefined && lng !== undefined) {
+                  setAddressLat(lat)
+                  setAddressLng(lng)
+                }
+              }}
+              placeholder="Pvz.: Pilaitė, Vilnius"
+              className="w-full border border-[var(--border-subtle)] rounded-xl pl-4 pr-4 py-2.5 text-[var(--text-primary)] bg-[var(--bg-input)] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-colors placeholder:text-[var(--text-tertiary)] min-h-[44px]"
+            />
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
+              Reikalinga, kad matytumėte kaimynų įrašus ir paslaugas savo spinduliu.
+            </p>
+          </div>
+
           <button
             disabled={loading}
             className="w-full text-white py-3 rounded-full font-bold disabled:opacity-50 transition-colors min-h-[44px]"
             style={{ background: 'var(--accent-gradient)' }}
           >
-            {loading ? 'Creating Account...' : 'Sign Up'}
+            {loading ? 'Kuriama paskyra...' : 'Registruotis'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          Already have an account? <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Login</Link>
+        <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
+          Jau turite paskyrą?{' '}
+          <Link href="/auth/login" className="text-blue-400 font-semibold hover:underline">
+            Prisijungti
+          </Link>
         </p>
       </div>
     </div>
