@@ -8,6 +8,7 @@ import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Brief
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
 import PushNotificationToggle from './PushNotificationToggle'
+import LanguageSwitcher from './LanguageSwitcher'
 import Image from 'next/image'
 
 export default function Navbar() {
@@ -129,6 +130,7 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-600 dark:text-gray-300">
+          <LanguageSwitcher />
           <Link href="/search" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors" title="Search">
             <Search size={20} />
           </Link>

@@ -4,6 +4,7 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import { ThemeProvider } from './providers'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
+import { I18nProvider } from '@/lib/i18n'
 
 const inter = Inter({ subsets: ['latin', 'latin-ext'], weight: ['400', '500', '600'] })
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
+        <I18nProvider>
         <ThemeProvider>
           <Navbar />
           <ServiceWorkerRegister />
@@ -75,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p>&copy; 2026 Mini Social Network. Built for friends.</p>
           </footer>
         </ThemeProvider>
+        </I18nProvider>
       </body>
     </html>
   )

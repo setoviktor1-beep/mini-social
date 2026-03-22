@@ -211,12 +211,12 @@ export default function SettingsPage() {
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, avatar: 'Image must be less than 5MB' }))
+      setErrors(prev => ({ ...prev, avatar: 'Nuotrauka turi būti mažesnė nei 5MB' }))
       return
     }
 
     if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({ ...prev, avatar: 'Please select an image file' }))
+      setErrors(prev => ({ ...prev, avatar: 'Pasirinkite vaizdo failą' }))
       return
     }
 
@@ -237,22 +237,22 @@ export default function SettingsPage() {
     const newErrors: FormErrors = {}
 
     if (!displayName.trim()) {
-      newErrors.displayName = 'Display name is required'
+      newErrors.displayName = 'Vardas yra privalomas'
     } else if (displayName.trim().length > 50) {
-      newErrors.displayName = 'Display name must be 50 characters or less'
+      newErrors.displayName = 'Vardas negali viršyti 50 simbolių'
     }
 
     const uname = username.trim().toLowerCase()
     if (!uname || uname.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters'
+      newErrors.username = 'Vartotojo vardas turi būti bent 3 simbolių'
     } else if (!/^[a-z0-9_]+$/.test(uname)) {
-      newErrors.username = 'Username can only contain lowercase letters, numbers, and underscores'
+      newErrors.username = 'Vartotojo varde leidžiamos tik mažosios raidės, skaičiai ir _'
     } else if (usernameAvailable === false) {
-      newErrors.username = 'This username is already taken'
+      newErrors.username = 'Šis vartotojo vardas jau užimtas'
     }
 
     if (bio.length > 160) {
-      newErrors.bio = 'Bio must be 160 characters or less'
+      newErrors.bio = 'Aprašymas negali viršyti 160 simbolių'
     }
 
     setErrors(newErrors)
@@ -284,7 +284,7 @@ export default function SettingsPage() {
           .upload(path, avatarFile)
 
         if (uploadError) {
-          setErrorMessage('Failed to upload avatar: ' + uploadError.message)
+          setErrorMessage('Nepavyko įkelti nuotraukos: ' + uploadError.message)
           setSaving(false)
           return
         }
@@ -323,10 +323,10 @@ export default function SettingsPage() {
 
       if (updateError) {
         if (updateError.message.includes('unique') || updateError.message.includes('duplicate')) {
-          setErrors(prev => ({ ...prev, username: 'This username is already taken' }))
-          setErrorMessage('Username is already taken')
+          setErrors(prev => ({ ...prev, username: 'Šis vartotojo vardas jau užimtas' }))
+          setErrorMessage('Vartotojo vardas jau užimtas')
         } else {
-          setErrorMessage('Failed to save: ' + updateError.message)
+          setErrorMessage('Nepavyko išsaugoti: ' + updateError.message)
         }
         setSaving(false)
         return
@@ -365,10 +365,10 @@ export default function SettingsPage() {
         data: { username: username.trim().toLowerCase() }
       })
 
-      setSuccessMessage('Profile updated successfully!')
+      setSuccessMessage('Profilis sėkmingai atnaujintas!')
       router.refresh()
     } catch (err) {
-      setErrorMessage('An unexpected error occurred')
+      setErrorMessage('Įvyko nenumatyta klaida')
     } finally {
       setSaving(false)
     }
@@ -382,10 +382,10 @@ export default function SettingsPage() {
     })
     setResetEmailSending(false)
     if (error) {
-      setErrorMessage('Failed to send reset email: ' + error.message)
+      setErrorMessage('Nepavyko išsiųsti el. laiško: ' + error.message)
     } else {
       setResetEmailSent(true)
-      setSuccessMessage('Password reset email sent! Check your inbox.')
+      setSuccessMessage('Slaptažodžio atstatymo el. laiškas išsiųstas! Patikrinkite paštą.')
     }
   }
 
@@ -428,14 +428,14 @@ export default function SettingsPage() {
       {/* ==================== PROFILE SECTION ==================== */}
       <div id="profile" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-50">
-          <h2 className="font-bold text-xl text-gray-900">Profile</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Your public profile information</p>
+          <h2 className="font-bold text-xl text-gray-900">Profilis</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Jūsų viešo profilio informacija</p>
         </div>
         <div className="p-6 space-y-6">
 
           {/* Avatar Upload */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-3">Profile Picture</label>
+            <label className="text-sm font-bold text-gray-700 block mb-3">Profilio nuotrauka</label>
             <div className="flex items-center gap-5">
               <div className="relative">
                 <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 relative">
@@ -456,7 +456,7 @@ export default function SettingsPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 transition-colors shadow-sm"
                   >
                     <Camera size={16} />
-                    Upload Photo
+                    Įkelti nuotrauką
                   </button>
                   {(displayAvatarSrc) && (
                     <button
@@ -486,7 +486,7 @@ export default function SettingsPage() {
 
           {/* Display Name */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">Display Name</label>
+            <label className="text-sm font-bold text-gray-700 block mb-1.5">Vardas</label>
             <input
               type="text"
               value={displayName}
@@ -500,7 +500,7 @@ export default function SettingsPage() {
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
               }`}
               maxLength={50}
-              placeholder="Your display name"
+              placeholder="Jūsų vardas"
             />
             <div className="flex justify-between mt-1">
               {errors.displayName ? (
@@ -514,7 +514,7 @@ export default function SettingsPage() {
 
           {/* Username */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">Username</label>
+            <label className="text-sm font-bold text-gray-700 block mb-1.5">Vartotojo vardas</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
               <input
@@ -548,18 +548,18 @@ export default function SettingsPage() {
               {errors.username ? (
                 <p className="text-xs text-red-500 font-medium">{errors.username}</p>
               ) : usernameAvailable === true ? (
-                <p className="text-xs text-green-600 font-medium">Username is available</p>
+                <p className="text-xs text-green-600 font-medium">Vartotojo vardas laisvas</p>
               ) : usernameAvailable === false ? (
-                <p className="text-xs text-red-500 font-medium">Username is already taken</p>
+                <p className="text-xs text-red-500 font-medium">Vartotojo vardas jau užimtas</p>
               ) : (
-                <p className="text-xs text-gray-400">Lowercase letters, numbers, and underscores only. Min 3 characters.</p>
+                <p className="text-xs text-gray-400">Tik mažosios raidės, skaičiai ir _. Min 3 simboliai.</p>
               )}
             </div>
           </div>
 
           {/* Bio */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">Bio</label>
+            <label className="text-sm font-bold text-gray-700 block mb-1.5">Aprašymas</label>
             <textarea
               value={bio}
               onChange={e => {
@@ -572,7 +572,7 @@ export default function SettingsPage() {
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
               }`}
               maxLength={160}
-              placeholder="Tell us about yourself..."
+              placeholder="Papasakokite apie save"
             />
             <div className="flex justify-between mt-1">
               {errors.bio ? (
@@ -788,7 +788,7 @@ export default function SettingsPage() {
               className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-blue-200 flex items-center gap-2"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
-              {saving ? 'Saving...' : 'Save Profile'}
+              {saving ? 'Išsaugoma...' : 'Išsaugoti profilį'}
             </button>
           </div>
         </div>
@@ -797,8 +797,8 @@ export default function SettingsPage() {
       {/* ==================== ACCOUNT SECTION ==================== */}
       <div id="account" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-50">
-          <h2 className="font-bold text-xl text-gray-900">Account</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Manage your account settings</p>
+          <h2 className="font-bold text-xl text-gray-900">Paskyros nustatymai</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Tvarkykite savo paskyros nustatymus</p>
         </div>
         <div className="p-6 space-y-6">
 
@@ -807,7 +807,7 @@ export default function SettingsPage() {
             <label className="text-sm font-bold text-gray-700 block mb-1.5">
               <span className="flex items-center gap-2">
                 <Mail size={16} />
-                Email Address
+                El. pašto adresas
               </span>
             </label>
             <input
@@ -817,7 +817,7 @@ export default function SettingsPage() {
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 text-gray-500 cursor-not-allowed"
             />
             <p className="text-xs text-gray-400 mt-1">
-              To change your email address, please contact support.
+              Norėdami keisti el. pašto adresą, susisiekite su palaikymo komanda.
             </p>
           </div>
 
@@ -826,11 +826,11 @@ export default function SettingsPage() {
             <label className="text-sm font-bold text-gray-700 block mb-1.5">
               <span className="flex items-center gap-2">
                 <KeyRound size={16} />
-                Password
+                Slaptažodis
               </span>
             </label>
             <p className="text-sm text-gray-500 mb-3">
-              We&apos;ll send a password reset link to your email address.
+              Atsiųsime slaptažodžio atstatymo nuorodą į jūsų el. paštą.
             </p>
             <button
               onClick={handlePasswordReset}
@@ -845,12 +845,12 @@ export default function SettingsPage() {
               {resetEmailSent ? (
                 <>
                   <Check size={16} />
-                  Reset Email Sent
+                  El. laiškas išsiųstas
                 </>
               ) : resetEmailSending ? (
-                'Sending...'
+                'Siunčiama...'
               ) : (
-                'Send Password Reset Email'
+                'Siųsti slaptažodžio atstatymo el. laišką'
               )}
             </button>
           </div>
@@ -860,13 +860,13 @@ export default function SettingsPage() {
       {/* ==================== APPEARANCE SECTION ==================== */}
       <div id="appearance" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-50">
-          <h2 className="font-bold text-xl text-gray-900">Appearance</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Customize how Mini Social looks for you</p>
+          <h2 className="font-bold text-xl text-gray-900">Išvaizda</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Tinkinkite, kaip atrodo Mini Social jums</p>
         </div>
         <div className="p-6">
           <div className="flex items-center gap-3 text-gray-400 py-8 justify-center">
             <Palette size={24} />
-            <p className="text-sm font-medium">Theme settings coming soon</p>
+            <p className="text-sm font-medium">Temos nustatymai – jau greitai</p>
           </div>
         </div>
       </div>
@@ -874,8 +874,8 @@ export default function SettingsPage() {
       {/* ==================== BLOCKED USERS SECTION ==================== */}
       <div id="blocked" className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-50 dark:border-gray-800">
-          <h2 className="font-bold text-xl text-gray-900 dark:text-gray-100">Blocked Users</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">People you blocked won&apos;t show up in your feed or messages</p>
+          <h2 className="font-bold text-xl text-gray-900 dark:text-gray-100">Užblokuoti vartotojai</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Jūsų užblokuoti vartotojai nerodomi naujienlaištyje ir žinutėse</p>
         </div>
         <div className="p-6">
           {loadingBlockedUsers ? (
@@ -887,8 +887,8 @@ export default function SettingsPage() {
               <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Ban size={22} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">No blocked users</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">You can block someone from their profile page</p>
+              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Nėra užblokuotų vartotojų</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Galite blokuoti vartotoją iš jo profilio puslapio</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -921,7 +921,7 @@ export default function SettingsPage() {
                       onClick={() => handleUnblock(b.id)}
                       className="px-5 py-2.5 rounded-full font-bold text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
                     >
-                      Unblock
+                      Atblokuoti
                     </button>
                   </div>
                 )

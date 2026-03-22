@@ -3,18 +3,18 @@
 import { Palette, Shield, User } from 'lucide-react'
 
 const tabs = [
-  { id: 'profile', label: 'Profile', icon: User, hash: '' },
-  { id: 'account', label: 'Account', icon: Shield, hash: '#account' },
-  { id: 'appearance', label: 'Appearance', icon: Palette, hash: '#appearance' },
-  { id: 'blocked', label: 'Blocked', icon: Shield, hash: '#blocked' },
+  { id: 'profile', label: 'Profilis', icon: User, hash: '' },
+  { id: 'account', label: 'Paskyra', icon: Shield, hash: '#account' },
+  { id: 'appearance', label: 'Išvaizda', icon: Palette, hash: '#appearance' },
+  { id: 'blocked', label: 'Užblokuoti', icon: Shield, hash: '#blocked' },
 ]
 
 export default function SettingsShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your profile and account preferences</p>
+        <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100">Nustatymai</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Tvarkykite savo profilio ir paskyros nustatymus</p>
       </div>
       <div className="flex flex-col md:flex-row gap-6">
         <nav className="md:w-56 shrink-0">
