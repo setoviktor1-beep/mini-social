@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/server-supabase'
 import { redirect } from 'next/navigation'
 import ProDashboardTabs from '@/components/pro/ProDashboardTabs'
-import { Briefcase, MapPin, BadgeCheck, CreditCard } from 'lucide-react'
+import { Briefcase, MapPin } from 'lucide-react'
 import SubscriptionCard from '@/components/pro/SubscriptionCard'
 
 export const dynamic = 'force-dynamic'
@@ -14,27 +14,33 @@ export default async function ProDashboard() {
     redirect('/auth/login')
   }
 
-  // Patikriname ar vartotojas turi 'master' rolę
+  // Check profile role — all paid subscribers receive role='pro'; admins are also allowed
   const { data: profile } = await supabase
     .from('profiles')
     .select('role, display_name, address_text, business_name, business_category')
     .eq('id', user.id)
     .single()
 
-  if (!['master', 'admin', 'pro'].includes(profile?.role || '')) {
+  if (!['pro', 'admin'].includes(profile?.role || '')) {
     redirect('/pricing')
   }
 
-  // Check subscription plan
+  // Check subscription status — must be active or trialing
   const { data: sub } = await supabase
     .from('subscriptions')
-    .select('plan, status, current_period_end, cancel_at_period_end')
+    .select('plan, status, current_period_end, cancel_at_period_end, stripe_customer_id')
     .eq('user_id', user.id)
     .single()
 
-  const isEnterprise = sub?.plan === 'enterprise' && (sub?.status === 'active' || sub?.status === 'trialing')
-  const planLabel = sub?.plan === 'enterprise' ? 'Enterprise' : sub?.plan === 'pro' ? 'Pro' : 'Basic'
-  const planColor = sub?.plan === 'enterprise' ? 'text-purple-400 bg-purple-500/10 border-purple-500/30' : sub?.plan === 'pro' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-blue-400 bg-blue-500/10 border-blue-500/30'
+  const isActiveSubscription = sub?.status === 'active' || sub?.status === 'trialing'
+
+  // Admins bypass subscription check; all others must have an active/trialing subscription
+  if (profile?.role !== 'admin' && !isActiveSubscription) {
+    redirect('/pricing')
+  }
+
+  // Enterprise features are gated by the plan in the subscriptions table, not by role
+  const isEnterprise = sub?.plan === 'enterprise' && isActiveSubscription
 
   // Ištraukiame užklausas
   const { data: requests } = await supabase
@@ -80,11 +86,10 @@ export default async function ProDashboard() {
       </div>
 
       {/* Subscription Card */}
-      <SubscriptionCard sub={sub} />
+      <SubscriptionCard sub={sub ?? null} />
 
       {/* Tabs and Content */}
       <ProDashboardTabs initialRequests={requests || []} currentUserId={user.id} isEnterprise={isEnterprise} />
     </div>
   )
 }
-

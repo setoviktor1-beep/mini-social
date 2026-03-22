@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const { plan } = await request.json()
 
-    if (!plan || !PLAN_PRICE_IDS[plan]) {
+    if (!plan || !['basic', 'pro', 'enterprise'].includes(plan)) {
       return NextResponse.json({ error: 'INVALID_PLAN' }, { status: 400 })
     }
 
@@ -54,9 +54,8 @@ export async function POST(request: Request) {
       customerId = customer.id
     }
 
-    // Pro and Enterprise get 14-day free trial
+    // Pro and Enterprise get 14-day free trial; Basic has no trial
     const trialDays = (plan === 'pro' || plan === 'enterprise') ? 14 : undefined
-
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
