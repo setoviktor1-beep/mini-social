@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/server-supabase'
 import { redirect } from 'next/navigation'
 import ProDashboardTabs from '@/components/pro/ProDashboardTabs'
-import { Briefcase, MapPin, BadgeCheck } from 'lucide-react'
+import { Briefcase, MapPin, BadgeCheck, CreditCard } from 'lucide-react'
+import SubscriptionCard from '@/components/pro/SubscriptionCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,7 @@ export default async function ProDashboard() {
   // Check subscription plan
   const { data: sub } = await supabase
     .from('subscriptions')
-    .select('plan, status')
+    .select('plan, status, current_period_end, cancel_at_period_end')
     .eq('user_id', user.id)
     .single()
 
@@ -52,20 +53,14 @@ export default async function ProDashboard() {
               Verslo Darbalaukis
             </h1>
             <p className="text-gray-400 mt-2 flex items-center gap-2 font-medium">
-              {profile.business_name || profile.display_name} 
-              <span className="text-emerald-500/50">•</span> 
-              <span className="text-gray-500">{profile.business_category || 'Kategorija nenustatyta'}</span>
+              {profile?.business_name || profile?.display_name}
+              <span className="text-emerald-500/50">•</span>
+              <span className="text-gray-500">{profile?.business_category || 'Kategorija nenustatyta'}</span>
             </p>
             <p className="text-gray-500 mt-1 flex items-center gap-2 text-sm">
               <MapPin size={14} />
-              Regionas: {profile.address_text || 'Nepriskirtas'}
+              Regionas: {profile?.address_text || 'Nepriskirtas'}
             </p>
-            {sub && (
-              <span className={`inline-flex items-center gap-1.5 mt-2 text-xs font-bold px-3 py-1 rounded-full border ${planColor}`}>
-                <BadgeCheck size={12} />
-                {planLabel} planas · {sub.status === 'trialing' ? 'Bandomasis laikotarpis' : 'Aktyvus'}
-              </span>
-            )}
           </div>
           <div className="flex gap-4 bg-gray-950/50 p-4 rounded-2xl border border-gray-800">
             <div className="text-center px-4 border-r border-gray-800">
@@ -83,6 +78,9 @@ export default async function ProDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Subscription Card */}
+      <SubscriptionCard sub={sub} />
 
       {/* Tabs and Content */}
       <ProDashboardTabs initialRequests={requests || []} currentUserId={user.id} isEnterprise={isEnterprise} />
