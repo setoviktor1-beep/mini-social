@@ -38,12 +38,15 @@ export default function ServicesPage() {
   const supabase = createClient();
   const [activeCategory, setActiveCategory] = useState("Visi");
   const [localServices, setLocalServices] = useState<any[]>([]);
+  const [homeLocalServices, setHomeLocalServices] = useState<any[]>([]);
   const [googleServices, setGoogleServices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [error, setError] = useState("");
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
+  const [homeLat, setHomeLat] = useState<number | null>(null);
+  const [homeLng, setHomeLng] = useState<number | null>(null);
   const [userRadiusKm, setUserRadiusKm] = useState(5.0);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
 
@@ -60,13 +63,19 @@ export default function ServicesPage() {
         setProfile(data);
         const radius = data?.user_radius_km ?? 5.0;
         setUserRadiusKm(radius);
-        // Travel mode: use travel location for services, keep home for feed
-        const lat = data?.travel_mode && data?.travel_lat ? data.travel_lat : data?.address_lat;
-        const lng = data?.travel_mode && data?.travel_lng ? data.travel_lng : data?.address_lng;
+        const homeLat = data?.address_lat;
+        const homeLng = data?.address_lng;
+        const travelMode = data?.travel_mode && data?.travel_lat && data?.travel_lng;
+        const lat = travelMode ? data.travel_lat : homeLat;
+        const lng = travelMode ? data.travel_lng : homeLng;
+        if (homeLat && homeLng) {
+          setHomeLat(homeLat);
+          setHomeLng(homeLng);
+        }
         if (lat && lng) {
           setUserLat(lat);
           setUserLng(lng);
-          await fetchAll(lat, lng, radius, "Visi");
+          await fetchAll(lat, lng, radius, "Visi", travelMode ? homeLat : null, travelMode ? homeLng : null);
         } else {
           setIsLoading(false);
         }
@@ -79,17 +88,19 @@ export default function ServicesPage() {
 
   useEffect(() => {
     if (userLat && userLng) {
-      fetchAll(userLat, userLng, userRadiusKm, activeCategory);
+      const travelMode = profile?.travel_mode && profile?.travel_lat && profile?.travel_lng;
+      fetchAll(userLat, userLng, userRadiusKm, activeCategory, travelMode ? homeLat : null, travelMode ? homeLng : null);
     }
   }, [activeCategory]);
 
-  const fetchAll = async (lat: number, lng: number, radiusKm: number, category: string) => {
+  const fetchAll = async (lat: number, lng: number, radiusKm: number, category: string, hLat?: number | null, hLng?: number | null) => {
     setIsLoading(true);
     setError("");
     try {
       await Promise.all([
         fetchLocalServices(lat, lng, radiusKm, category),
         fetchGoogleServices(lat, lng, radiusKm, category),
+        hLat && hLng ? fetchHomeLocalServices(hLat, hLng, radiusKm, category) : Promise.resolve(),
       ]);
     } finally {
       setIsLoading(false);
@@ -136,6 +147,45 @@ export default function ServicesPage() {
       });
 
     setLocalServices(filtered);
+  };
+
+  const fetchHomeLocalServices = async (lat: number, lng: number, radiusKm: number, category: string) => {
+    const { data } = await supabase
+      .from("pro_services")
+      .select("*, profiles!pro_id(display_name, business_name, business_category, address_text, address_lat, address_lng, avatar_path)")
+      .eq("is_active", true);
+    if (!data) return;
+    const filtered = data
+      .filter((s: any) => {
+        const p = s.profiles;
+        if (!p?.address_lat || !p?.address_lng) return false;
+        const distKm = haversineKm(lat, lng, p.address_lat, p.address_lng);
+        if (distKm > radiusKm) return false;
+        if (category === "Visi") return true;
+        const cats = CATEGORY_MAP[category] || [];
+        return cats.includes((p.business_category || "").toLowerCase());
+      })
+      .map((s: any) => {
+        const p = s.profiles;
+        const distKm = haversineKm(lat, lng, p.address_lat, p.address_lng);
+        const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
+        return {
+          id: s.id,
+          name: s.name,
+          description: s.description || p.business_name || "",
+          address: p.address_text || "",
+          rating: 0,
+          isOpen: true,
+          distance: distLabel,
+          icon: categoryIcon(p.business_category || ""),
+          providerName: p.business_name || p.display_name,
+          price: s.price ? `€${s.price}` : null,
+          priceType: s.price_type,
+          isLocal: true,
+          providerId: s.pro_id,
+        };
+      });
+    setHomeLocalServices(filtered);
   };
 
   const fetchGoogleServices = async (lat: number, lng: number, radiusKm: number, category: string) => {
@@ -230,6 +280,24 @@ export default function ServicesPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {localServices.map((s: any) => (
                       <LocalServiceCard key={s.id} service={s} currentUserId={currentUserId} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Home neighborhood services (travel mode) */}
+              {homeLocalServices.length > 0 && profile?.travel_mode && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <BadgeCheck className="text-amber-400" size={20} />
+                    <h2 className="text-lg font-bold text-white">Tavo kaimynystės verslai</h2>
+                    <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                      🏠 Namai
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {homeLocalServices.map((s: any) => (
+                      <LocalServiceCard key={`home-${s.id}`} service={s} currentUserId={currentUserId} />
                     ))}
                   </div>
                 </div>
