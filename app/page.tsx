@@ -11,7 +11,6 @@ import {
   Mail,
   Users,
   Settings,
-  Sparkles,
   Plus,
   TrendingUp,
   Briefcase,
@@ -114,7 +113,6 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
                 { href: '/messages', icon: Mail, label: 'Messages', show: true },
                 { href: '/discussions', icon: Users, label: 'Discussions', show: true },
                 { href: '/settings', icon: Settings, label: 'Settings', show: true },
-                { href: '/ai-chat', icon: Sparkles, label: 'AI Chat', show: true },
               ].filter(item => item.show).map((item) => (
                 <Link
                   key={item.href}
