@@ -52,16 +52,19 @@ export default function ServicesPage() {
       if (user) {
         const { data } = await supabase
           .from("profiles")
-          .select("*, address_lat, address_lng, user_radius_km")
+          .select("*, address_lat, address_lng, user_radius_km, travel_mode, travel_lat, travel_lng, travel_address_text")
           .eq("id", user.id)
           .single();
         setProfile(data);
         const radius = data?.user_radius_km ?? 5.0;
         setUserRadiusKm(radius);
-        if (data?.address_lat && data?.address_lng) {
-          setUserLat(data.address_lat);
-          setUserLng(data.address_lng);
-          await fetchAll(data.address_lat, data.address_lng, radius, "Visi");
+        // Travel mode: use travel location for services, keep home for feed
+        const lat = data?.travel_mode && data?.travel_lat ? data.travel_lat : data?.address_lat;
+        const lng = data?.travel_mode && data?.travel_lng ? data.travel_lng : data?.address_lng;
+        if (lat && lng) {
+          setUserLat(lat);
+          setUserLng(lng);
+          await fetchAll(lat, lng, radius, "Visi");
         } else {
           setIsLoading(false);
         }
@@ -164,6 +167,12 @@ export default function ServicesPage() {
         <p className="text-gray-400 max-w-xl mx-auto italic">
           Vietiniai verslai ir Google Maps rezultatai pagal tavo lokaciją.
         </p>
+        {profile?.travel_mode && profile?.travel_address_text && (
+          <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 px-4 py-2 rounded-full text-sm font-medium">
+            <span>✈️</span>
+            Kelionės režimas: <strong>{profile.travel_address_text}</strong>
+          </div>
+        )}
       </div>
 
       {!profile?.address_text ? (

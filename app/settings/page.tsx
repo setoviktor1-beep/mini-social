@@ -73,6 +73,10 @@ export default function SettingsPage() {
   const [addressLat, setAddressLat] = useState<number | null>(null)
   const [addressLng, setAddressLng] = useState<number | null>(null)
   const [userRadiusKm, setUserRadiusKm] = useState(5.0)
+  const [travelMode, setTravelMode] = useState(false)
+  const [travelAddressText, setTravelAddressText] = useState('')
+  const [travelLat, setTravelLat] = useState<number | null>(null)
+  const [travelLng, setTravelLng] = useState<number | null>(null)
   const [role, setRole] = useState('user')
   const [businessName, setBusinessName] = useState('')
   const [businessCategory, setBusinessCategory] = useState('')
@@ -119,7 +123,13 @@ export default function SettingsPage() {
       setBio(profileData.bio || '')
       setAvatarPath(profileData.avatar_path)
       setAddressText(profileData.address_text || '')
+      setAddressLat(profileData.address_lat ?? null)
+      setAddressLng(profileData.address_lng ?? null)
       setUserRadiusKm(profileData.user_radius_km ?? 5.0)
+      setTravelMode(profileData.travel_mode ?? false)
+      setTravelAddressText(profileData.travel_address_text || '')
+      setTravelLat(profileData.travel_lat ?? null)
+      setTravelLng(profileData.travel_lng ?? null)
       setRole(profileData.role || 'user')
       setBusinessName(profileData.business_name || '')
       setBusinessCategory(profileData.business_category || '')
@@ -299,6 +309,10 @@ export default function SettingsPage() {
           address_lat: addressLat,
           address_lng: addressLng,
           user_radius_km: userRadiusKm,
+          travel_mode: travelMode,
+          travel_address_text: travelMode ? (travelAddressText.trim() || null) : null,
+          travel_lat: travelMode ? travelLat : null,
+          travel_lng: travelMode ? travelLng : null,
           role: role,
           business_name: (role === 'master' || role === 'admin') ? businessName.trim() : null,
           business_category: (role === 'master' || role === 'admin') ? businessCategory.trim() : null,
@@ -657,6 +671,48 @@ export default function SettingsPage() {
               <p className="text-xs text-gray-400 mt-2">
                 Matysi postus ir paslaugas tik iš vartotojų per {userRadiusKm < 1 ? `${Math.round(userRadiusKm * 1000)} m` : `${userRadiusKm} km`} nuo tavęs.
               </p>
+            </div>
+
+            {/* Travel Mode */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">✈️</span>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">Kelionės režimas</p>
+                    <p className="text-xs text-gray-500">Paslaugos rodomos iš kelionės vietos. Feed nesikeičia.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTravelMode(v => !v)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${travelMode ? 'bg-blue-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${travelMode ? 'translate-x-7' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
+              {travelMode && (
+                <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <label className="text-sm font-bold text-gray-700 block">Kelionės vieta</label>
+                  <AddressAutocomplete
+                    value={travelAddressText}
+                    onChange={(addr, lat, lng) => {
+                      setTravelAddressText(addr)
+                      if (lat !== undefined && lng !== undefined) {
+                        setTravelLat(lat)
+                        setTravelLng(lng)
+                      }
+                    }}
+                    placeholder="Pvz.: Kaunas, Lietuva"
+                  />
+                  {travelLat && (
+                    <p className="text-xs text-blue-500 font-medium">
+                      ✓ Vieta nustatyta — paslaugos rodomos iš šios vietos
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Business Details (Only for Masters) */}
