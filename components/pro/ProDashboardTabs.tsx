@@ -16,10 +16,12 @@ export default function ProDashboardTabs({
   initialRequests,
   currentUserId,
   isEnterprise = false,
+  isPro = false,
 }: {
   initialRequests: any[],
   currentUserId: string,
   isEnterprise?: boolean,
+  isPro?: boolean,
 }) {
   const [activeTab, setActiveTab] = useState<Tab>('orders');
 
@@ -85,7 +87,22 @@ export default function ProDashboardTabs({
 
         {activeTab === 'ai' && (
           <div className="animate-in fade-in duration-300">
-            <ProAIChat />
+            {isPro ? (
+              <ProAIChat />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                  <Sparkles size={32} className="text-emerald-400" />
+                </div>
+                <h3 className="text-white font-bold text-lg">AI Asistentas — Pro funkcija</h3>
+                <p className="text-gray-500 text-sm text-center max-w-xs">
+                  AI pagalbininkas prieinamas Pro ir Enterprise planų vartotojams (nuo €29.99/mėn).
+                </p>
+                <a href="/pricing" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-2xl transition-colors">
+                  Atnaujinti į Pro
+                </a>
+              </div>
+            )}
           </div>
         )}
 

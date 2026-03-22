@@ -39,8 +39,9 @@ export default async function ProDashboard() {
     redirect('/pricing')
   }
 
-  // Enterprise features are gated by the plan in the subscriptions table, not by role
+  // Feature flags based on subscription plan
   const isEnterprise = sub?.plan === 'enterprise' && isActiveSubscription
+  const isPro = (sub?.plan === 'pro' || sub?.plan === 'enterprise') && isActiveSubscription
 
   // Ištraukiame užklausas
   const { data: requests } = await supabase
@@ -89,7 +90,7 @@ export default async function ProDashboard() {
       <SubscriptionCard sub={sub ?? null} />
 
       {/* Tabs and Content */}
-      <ProDashboardTabs initialRequests={requests || []} currentUserId={user.id} isEnterprise={isEnterprise} />
+      <ProDashboardTabs initialRequests={requests || []} currentUserId={user.id} isEnterprise={isEnterprise} isPro={isPro} />
     </div>
   )
 }
