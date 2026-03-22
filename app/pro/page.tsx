@@ -25,6 +25,15 @@ export default async function ProDashboard() {
     redirect('/')
   }
 
+  // Check subscription plan
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('plan, status')
+    .eq('user_id', user.id)
+    .single()
+
+  const isEnterprise = sub?.plan === 'enterprise' && (sub?.status === 'active' || sub?.status === 'trialing')
+
   // Ištraukiame užklausas
   const { data: requests } = await supabase
     .from('service_requests')
@@ -69,7 +78,7 @@ export default async function ProDashboard() {
       </div>
 
       {/* Tabs and Content */}
-      <ProDashboardTabs initialRequests={requests || []} currentUserId={user.id} />
+      <ProDashboardTabs initialRequests={requests || []} currentUserId={user.id} isEnterprise={isEnterprise} />
     </div>
   )
 }

@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from 'react';
-import { ClipboardList, Tags, MessageSquare, Settings as SettingsIcon, CalendarDays, Sparkles } from 'lucide-react';
+import { ClipboardList, Tags, MessageSquare, Settings as SettingsIcon, CalendarDays, Sparkles, Bot } from 'lucide-react';
 import RequestBoard from './RequestBoard';
 import ServicesCatalog from './ServicesCatalog';
 import QuickReplies from './QuickReplies';
 import ProSettings from './ProSettings';
 import ProCalendar from './ProCalendar';
 import ProAIChat from './ProAIChat';
+import ProAgent from './ProAgent';
 
-type Tab = 'orders' | 'calendar' | 'catalog' | 'messages' | 'ai' | 'settings';
+type Tab = 'orders' | 'calendar' | 'catalog' | 'messages' | 'ai' | 'agent' | 'settings';
 
 export default function ProDashboardTabs({
   initialRequests,
-  currentUserId
+  currentUserId,
+  isEnterprise = false,
 }: {
   initialRequests: any[],
-  currentUserId: string
+  currentUserId: string,
+  isEnterprise?: boolean,
 }) {
   const [activeTab, setActiveTab] = useState<Tab>('orders');
 
@@ -26,6 +29,7 @@ export default function ProDashboardTabs({
     { id: 'catalog', label: 'Kainoraštis', icon: Tags },
     { id: 'messages', label: 'Greiti atsakymai', icon: MessageSquare },
     { id: 'ai', label: 'AI Asistentas', icon: Sparkles },
+    { id: 'agent', label: 'Agentas', icon: Bot },
     { id: 'settings', label: 'Nustatymai', icon: SettingsIcon },
   ];
 
@@ -82,6 +86,12 @@ export default function ProDashboardTabs({
         {activeTab === 'ai' && (
           <div className="animate-in fade-in duration-300">
             <ProAIChat />
+          </div>
+        )}
+
+        {activeTab === 'agent' && (
+          <div className="animate-in fade-in duration-300">
+            <ProAgent isEnterprise={isEnterprise} />
           </div>
         )}
 
