@@ -2,144 +2,153 @@ import type { Metadata } from 'next'
 import LegalLayout from '@/components/legal/LegalLayout'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service',
-  description: 'Rules for using Mini Social, including usage-based pricing terms.',
+  title: 'Naudojimo sąlygos',
+  description: 'Mini Social platformos naudojimo taisyklės ir sąlygos.',
 }
 
 const sections = [
   {
-    id: 'acceptance',
-    title: '1. Acceptance of Terms',
-    content: (
-      <p>
-        By accessing or using Mini Social, you agree to these Terms. If you do not agree, do not use the service.
-      </p>
-    ),
-  },
-  {
-    id: 'accounts-auth',
-    title: '2. Account and Authentication',
+    id: 'bendrosios',
+    title: '1. Bendrosios nuostatos',
     content: (
       <>
         <p>
-          You are responsible for your account credentials and for activity performed under your account.
-        </p>
-        <p>
-          Authentication methods may include email/password and social login providers such as Google, where enabled.
+          Šios naudojimo sąlygos reglamentuoja jūsų naudojimąsi &bdquo;Mini Social&rdquo; platforma, kurią valdo Lietuvoje
+          registruota įmonė. Naudodamiesi programėle, jūs sutinkate su šiomis taisyklėmis. Jei nesutinkate,
+          paslauga naudotis negalite.
         </p>
       </>
     ),
   },
   {
-    id: 'user-content',
-    title: '3. User Content',
+    id: 'registracija',
+    title: '2. Registracija ir paskyra',
     content: (
       <>
         <p>
-          You are solely responsible for content you post, including text, images, comments, and interactions.
-        </p>
-        <p>
-          You retain ownership of your content, but grant us a non-exclusive license to host, display, and process it as
-          needed to operate the platform.
+          Naudotojai privalo pateikti teisingą informaciją registracijos metu. Paskyra yra asmeninė, o naudotojas
+          atsako už savo prisijungimo duomenų saugumą. Paslaugomis gali naudotis asmenys nuo 14 metų.
         </p>
       </>
     ),
   },
   {
-    id: 'prohibited',
-    title: '4. Prohibited Content and Conduct',
+    id: 'turinys',
+    title: '3. Naudotojų turinys ir elgesys',
+    content: (
+      <>
+        <p>Jūs esate atsakingi už visą turinį (įrašus, nuotraukas, žinutes), kurį skelbiate. Draudžiama:</p>
+        <ul>
+          <li>Platinti neteisėtą, įžeidžiantį ar klaidinantį turinį.</li>
+          <li>Naudoti platformą sukčiavimui ar nepageidaujamų reklamų (spam) siuntimui.</li>
+          <li>Pažeidinėti kitų vartotojų privatumą ar intelektinę nuosavybę.</li>
+          <li>Bandyti gauti neteisėtą prieigą prie sistemos ar kitų vartotojų paskyrų.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: 'prenumeratos',
+    title: '4. Pro ir Enterprise prenumeratos',
     content: (
       <>
         <p>
-          You must not publish or distribute spam, illegal content, hate content, intellectual-property infringing content,
-          malware, or attempt to break, abuse, or gain unauthorized access to the service.
+          Verslo paslaugos (Pro &ndash; €29,99/mėn., Enterprise &ndash; €99,99/mėn.) teikiamos pagal mokamos
+          prenumeratos modelį. Atsiskaitymai vykdomi per saugią Stripe sistemą. Prenumerata automatiškai
+          pratęsiama, nebent ji atšaukiama nustatymuose prieš naują atsiskaitymo laikotarpį. Pirmosios 14 dienų
+          yra nemokamas bandomasis laikotarpis.
         </p>
       </>
     ),
   },
   {
-    id: 'moderation',
-    title: '5. Moderation and Suspension',
-    content: (
-      <p>
-        We may remove content, restrict access, or suspend accounts that violate these Terms or create safety and
-        operational risks.
-      </p>
-    ),
-  },
-  {
-    id: 'pricing-billing',
-    title: '6. Pricing and Billing',
+    id: 'ai',
+    title: '5. Dirbtinis intelektas (AI asistentas)',
     content: (
       <>
-        <p>Currency: EUR.</p>
         <p>
-          AI/API usage is charged on a usage-based basis. Current reference price: €0.0035 per 1,000 tokens.
-        </p>
-        <p>
-          Prices may change at any time. New prices apply only to future usage and do not retroactively change already
-          consumed usage.
-        </p>
-        <p>
-          We may introduce new model options, image generation, and different pricing tiers in the future.
-        </p>
-        <p>
-          If wallet top-up is introduced or expanded, wallet balance may be used for platform services and detailed rules
-          will be described on pricing-related pages.
+          Platformoje integruotas AI asistentas (Google Gemini). Ši technologija teikia automatizuotus atsakymus,
+          kurie gali būti netikslūs. &bdquo;Mini Social&rdquo; neatsako už AI sugeneruoto turinio pasekmes ar jo
+          teisingumą. AI funkcijos prieinamos tik Pro ir Enterprise prenumeratos vartotojams.
         </p>
       </>
     ),
   },
   {
-    id: 'availability',
-    title: '7. Service Availability',
+    id: 'vieta',
+    title: '6. Vietovės paslaugos ir žemėlapiai',
     content: (
-      <p>
-        The service is provided on an “as is” and “as available” basis. We do not provide a guaranteed uptime SLA unless
-        explicitly stated otherwise.
-      </p>
+      <>
+        <p>
+          Programėlė naudoja vietovės filtravimą (PostGIS) ir Google Maps paslaugas. Naudodamiesi šia funkcija,
+          jūs sutinkate su Google Maps papildomomis paslaugų teikimo sąlygomis. Vietovės duomenys renkami tik
+          gavus jūsų sutikimą ir naudojami turinio filtravimui pagal jūsų nustatytą spindulį.
+        </p>
+      </>
     ),
   },
   {
-    id: 'liability',
-    title: '8. Limitation of Liability',
+    id: 'intelektine',
+    title: '7. Intelektinė nuosavybė',
     content: (
-      <p>
-        To the maximum extent allowed by applicable law, we are not liable for indirect, incidental, special, or
-        consequential damages related to use of the platform.
-      </p>
+      <>
+        <p>
+          Visas platformos kodas, dizainas ir prekių ženklai priklauso &bdquo;Mini Social&rdquo;. Jūs išsaugote teises į
+          savo paskelbtą turinį, tačiau suteikiate mums ne išimtinę licenciją jį rodyti ir platinti platformos
+          viduje, siekiant teikti paslaugą.
+        </p>
+      </>
     ),
   },
   {
-    id: 'changes',
-    title: '9. Changes to Terms',
+    id: 'atsakomybe',
+    title: '8. Atsakomybės ribojimas',
     content: (
-      <p>
-        We may update these Terms from time to time. Material changes may be communicated through the UI, email, or both.
-      </p>
+      <>
+        <p>
+          Paslaugos teikiamos be jokių garantijų. Mes neatsakome už laikinus sutrikimus, naudotojų tarpusavio
+          ginčus ar finansinius nuostolius, patirtus naudojantis platformos paslaugomis. Maksimali mūsų
+          atsakomybė neviršija per paskutinius 3 mėnesius sumokėtų prenumeratos mokesčių sumos.
+        </p>
+      </>
     ),
   },
   {
-    id: 'law-disputes',
-    title: '10. Governing Law and Disputes',
+    id: 'bdar',
+    title: '9. Asmens duomenų apsauga (BDAR)',
     content: (
-      <p>
-        These Terms are governed and interpreted in accordance with applicable laws. Disputes are handled under applicable
-        legal procedures.
-      </p>
+      <>
+        <p>
+          Jūsų duomenys tvarkomi laikantis BDAR ir Lietuvos įstatymų. Išsami informacija pateikiama{' '}
+          <a href="/legal/privacy" className="text-blue-500 hover:underline">
+            Privatumo politikoje
+          </a>
+          .
+        </p>
+      </>
     ),
   },
   {
-    id: 'contact',
-    title: '11. Contact',
+    id: 'baigiamosios',
+    title: '10. Baigiamosios nuostatos',
     content: (
-      <p>
-        Questions about these Terms can be sent to: <a href="mailto:support@yourdomain.com">support@yourdomain.com</a>
-      </p>
+      <>
+        <p>
+          Šioms sąlygoms taikoma Lietuvos Respublikos teisė. Visi ginčai sprendžiami derybų keliu, o nepavykus
+          &ndash; kompetentingame Lietuvos teisme. Mes pasiliekame teisę bet kada atnaujinti šias sąlygas
+          informuojant naudotojus platformoje.
+        </p>
+      </>
     ),
   },
 ]
 
 export default function TermsPage() {
-  return <LegalLayout title="Terms of Service" lastUpdated="February 14, 2026" sections={sections} />
+  return (
+    <LegalLayout
+      title="Naudojimo sąlygos"
+      lastUpdated="2026-03-22"
+      sections={sections}
+    />
+  )
 }
