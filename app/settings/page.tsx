@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, Briefcase } from 'lucide-react'
+import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, Briefcase, MapPin } from 'lucide-react'
 import Image from 'next/image'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import InviteButton from '@/components/InviteButton'
@@ -630,20 +630,14 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            {/* Address Input */}
+            {/* Address - locked, read-only */}
             <div>
-              <label className="text-sm font-bold text-gray-700 block mb-1.5">Tavo mikrorajonas / Adresas</label>
-              <AddressAutocomplete
-                value={addressText}
-                onChange={(address, lat, lng) => {
-                  setAddressText(address)
-                  if (lat !== undefined && lng !== undefined) {
-                    setAddressLat(lat)
-                    setAddressLng(lng)
-                  }
-                }}
-              />
-              <p className="text-xs text-gray-400 mt-2">Reikalinga, kad matytum skelbimus ir meistrus savo spinduliu.</p>
+              <label className="text-sm font-bold text-gray-700 block mb-1.5">Tavo adresas</label>
+              <div className="w-full p-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-sm min-h-[44px] flex items-center gap-2">
+                <MapPin size={14} className="text-gray-400 shrink-0" />
+                {addressText || 'Adresas nenustatytas'}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Adresas nustatomas registracijos metu ir negali būti keičiamas. Kelionėms naudok Travel Mode žemiau.</p>
             </div>
 
             {/* Radius Slider */}

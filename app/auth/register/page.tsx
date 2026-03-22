@@ -10,13 +10,14 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [displayName, setDisplayName] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [postalCode, setPostalCode] = useState('')
   const [addressText, setAddressText] = useState('')
   const [addressLat, setAddressLat] = useState<number | null>(null)
   const [addressLng, setAddressLng] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const supabase = createClient()
   const router = useRouter()
@@ -38,6 +39,12 @@ export default function Register() {
       return
     }
 
+    if (!addressText || addressLat === null || addressLng === null) {
+      setError('Prašome nurodyti adresą.')
+      setLoading(false)
+      return
+    }
+
     const { data: existingUser } = await supabase
       .from('profiles')
       .select('username')
@@ -50,17 +57,14 @@ export default function Register() {
       return
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           username: username.toLowerCase(),
-          display_name: displayName || username,
+          display_name: fullName,
         },
-        emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     })
 
@@ -70,11 +74,13 @@ export default function Register() {
       return
     }
 
-    // Save address if provided
-    if (signUpData?.user && addressText && addressLat !== null && addressLng !== null) {
+    if (signUpData?.user) {
       await supabase
         .from('profiles')
         .update({
+          display_name: fullName,
+          phone,
+          postal_code: postalCode,
           address_text: addressText,
           address_lat: addressLat,
           address_lng: addressLng,
@@ -86,10 +92,8 @@ export default function Register() {
         lat: addressLat,
         lng: addressLng,
       })
-    }
 
-    // Handle referral code if present
-    if (signUpData?.user) {
+      // Handle referral code
       const referralCode = localStorage.getItem('referral_code')
       if (referralCode) {
         const { data: referrer } = await supabase
@@ -97,7 +101,6 @@ export default function Register() {
           .select('id')
           .eq('referral_code', referralCode)
           .maybeSingle()
-
         if (referrer) {
           await supabase
             .from('profiles')
@@ -114,20 +117,6 @@ export default function Register() {
       router.push('/')
       router.refresh()
     }, 1500)
-  }
-
-  const handleGoogleSignIn = async () => {
-    setError('')
-    setGoogleLoading(true)
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${siteUrl}/auth/callback?next=/` },
-    })
-    if (error) {
-      setError(error.message)
-      setGoogleLoading(false)
-    }
   }
 
   if (success) {
@@ -147,10 +136,10 @@ export default function Register() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
+    <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0 pb-10">
       <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]">
         <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">Sukurti paskyrą</h1>
-        <p className="text-[var(--text-secondary)] mb-4 sm:mb-6 text-sm">Prisijunkite prie savo kaimynų bendruomenės.</p>
+        <p className="text-[var(--text-secondary)] mb-6 text-sm">Prisijunkite prie savo kaimynų bendruomenės.</p>
 
         {error && (
           <div className="bg-red-500/10 text-red-400 border border-red-500/20 p-3 rounded-lg text-sm mb-4">
@@ -159,19 +148,16 @@ export default function Register() {
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading || loading}
-            className="w-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-3 rounded-full font-semibold disabled:opacity-50 min-h-[44px]"
-          >
-            {googleLoading ? 'Jungiamasi...' : 'Tęsti su Google'}
-          </button>
-
-          <div className="flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
-            <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-            <span>arba</span>
-            <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+          <div>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Vardas ir pavardė</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+              placeholder="Vardenis Pavardenis"
+              required
+            />
           </div>
 
           <div>
@@ -188,18 +174,6 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Vardas</label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={e => setDisplayName(e.target.value)}
-              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
-              placeholder="Vardenis Pavardenis"
-              required
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">El. paštas</label>
             <input
               type="email"
@@ -207,6 +181,18 @@ export default function Register() {
               onChange={e => setEmail(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="vardas@gmail.com"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Telefono numeris</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+              placeholder="+370 600 00000"
               required
             />
           </div>
@@ -224,12 +210,10 @@ export default function Register() {
             />
           </div>
 
-          {/* Address */}
           <div>
             <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">
               <MapPin size={14} className="inline mr-1 text-blue-400" />
-              Jūsų rajonas / Adresas
-              <span className="text-[var(--text-tertiary)] font-normal ml-1">(neprivaloma)</span>
+              Adresas
             </label>
             <AddressAutocomplete
               value={addressText}
@@ -240,12 +224,21 @@ export default function Register() {
                   setAddressLng(lng)
                 }
               }}
-              placeholder="Pvz.: Pilaitė, Vilnius"
+              placeholder="Pvz.: Gedimino pr. 1, Vilnius"
               className="w-full border border-[var(--border-subtle)] rounded-xl pl-4 pr-4 py-2.5 text-[var(--text-primary)] bg-[var(--bg-input)] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-colors placeholder:text-[var(--text-tertiary)] min-h-[44px]"
             />
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">
-              Reikalinga, kad matytumėte kaimynų įrašus ir paslaugas savo spinduliu.
-            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Pašto kodas</label>
+            <input
+              type="text"
+              value={postalCode}
+              onChange={e => setPostalCode(e.target.value)}
+              className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+              placeholder="LT-01001"
+              required
+            />
           </div>
 
           <button
