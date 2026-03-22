@@ -143,7 +143,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Pv
         onChange={e => handleInput(e.target.value)}
         onFocus={() => suggestions.length > 0 && setOpen(true)}
         placeholder={placeholder}
-        className={className || 'w-full border border-[var(--border-subtle)] rounded-xl pl-11 pr-10 py-2.5 text-[var(--text-primary)] bg-[var(--bg-input)] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-colors placeholder:text-[var(--text-tertiary)]'}
+        className={className || 'w-full border border-gray-200 rounded-xl pl-11 pr-10 py-2.5 text-gray-900 bg-white outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 transition-colors placeholder:text-gray-400'}
         autoComplete="off"
       />
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -156,15 +156,15 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Pv
       </div>
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 left-0 right-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl shadow-lg overflow-hidden">
+        <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
           {suggestions.map(s => (
             <li key={s.placeId}>
               <button
                 onMouseDown={() => selectSuggestion(s)}
-                className="w-full flex items-start gap-3 px-4 py-3 hover:bg-blue-500/10 text-left transition-colors"
+                className="w-full flex items-start gap-3 px-4 py-3 hover:bg-blue-50 text-left transition-colors"
               >
-                <MapPin size={14} className="text-[var(--text-secondary)] mt-0.5 shrink-0" />
-                <span className="text-sm text-[var(--text-primary)]">{s.description}</span>
+                <MapPin size={14} className="text-gray-400 mt-0.5 shrink-0" />
+                <span className="text-sm text-gray-700">{s.description}</span>
               </button>
             </li>
           ))}
