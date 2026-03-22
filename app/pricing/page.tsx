@@ -6,9 +6,9 @@ import { Check, Zap, Brain, Sparkles, Loader2 } from 'lucide-react'
 
 const PLANS = [
   {
-    id: 'starter',
-    name: 'Starter',
-    price: '15.99',
+    id: 'basic',
+    name: 'Basic',
+    price: '14.99',
     icon: Zap,
     color: 'blue',
     description: 'Pradžiai — visi verslo įrankiai be AI',
@@ -35,7 +35,7 @@ const PLANS = [
     popular: true,
     trial: true,
     features: [
-      'Viskas iš Starter',
+      'Viskas iš Basic',
       'AI kainų skaičiavimas (50/mėn)',
       'AI chat pagalbininkas (100/mėn)',
       'Iki 200 užsakymų/mėn',
@@ -47,7 +47,7 @@ const PLANS = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: '99.99',
+    price: '89.99',
     icon: Sparkles,
     color: 'purple',
     description: 'Pilna AI integracija be apribojimų',
@@ -106,6 +106,7 @@ export default function PricingPage() {
         <p className="text-gray-400 max-w-xl mx-auto">
           Pasirink planą pagal savo poreikius. Bet kada gali pakeisti ar atšaukti.
         </p>
+        <p className="text-gray-600 text-xs">Kainos su PVM (21%)</p>
       </div>
 
       {/* Plans */}

@@ -3,7 +3,7 @@ import { getStripe } from '@/lib/stripe'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 const PLAN_PRICE_IDS: Record<string, string | undefined> = {
-  starter:    process.env.STRIPE_PRICE_STARTER,
+  basic:      process.env.STRIPE_PRICE_BASIC,
   pro:        process.env.STRIPE_PRICE_PRO,
   enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
 }
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
 
     // Pro and Enterprise get 14-day free trial
     const trialDays = (plan === 'pro' || plan === 'enterprise') ? 14 : undefined
+
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
