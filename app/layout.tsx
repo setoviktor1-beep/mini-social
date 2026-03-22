@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar'
 import { ThemeProvider } from './providers'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'] })
+const inter = Inter({ subsets: ['latin', 'latin-ext'], weight: ['400', '500', '600'] })
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export const metadata: Metadata = {
