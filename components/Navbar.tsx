@@ -153,7 +153,7 @@ export default function Navbar() {
               <Link href="/pricing" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors" title="Planai">
                 <Briefcase size={20} />
               </Link>
-              {(role === 'master' || role === 'admin') && (
+              {(role === 'master' || role === 'admin' || role === 'pro') && (
                 <Link href="/pro" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors" title="Verslo Darbalaukis">
                   <Briefcase size={20} />
                 </Link>
@@ -255,7 +255,7 @@ export default function Navbar() {
                   <Briefcase size={20} />
                   Verslo planai
                 </Link>
-                {(role === 'master' || role === 'admin') && (
+                {(role === 'master' || role === 'admin' || role === 'pro') && (
                   <Link
                     href="/pro"
                     className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"
