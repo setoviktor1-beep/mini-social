@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
     const subscription = event.data.object as any
     const userId = subscription.metadata?.user_id
-    const plan = subscription.metadata?.plan || 'starter'
+    const plan = subscription.metadata?.plan || 'basic'
     const status = subscription.status
 
     if (userId) {
@@ -59,6 +59,11 @@ export async function POST(request: Request) {
         cancel_at_period_end: subscription.cancel_at_period_end,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
+
+      // Update profile role based on plan and status
+      const isActive = status === 'active' || status === 'trialing'
+      const role = isActive ? (plan === 'enterprise' ? 'master' : 'pro') : 'user'
+      await supabase.from('profiles').update({ role }).eq('id', userId)
     }
   }
 
@@ -74,6 +79,9 @@ export async function POST(request: Request) {
         status: 'canceled',
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
+
+      // Downgrade role
+      await supabase.from('profiles').update({ role: 'user' }).eq('id', userId)
     }
   }
 
