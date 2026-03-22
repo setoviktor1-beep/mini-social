@@ -196,24 +196,10 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile: icon row + hamburger */}
+        {/* Mobile: minimal icon row + hamburger */}
         <div className="flex md:hidden items-center gap-1">
-          <Link href="/search" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors" title="Search">
-            <Search size={20} />
-          </Link>
           <ThemeToggle />
-          {user && (
-            <Link href="/messages" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors relative" title="Messages">
-              <MessagesSquare size={20} />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
           {user && <NotificationBell />}
-          {user && <PushNotificationToggle />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -249,20 +235,21 @@ export default function Navbar() {
                     </span>
                   )}
                 </Link>
-                <Link
-                  href="/pricing"
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"
-                >
-                  <Briefcase size={20} />
-                  Verslo planai
-                </Link>
-                {(role === 'master' || role === 'admin' || role === 'pro') && (
+                {(role === 'master' || role === 'admin' || role === 'pro') ? (
                   <Link
                     href="/pro"
                     className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"
                   >
                     <Briefcase size={20} />
                     Verslo Darbalaukis
+                  </Link>
+                ) : (
+                  <Link
+                    href="/pricing"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"
+                  >
+                    <Briefcase size={20} />
+                    Verslo planai
                   </Link>
                 )}
                 {(role === 'admin' || role === 'moderator') && (
@@ -298,7 +285,11 @@ export default function Navbar() {
                   <Settings size={20} />
                   Settings
                 </Link>
-                <div className="border-t border-gray-100 dark:border-gray-800 pt-2 mt-2">
+                <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-gray-800 mt-2 pt-2 gap-3">
+                  <LanguageSwitcher />
+                  <PushNotificationToggle />
+                </div>
+                <div className="pt-1">
                   <button
                     onClick={signOut}
                     className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors font-medium text-left"

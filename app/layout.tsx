@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/Navbar'
+import BottomNav from '@/components/BottomNav'
 import { ThemeProvider } from './providers'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import { I18nProvider } from '@/lib/i18n'
@@ -61,8 +62,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <Navbar />
           <ServiceWorkerRegister />
-          <main className="mx-auto px-3 sm:px-4 py-4 sm:py-8" style={{ maxWidth: 'var(--content-max)' }}>{children}</main>
-          <footer className="mx-auto px-3 sm:px-4 py-8 sm:py-12 text-center text-sm text-[var(--text-secondary)] border-t border-[var(--border-subtle)] mt-12 sm:mt-20" style={{ maxWidth: 'var(--content-max)' }}>
+          <main className="mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 md:pb-8" style={{ maxWidth: 'var(--content-max)' }}>{children}</main>
+          <footer className="mx-auto px-3 sm:px-4 py-8 sm:py-12 pb-24 md:pb-12 text-center text-sm text-[var(--text-secondary)] border-t border-[var(--border-subtle)] mt-12 sm:mt-20" style={{ maxWidth: 'var(--content-max)' }}>
             <div className="flex justify-center gap-4 sm:gap-6 mb-4">
               <a href="/legal/privacy" className="hover:text-blue-600 py-1">
                 Privacy
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <p>&copy; 2026 Mini Social Network. Built for friends.</p>
           </footer>
+          <BottomNav />
         </ThemeProvider>
         </I18nProvider>
       </body>

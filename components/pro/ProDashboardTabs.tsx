@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { ClipboardList, Tags, MessageSquare, Settings as SettingsIcon, CalendarDays, Sparkles, Bot } from 'lucide-react';
+import { ClipboardList, Tags, MessageSquare, Settings as SettingsIcon, CalendarDays, Sparkles, Bot, TrendingUp, Receipt } from 'lucide-react';
 import RequestBoard from './RequestBoard';
 import ServicesCatalog from './ServicesCatalog';
 import QuickReplies from './QuickReplies';
@@ -9,8 +9,10 @@ import ProSettings from './ProSettings';
 import ProCalendar from './ProCalendar';
 import ProAIChat from './ProAIChat';
 import ProAgent from './ProAgent';
+import FinancialSummary from './FinancialSummary';
+import ReceiptScanner from './ReceiptScanner';
 
-type Tab = 'orders' | 'calendar' | 'catalog' | 'messages' | 'ai' | 'agent' | 'settings';
+type Tab = 'orders' | 'calendar' | 'catalog' | 'messages' | 'ai' | 'agent' | 'finance' | 'receipts' | 'settings';
 
 export default function ProDashboardTabs({
   initialRequests,
@@ -24,6 +26,7 @@ export default function ProDashboardTabs({
   isPro?: boolean,
 }) {
   const [activeTab, setActiveTab] = useState<Tab>('orders');
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
   const tabs = [
     { id: 'orders', label: 'Užsakymai', icon: ClipboardList },
@@ -32,6 +35,8 @@ export default function ProDashboardTabs({
     { id: 'messages', label: 'Greiti atsakymai', icon: MessageSquare },
     { id: 'ai', label: 'AI Asistentas', icon: Sparkles },
     { id: 'agent', label: 'Agentas', icon: Bot },
+    { id: 'finance', label: 'Finansai', icon: TrendingUp },
+    { id: 'receipts', label: 'Čekiai', icon: Receipt },
     { id: 'settings', label: 'Nustatymai', icon: SettingsIcon },
   ];
 
@@ -46,7 +51,7 @@ export default function ProDashboardTabs({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as Tab)}
-              className={`flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all whitespace-nowrap border-b-2 ${
+              className={`flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-4 font-bold text-sm transition-all whitespace-nowrap border-b-2 ${
                 isActive
                   ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
                   : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-900/30'
@@ -60,7 +65,7 @@ export default function ProDashboardTabs({
       </div>
 
       {/* Tab Content */}
-      <div className="min-h-[500px]">
+      <div className="min-h-[400px] md:min-h-[500px]">
         {activeTab === 'orders' && (
           <div className="animate-in fade-in duration-300">
             <RequestBoard initialRequests={initialRequests} currentUserId={currentUserId} />
@@ -112,9 +117,21 @@ export default function ProDashboardTabs({
           </div>
         )}
 
+        {activeTab === 'finance' && (
+          <div className="animate-in fade-in duration-300">
+            <FinancialSummary isPro={isPro ?? false} />
+          </div>
+        )}
+
+        {activeTab === 'receipts' && (
+          <div className="animate-in fade-in duration-300">
+            <ReceiptScanner isEnterprise={isEnterprise ?? false} month={currentMonth} />
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="animate-in fade-in duration-300">
-            <ProSettings proId={currentUserId} />
+            <ProSettings proId={currentUserId} maxRadius={isEnterprise ? 50 : isPro ? 15 : 5} />
           </div>
         )}
       </div>
