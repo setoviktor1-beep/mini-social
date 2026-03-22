@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   const lng = searchParams.get('lng');
   const category = searchParams.get('category') || 'restaurant';
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   if (!lat || !lng) {
     return NextResponse.json({ error: 'Lokacija nenustatyta' }, { status: 400 });
