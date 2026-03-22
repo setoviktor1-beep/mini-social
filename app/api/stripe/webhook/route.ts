@@ -18,17 +18,19 @@ export async function POST(request: Request) {
   try {
     const stripe = getStripe()
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'INVALID_SIGNATURE' }, { status: 400 })
   }
 
+  const supabase = createSupabaseServiceClient()
+
+  // --- Wallet top-up (existing) ---
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object
+    const session = event.data.object as any
     const userId = session.metadata?.user_id
     const amount = Number(session.metadata?.topup_amount)
 
     if (userId && Number.isFinite(amount) && amount > 0) {
-      const supabase = createSupabaseServiceClient()
       const { error } = await supabase.rpc('credit_wallet_balance', {
         p_user_id: userId,
         p_amount: amount,
@@ -36,6 +38,42 @@ export async function POST(request: Request) {
       if (error) {
         return NextResponse.json({ error: 'WEBHOOK_DB_ERROR' }, { status: 500 })
       }
+    }
+  }
+
+  // --- Subscription events ---
+  if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as any
+    const userId = subscription.metadata?.user_id
+    const plan = subscription.metadata?.plan || 'starter'
+    const status = subscription.status
+
+    if (userId) {
+      await supabase.from('subscriptions').upsert({
+        user_id: userId,
+        stripe_customer_id: subscription.customer,
+        stripe_subscription_id: subscription.id,
+        plan,
+        status,
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+    }
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as any
+    const userId = subscription.metadata?.user_id
+
+    if (userId) {
+      await supabase.from('subscriptions').upsert({
+        user_id: userId,
+        stripe_subscription_id: subscription.id,
+        plan: 'free',
+        status: 'canceled',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
     }
   }
 
