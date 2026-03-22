@@ -9,6 +9,7 @@ import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
 import { notifyMentions } from '@/lib/mentions'
+import { sendPushNotification } from '@/lib/pushNotify'
 
 interface PostCardProps {
   post: {
@@ -113,6 +114,12 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           target_id: post.id,
           target_type: 'post',
         })
+        await sendPushNotification(
+          post.user_id,
+          'Patiko tavo įrašas',
+          post.content.slice(0, 80),
+          `/u/${post.profiles?.username}`
+        )
       }
     }
   }
@@ -157,6 +164,12 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           target_id: newComment?.id || post.id,
           target_type: newComment?.id ? 'comment' : 'post',
         })
+        await sendPushNotification(
+          post.user_id,
+          'Naujas komentaras',
+          content.slice(0, 100),
+          `/u/${post.profiles?.username}`
+        )
       }
 
       await notifyMentions({
