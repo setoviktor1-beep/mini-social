@@ -12,6 +12,7 @@ const PLANS = [
     icon: Zap,
     color: 'blue',
     description: 'Pradžiai — visi verslo įrankiai be AI',
+    trial: false,
     features: [
       'Verslo profilis ir katalogas',
       'Užsakymų Kanban lenta',
@@ -32,6 +33,7 @@ const PLANS = [
     color: 'emerald',
     description: 'AI pagalba su ribotais kiekiais',
     popular: true,
+    trial: true,
     features: [
       'Viskas iš Starter',
       'AI kainų skaičiavimas (50/mėn)',
@@ -40,7 +42,7 @@ const PLANS = [
       'Prioritetinis palaikymas',
     ],
     limits: ['AI limitai: 50 sąmatų / 100 žinučių'],
-    cta: 'Pasirinkti Pro',
+    cta: '14 dienų nemokamai',
   },
   {
     id: 'enterprise',
@@ -49,6 +51,7 @@ const PLANS = [
     icon: Sparkles,
     color: 'purple',
     description: 'Pilna AI integracija be apribojimų',
+    trial: true,
     features: [
       'Viskas iš Pro',
       'AI kainų skaičiavimas (500/mėn)',
@@ -58,7 +61,7 @@ const PLANS = [
       'Ankstyvoji prieiga prie naujų funkcijų',
     ],
     limits: [],
-    cta: 'Maksimaliai',
+    cta: '14 dienų nemokamai',
   },
 ]
 
@@ -124,6 +127,13 @@ export default function PricingPage() {
                   </span>
                 </div>
               )}
+              {plan.trial && !plan.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-purple-500 text-white text-xs font-black px-4 py-1 rounded-full">
+                    14 DIENŲ NEMOKAMAI
+                  </span>
+                </div>
+              )}
 
               <div>
                 <div className={`w-10 h-10 rounded-2xl ${c.badge} flex items-center justify-center mb-3`}>
@@ -136,6 +146,9 @@ export default function PricingPage() {
               <div>
                 <span className="text-4xl font-black text-white">€{plan.price}</span>
                 <span className="text-gray-500 text-sm ml-1">/mėn</span>
+                {plan.trial && (
+                  <p className="text-xs text-emerald-400 mt-1 font-medium">14 dienų nemokamas bandymas, tada €{plan.price}/mėn</p>
+                )}
               </div>
 
               <ul className="space-y-2 flex-1">
@@ -172,7 +185,7 @@ export default function PricingPage() {
         {[
           { q: 'Ar galiu atšaukti bet kada?', a: 'Taip, atšaukus planą jis veikia iki periodo pabaigos.' },
           { q: 'Kas atsitinka viršijus AI limitus?', a: 'AI funkcijos sustabdomos iki kito mėnesio. Duomenys išsaugomi.' },
-          { q: 'Ar yra bandomasis laikotarpis?', a: 'Šiuo metu ne, bet pirmą mėnesį gali atšaukti ir susisiekti dėl grąžinimo.' },
+          { q: 'Ar reikia kortelės bandymui?', a: 'Ne — Pro ir Enterprise planus gali išbandyti 14 dienų be kortelės. Kortelė prašoma tik po bandomojo laikotarpio.' },
         ].map(({ q, a }) => (
           <div key={q}>
             <p className="font-bold text-gray-200 text-sm">{q}</p>

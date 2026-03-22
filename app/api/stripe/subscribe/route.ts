@@ -54,6 +54,9 @@ export async function POST(request: Request) {
       customerId = customer.id
     }
 
+    // Pro and Enterprise get 14-day free trial
+    const trialDays = (plan === 'pro' || plan === 'enterprise') ? 14 : undefined
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
@@ -63,8 +66,10 @@ export async function POST(request: Request) {
       metadata: { user_id: user.id, plan },
       subscription_data: {
         metadata: { user_id: user.id, plan },
+        ...(trialDays ? { trial_period_days: trialDays } : {}),
       },
       allow_promotion_codes: true,
+      payment_method_collection: trialDays ? 'if_required' : 'always',
     })
 
     return NextResponse.json({ url: session.url })
