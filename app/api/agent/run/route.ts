@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   // Get all enabled enterprise agents
   const { data: configs } = await supabase
     .from('agent_config')
-    .select('*, user:auth.users!agent_config_user_id_fkey(id, email)')
+    .select('*')
     .eq('is_enabled', true)
 
   if (!configs || configs.length === 0) {
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 }
 
 async function processAgent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   genAI: GoogleGenerativeAI,
   config: any,
   now: Date
@@ -117,7 +117,7 @@ function checkReportDue(config: any, now: Date): boolean {
 }
 
 async function generateReport(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   genAI: GoogleGenerativeAI,
   config: any,
   now: Date
@@ -140,7 +140,7 @@ ${memory ? `\nVartotojo kontekstas:\n${memory}` : ''}`
 }
 
 async function checkTrigger(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   genAI: GoogleGenerativeAI,
   config: any,
   trigger: any,
@@ -224,7 +224,7 @@ async function checkTrigger(
 }
 
 async function sendAgentMessage(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   content: string,
   messageType: string
@@ -245,7 +245,7 @@ async function sendAgentMessage(
 }
 
 async function fetchBusinessData(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   now: Date
 ): Promise<string> {
@@ -266,11 +266,11 @@ async function fetchBusinessData(
       .eq('pro_id', userId),
   ])
 
-  const thisMonth = (orders || []).filter(o => o.created_at >= monthStart)
-  const lastMonth = (orders || []).filter(o => o.created_at < monthStart)
-  const revenue = thisMonth.reduce((s, o) => s + (o.price || 0), 0)
-  const lastRevenue = lastMonth.reduce((s, o) => s + (o.price || 0), 0)
-  const statusCounts = (orders || []).reduce((acc: Record<string, number>, o) => {
+  const thisMonth = (orders || []).filter((o: any) => o.created_at >= monthStart)
+  const lastMonth = (orders || []).filter((o: any) => o.created_at < monthStart)
+  const revenue = thisMonth.reduce((s: number, o: any) => s + (o.price || 0), 0)
+  const lastRevenue = lastMonth.reduce((s: number, o: any) => s + (o.price || 0), 0)
+  const statusCounts = (orders || []).reduce((acc: Record<string, number>, o: any) => {
     acc[o.status] = (acc[o.status] || 0) + 1; return acc
   }, {})
 
@@ -281,12 +281,12 @@ VERSLO DUOMENYS:
 - Praėjusio mėnesio pajamos: €${lastRevenue.toFixed(2)}
 - Pokytis: ${lastRevenue > 0 ? ((revenue - lastRevenue) / lastRevenue * 100).toFixed(0) + '%' : 'n/a'}
 - Būsenos: ${Object.entries(statusCounts).map(([s, c]) => `${s}:${c}`).join(', ')}
-- Aktyvios paslaugos: ${(services || []).filter(s => s.is_active).map(s => s.name).join(', ')}
+- Aktyvios paslaugos: ${(services || []).filter((s: any) => s.is_active).map((s: any) => s.name).join(', ')}
 `.trim()
 }
 
 async function fetchMemory(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string
 ): Promise<string> {
   const { data } = await supabase
