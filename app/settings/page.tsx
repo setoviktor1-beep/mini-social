@@ -2,9 +2,10 @@
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, MapPin, Briefcase } from 'lucide-react'
+import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, Briefcase } from 'lucide-react'
 import Image from 'next/image'
 import WalletCard from '@/components/wallet/WalletCard'
+import AddressAutocomplete from '@/components/AddressAutocomplete'
 
 interface Profile {
   id: string
@@ -69,6 +70,8 @@ export default function SettingsPage() {
 
   // Nextdoor features
   const [addressText, setAddressText] = useState('')
+  const [addressLat, setAddressLat] = useState<number | null>(null)
+  const [addressLng, setAddressLng] = useState<number | null>(null)
   const [role, setRole] = useState('user')
   const [businessName, setBusinessName] = useState('')
   const [businessCategory, setBusinessCategory] = useState('')
@@ -308,6 +311,15 @@ export default function SettingsPage() {
         }
         setSaving(false)
         return
+      }
+
+      // Save location coordinates if available
+      if (addressLat !== null && addressLng !== null) {
+        await supabase.rpc('update_profile_location', {
+          user_id: profile.id,
+          lat: addressLat,
+          lng: addressLng,
+        })
       }
 
       // Update local state
@@ -601,16 +613,16 @@ export default function SettingsPage() {
             {/* Address Input */}
             <div>
               <label className="text-sm font-bold text-gray-700 block mb-1.5">Tavo mikrorajonas / Adresas</label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text"
-                  value={addressText}
-                  onChange={e => setAddressText(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 text-gray-900 dark:text-white bg-transparent outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 transition-colors placeholder:text-gray-400"
-                  placeholder="Pvz.: Pilaitė, Vilnius"
-                />
-              </div>
+              <AddressAutocomplete
+                value={addressText}
+                onChange={(address, lat, lng) => {
+                  setAddressText(address)
+                  if (lat !== undefined && lng !== undefined) {
+                    setAddressLat(lat)
+                    setAddressLng(lng)
+                  }
+                }}
+              />
               <p className="text-xs text-gray-400 mt-2">Reikalinga, kad matytum skelbimus ir meistrus savo spinduliu.</p>
             </div>
 
