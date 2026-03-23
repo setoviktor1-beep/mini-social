@@ -93,6 +93,10 @@ export default function PricingClient({ currentPlan, currentStatus }: Props) {
         router.push('/auth/login')
         return
       }
+      if (data.error === 'ALREADY_SUBSCRIBED') {
+        router.push('/pro')
+        return
+      }
       if (data.url) {
         window.location.href = data.url
       }

@@ -240,6 +240,23 @@ export default function ServicesPage() {
             Nustatyti lokaciją
           </button>
         </div>
+      ) : !profile?.address_lat || !profile?.address_lng ? (
+        <div className="text-center py-20 bg-amber-500/5 rounded-3xl border border-dashed border-amber-500/20">
+          <MapPin className="mx-auto text-amber-500 mb-4" size={48} />
+          <h2 className="text-xl font-bold text-white mb-2">Adreso koordinatės nerasta</h2>
+          <p className="text-gray-400 mb-2 px-4">
+            Adresas: <strong className="text-white">{profile.address_text}</strong>
+          </p>
+          <p className="text-gray-400 mb-6 px-4 text-sm">
+            Koordinatės nerasta — atnaujink adresą Nustatymuose naudodamas automatinę paiešką.
+          </p>
+          <button
+            onClick={() => router.push("/settings")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg"
+          >
+            Atnaujinti adresą Nustatymuose
+          </button>
+        </div>
       ) : (
         <>
           <div className="sticky top-20 z-30 bg-[#0a0a0f]/80 backdrop-blur-md py-4">

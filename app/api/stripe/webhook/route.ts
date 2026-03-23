@@ -96,10 +96,22 @@ export async function POST(request: Request) {
             user_id: userId,
             stripe_customer_id: customerId,
             plan,
+            status: 'active',
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id' })
 
           if (error) {
+            throw new Error('WEBHOOK_DB_ERROR')
+          }
+
+          // Pre-set role immediately so the redirect to /pro works even before
+          // customer.subscription.created fires (avoids the race condition).
+          const { error: roleError } = await supabase
+            .from('profiles')
+            .update({ role: 'pro' })
+            .eq('id', userId)
+
+          if (roleError) {
             throw new Error('WEBHOOK_DB_ERROR')
           }
         }

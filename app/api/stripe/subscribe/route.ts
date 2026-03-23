@@ -30,12 +30,17 @@ export async function POST(request: Request) {
     const stripe = getStripe()
     const appUrl = process.env.APP_URL || new URL(request.url).origin
 
-    // Get or create Stripe customer
+    // Get existing subscription + customer id in one query
     const { data: sub } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, plan, status')
       .eq('user_id', user.id)
       .single()
+
+    // Guard: block duplicate purchase if already actively subscribed
+    if (sub && (sub.status === 'active' || sub.status === 'trialing')) {
+      return NextResponse.json({ error: 'ALREADY_SUBSCRIBED', plan: sub.plan }, { status: 409 })
+    }
 
     let customerId = sub?.stripe_customer_id
 

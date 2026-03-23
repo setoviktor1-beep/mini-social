@@ -220,11 +220,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     setEditLoading(true)
     setEditError('')
     const now = new Date().toISOString()
-    const { error } = await supabase
+    const { data: updatedRows, error } = await supabase
       .from('posts')
       .update({ content: trimmed, edited_at: now })
       .eq('id', post.id)
-    if (!error) {
+      .eq('user_id', currentUserId!)
+      .select('id')
+    if (!error && updatedRows && updatedRows.length > 0) {
       setLocalContent(trimmed)
       setLocalEditedAt(now)
       setShowEditModal(false)

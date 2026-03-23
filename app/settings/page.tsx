@@ -306,6 +306,10 @@ export default function SettingsPage() {
         newAvatarPath = null
       }
 
+      // Never downgrade a paid/admin role via settings UI
+      const protectedRoles = ['pro', 'admin']
+      const safeRole = protectedRoles.includes(profile.role) ? profile.role : role
+
       // Update profile in database
       const { error: updateError } = await supabase
         .from('profiles')
@@ -322,10 +326,10 @@ export default function SettingsPage() {
           travel_address_text: travelMode ? (travelAddressText.trim() || null) : null,
           travel_lat: travelMode ? travelLat : null,
           travel_lng: travelMode ? travelLng : null,
-          role: role,
-          business_name: ['pro', 'master', 'admin'].includes(role) ? businessName.trim() : null,
-          business_category: ['pro', 'master', 'admin'].includes(role) ? businessCategory.trim() : null,
-          business_description: ['pro', 'master', 'admin'].includes(role) ? businessDescription.trim() : null,
+          role: safeRole,
+          business_name: ['pro', 'master', 'admin'].includes(safeRole) ? businessName.trim() : null,
+          business_category: ['pro', 'master', 'admin'].includes(safeRole) ? businessCategory.trim() : null,
+          business_description: ['pro', 'master', 'admin'].includes(safeRole) ? businessDescription.trim() : null,
           phone: phone.trim() || null,
         })
         .eq('id', profile.id)
@@ -355,6 +359,7 @@ export default function SettingsPage() {
       setAvatarFile(null)
       setAvatarPreview(null)
       setRemoveAvatar(false)
+      setRole(safeRole)
       setProfile(prev => prev ? {
         ...prev,
         display_name: displayName.trim(),
@@ -362,10 +367,10 @@ export default function SettingsPage() {
         bio: bio.trim() || null,
         avatar_path: newAvatarPath,
         address_text: addressText.trim() || null,
-        role: role,
-        business_name: ['pro', 'master', 'admin'].includes(role) ? businessName.trim() : null,
-        business_category: ['pro', 'master', 'admin'].includes(role) ? businessCategory.trim() : null,
-        business_description: role === 'master' ? businessDescription.trim() : null,
+        role: safeRole,
+        business_name: ['pro', 'master', 'admin'].includes(safeRole) ? businessName.trim() : null,
+        business_category: ['pro', 'master', 'admin'].includes(safeRole) ? businessCategory.trim() : null,
+        business_description: ['pro', 'master', 'admin'].includes(safeRole) ? businessDescription.trim() : null,
         phone: phone.trim() || null,
       } : null)
 
@@ -615,45 +620,77 @@ export default function SettingsPage() {
             {/* Role Selection */}
             <div>
               <label className="text-sm font-bold text-gray-700 block mb-1.5">Vaidmuo sistemoje</label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole('user')}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
-                    role === 'user'
-                      ? 'bg-blue-50 border-blue-600 text-blue-700'
-                      : 'border-gray-100 text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  🏠 Kaimynas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('master')}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
-                    role === 'master'
-                      ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
-                      : 'border-gray-100 text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  💼 Verslas / Paslaugos
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                {role === 'master' 
-                  ? 'Matysi kaimynų užklausas ir galėsi siūlyti savo paslaugas.' 
-                  : 'Galėsi bendrauti su kaimynais ir ieškoti paslaugų bei meistrų.'}
-              </p>
+              {['pro', 'admin'].includes(profile?.role || '') ? (
+                <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
+                  <span>💼</span>
+                  <span className="font-bold text-sm text-emerald-700">
+                    {profile?.role === 'admin' ? 'Administratorius' : 'Pro planas — Verslas / Paslaugos'}
+                  </span>
+                  <span className="ml-auto text-xs text-emerald-500">Valdoma prenumeratos</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRole('user')}
+                      className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
+                        role === 'user'
+                          ? 'bg-blue-50 border-blue-600 text-blue-700'
+                          : 'border-gray-100 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      🏠 Kaimynas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('master')}
+                      className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
+                        role === 'master'
+                          ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
+                          : 'border-gray-100 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      💼 Verslas / Paslaugos
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {role === 'master'
+                      ? 'Matysi kaimynų užklausas ir galėsi siūlyti savo paslaugas.'
+                      : 'Galėsi bendrauti su kaimynais ir ieškoti paslaugų bei meistrų.'}
+                  </p>
+                </>
+              )}
             </div>
 
-            {/* Address - locked, read-only */}
+            {/* Address - editable to get coordinates */}
             <div>
-              <label className="text-sm font-bold text-gray-700 block mb-1.5">Tavo adresas</label>
-              <div className="w-full p-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-sm min-h-[44px] flex items-center gap-2">
-                <MapPin size={14} className="text-gray-400 shrink-0" />
-                {addressText || 'Adresas nenustatytas'}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">Adresas nustatomas registracijos metu ir negali būti keičiamas. Kelionėms naudok Travel Mode žemiau.</p>
+              <label className="text-sm font-bold text-gray-700 block mb-1.5">
+                <MapPin size={14} className="inline mr-1 text-blue-500" />
+                Tavo adresas
+              </label>
+              <AddressAutocomplete
+                value={addressText}
+                onChange={(addr, lat, lng) => {
+                  setAddressText(addr)
+                  if (lat !== undefined && lng !== undefined) {
+                    setAddressLat(lat)
+                    setAddressLng(lng)
+                  } else {
+                    setAddressLat(null)
+                    setAddressLng(null)
+                  }
+                }}
+                placeholder="Pvz.: Gedimino pr. 1, Vilnius"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+              />
+              {addressText && !addressLat && (
+                <p className="text-xs text-amber-600 mt-1">⚠ Koordinatės nerasta — naudok adresų paiešką, kad paslaugos veiktų pagal lokaciją.</p>
+              )}
+              {addressLat && (
+                <p className="text-xs text-green-600 mt-1">✓ Koordinatės rastos</p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">Naudok automatinę paiešką koordinatėms gauti. Kelionėms naudok Travel Mode žemiau.</p>
             </div>
 
             {/* Radius Slider */}
