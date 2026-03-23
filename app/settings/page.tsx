@@ -6,6 +6,7 @@ import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, B
 import Image from 'next/image'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import InviteButton from '@/components/InviteButton'
+import AvatarCropModal from '@/components/AvatarCropModal'
 
 interface Profile {
   id: string
@@ -67,6 +68,7 @@ export default function SettingsPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [removeAvatar, setRemoveAvatar] = useState(false)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
 
   // Nextdoor features
   const [addressText, setAddressText] = useState('')
@@ -221,9 +223,16 @@ export default function SettingsPage() {
     }
 
     setErrors(prev => ({ ...prev, avatar: undefined }))
+    setCropSrc(URL.createObjectURL(file))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleCropSave = (blob: Blob) => {
+    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
     setAvatarFile(file)
-    setAvatarPreview(URL.createObjectURL(file))
+    setAvatarPreview(URL.createObjectURL(blob))
     setRemoveAvatar(false)
+    setCropSrc(null)
   }
 
   const handleRemoveAvatar = () => {
@@ -314,9 +323,9 @@ export default function SettingsPage() {
           travel_lat: travelMode ? travelLat : null,
           travel_lng: travelMode ? travelLng : null,
           role: role,
-          business_name: (role === 'master' || role === 'admin') ? businessName.trim() : null,
-          business_category: (role === 'master' || role === 'admin') ? businessCategory.trim() : null,
-          business_description: (role === 'master' || role === 'admin') ? businessDescription.trim() : null,
+          business_name: ['pro', 'master', 'admin'].includes(role) ? businessName.trim() : null,
+          business_category: ['pro', 'master', 'admin'].includes(role) ? businessCategory.trim() : null,
+          business_description: ['pro', 'master', 'admin'].includes(role) ? businessDescription.trim() : null,
           phone: phone.trim() || null,
         })
         .eq('id', profile.id)
@@ -354,8 +363,8 @@ export default function SettingsPage() {
         avatar_path: newAvatarPath,
         address_text: addressText.trim() || null,
         role: role,
-        business_name: role === 'master' ? businessName.trim() : null,
-        business_category: role === 'master' ? businessCategory.trim() : null,
+        business_name: ['pro', 'master', 'admin'].includes(role) ? businessName.trim() : null,
+        business_category: ['pro', 'master', 'admin'].includes(role) ? businessCategory.trim() : null,
         business_description: role === 'master' ? businessDescription.trim() : null,
         phone: phone.trim() || null,
       } : null)
@@ -411,6 +420,13 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
+      {cropSrc && (
+        <AvatarCropModal
+          src={cropSrc}
+          onSave={handleCropSave}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
       {/* Toast Messages */}
       {successMessage && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-2xl flex items-center gap-2">
