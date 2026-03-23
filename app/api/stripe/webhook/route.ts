@@ -13,6 +13,51 @@ function getSubscriptionRole(status: string) {
   return status === 'active' || status === 'trialing' ? 'pro' : 'user'
 }
 
+async function markCheckoutSessionCompleted(
+  supabase: ReturnType<typeof createSupabaseServiceClient>,
+  sessionId: string,
+  userId?: string
+) {
+  const completedAt = new Date().toISOString()
+
+  let query = supabase
+    .from('billing_checkout_sessions')
+    .update({
+      status: 'completed',
+      completed_at: completedAt,
+      updated_at: completedAt,
+    })
+    .eq('stripe_session_id', sessionId)
+
+  const { data, error } = await query.select('id').limit(1)
+  if (error) return { error, matched: Boolean(data?.length) }
+  if (data && data.length > 0) return { error: null, matched: true }
+
+  if (!userId) {
+    return { error: null, matched: false }
+  }
+
+  const fallback = await supabase
+    .from('billing_checkout_sessions')
+    .update({
+      stripe_session_id: sessionId,
+      status: 'completed',
+      completed_at: completedAt,
+      updated_at: completedAt,
+    })
+    .eq('user_id', userId)
+    .eq('checkout_type', 'subscription')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .select('id')
+
+  return {
+    error: fallback.error,
+    matched: Boolean(fallback.data?.length),
+  }
+}
+
 export async function POST(request: Request) {
   const sig = request.headers.get('stripe-signature')
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -88,10 +133,11 @@ export async function POST(request: Request) {
     // --- checkout.session.completed ---
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
+      const sessionUserId = session.metadata?.user_id
 
       // Handle wallet top-up only after funds are settled.
       if (session.mode === 'payment' && session.payment_status === 'paid') {
-        const userId = session.metadata?.user_id
+        const userId = sessionUserId
         const amount = Number(session.metadata?.topup_amount)
 
         if (userId && Number.isFinite(amount) && amount > 0) {
@@ -152,7 +198,7 @@ export async function POST(request: Request) {
       }
 
       if (session.mode === 'subscription') {
-        const userId = session.metadata?.user_id
+        const userId = sessionUserId
         const customerId = getStripeCustomerId(session.customer)
         const plan = session.metadata?.plan || 'basic'
 
@@ -166,22 +212,30 @@ export async function POST(request: Request) {
           }, { onConflict: 'user_id' })
 
           if (error) {
-            throw new Error('WEBHOOK_DB_ERROR')
+            console.error('Subscription pending sync failed', {
+              eventId: event.id,
+              sessionId: session.id,
+              userId,
+              error,
+            })
           }
         }
-      }
 
-      const { error: checkoutCompletedError } = await supabase
-        .from('billing_checkout_sessions')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('stripe_session_id', session.id)
-
-      if (checkoutCompletedError) {
-        throw new Error('WEBHOOK_DB_ERROR')
+        const checkoutCompletion = await markCheckoutSessionCompleted(supabase, session.id, userId)
+        if (checkoutCompletion.error) {
+          console.error('Checkout session completion sync failed', {
+            eventId: event.id,
+            sessionId: session.id,
+            userId,
+            error: checkoutCompletion.error,
+          })
+        } else if (!checkoutCompletion.matched) {
+          console.warn('Checkout session row not found during completion sync', {
+            eventId: event.id,
+            sessionId: session.id,
+            userId,
+          })
+        }
       }
     }
 
