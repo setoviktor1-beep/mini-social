@@ -55,23 +55,23 @@ export default function WalletCard() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden text-gray-900 dark:text-gray-100">
       <div className="px-6 py-5 border-b border-gray-50 dark:border-gray-800">
-        <h2 className="font-bold text-xl text-gray-900 dark:text-white flex items-center gap-2">
+        <h2 className="font-bold text-xl flex items-center gap-2">
           <Wallet size={20} className="text-blue-600 dark:text-blue-400" />
-          Wallet
+          Mano Piniginė
         </h2>
-        <p className="text-sm text-gray-500 dark:text-white mt-0.5">Top up and use AI tools pay-per-use</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Valdykite savo kreditus ir paslaugų planus</p>
       </div>
 
       <div className="p-6 space-y-4">
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-xl px-4 py-3">
-          <p className="text-xs text-blue-700 dark:text-blue-400 font-semibold">Current balance</p>
+          <p className="text-xs text-blue-700 dark:text-blue-300 font-semibold uppercase tracking-wider">Einamasis likutis</p>
           <p className="text-2xl font-black text-blue-900 dark:text-blue-100 mt-0.5">
             {loading ? (
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-400">
                 <Loader2 size={14} className="animate-spin" />
-                Loading...
+                Kraunama...
               </span>
             ) : (
               `€${balance.toFixed(2)}`
@@ -87,7 +87,7 @@ export default function WalletCard() {
               disabled={topupLoading !== null}
               className="px-4 py-2.5 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-60 min-h-[44px]"
             >
-              {topupLoading === amount ? 'Redirecting...' : `Add €${amount}`}
+              {topupLoading === amount ? 'Nukreipiama...' : `Pridėti €${amount}`}
             </button>
           ))}
         </div>

@@ -132,28 +132,30 @@ export default function FinancialSummary({ isPro }: { isPro: boolean }) {
   return (
     <div className="space-y-5">
       {/* Month nav */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <TrendingUp size={18} className="text-blue-400" />
           <h3 className="font-bold text-white">Finansų suvestinė</h3>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setMonth(prevMonth(month))}
-            className="p-2 rounded-xl bg-gray-800/60 hover:bg-gray-700/60 text-gray-400 transition-colors"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-sm font-medium text-white min-w-[130px] text-center capitalize">
-            {monthLabel(month)}
-          </span>
-          <button
-            onClick={() => setMonth(nextMonth(month))}
-            disabled={month >= currentMonth()}
-            className="p-2 rounded-xl bg-gray-800/60 hover:bg-gray-700/60 text-gray-400 transition-colors disabled:opacity-30"
-          >
-            <ChevronRight size={16} />
-          </button>
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setMonth(prevMonth(month))}
+              className="p-2 rounded-xl bg-gray-800/60 hover:bg-gray-700/60 text-gray-400 transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm font-medium text-white min-w-[110px] text-center capitalize">
+              {monthLabel(month)}
+            </span>
+            <button
+              onClick={() => setMonth(nextMonth(month))}
+              disabled={month >= currentMonth()}
+              className="p-2 rounded-xl bg-gray-800/60 hover:bg-gray-700/60 text-gray-400 transition-colors disabled:opacity-30"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
           <button
             onClick={() => setShowSettings(v => !v)}
             className={`p-2 rounded-xl transition-colors ${showSettings ? 'bg-blue-600 text-white' : 'bg-gray-800/60 hover:bg-gray-700/60 text-gray-400'}`}
@@ -257,12 +259,12 @@ export default function FinancialSummary({ isPro }: { isPro: boolean }) {
                 value={incomeNote}
                 onChange={e => setIncomeNote(e.target.value)}
                 placeholder="Pastaba (nebūtina)"
-                className="flex-1 bg-gray-800/60 border border-gray-700/60 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                className="w-full sm:flex-1 bg-gray-800/60 border border-gray-700/60 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
               />
               <button
                 onClick={saveIncome}
                 disabled={savingIncome}
-                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-4 py-2.5 rounded-xl transition-colors text-sm shrink-0"
+                className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-4 py-2.5 rounded-xl transition-colors text-sm shrink-0"
               >
                 {savingIncome ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Išsaugoti

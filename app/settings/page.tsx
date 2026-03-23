@@ -510,7 +510,7 @@ export default function SettingsPage() {
                 setDisplayName(e.target.value)
                 if (errors.displayName) setErrors(prev => ({ ...prev, displayName: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-950 ${
                 errors.displayName
                   ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                   setUsername(val)
                   if (errors.username) setErrors(prev => ({ ...prev, username: undefined }))
                 }}
-                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors ${
+                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-950 ${
                   errors.username
                     ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                     : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -582,7 +582,7 @@ export default function SettingsPage() {
                 setBio(e.target.value)
                 if (errors.bio) setErrors(prev => ({ ...prev, bio: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-950 ${
                 errors.bio
                   ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
