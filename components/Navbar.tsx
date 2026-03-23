@@ -10,8 +10,10 @@ import NotificationBell from './NotificationBell'
 import PushNotificationToggle from './PushNotificationToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import Image from 'next/image'
+import { useI18n } from '@/lib/i18n'
 
 export default function Navbar() {
+  const { t } = useI18n()
   const [user, setUser] = useState<User | null>(null)
   const [role, setRole] = useState<string | null>(null)
   const [username, setUsername] = useState<string | null>(null)
@@ -221,14 +223,14 @@ export default function Navbar() {
                   className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
                 >
                   <MessageSquare size={20} />
-                  Discussions
+                  {t('nav.feed')}
                 </Link>
                 <Link
                   href="/messages"
                   className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
                 >
                   <MessagesSquare size={20} />
-                  Messages
+                  {t('nav.messages')}
                   {unreadCount > 0 && (
                     <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold ml-auto">
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -276,14 +278,14 @@ export default function Navbar() {
                       </span>
                     )}
                   </div>
-                  Profile
+                  {t('nav.profile')}
                 </Link>
                 <Link
                   href="/settings"
                   className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
                 >
                   <Settings size={20} />
-                  Settings
+                  {t('nav.settings')}
                 </Link>
                 <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-gray-800 mt-2 pt-2 gap-3">
                   <LanguageSwitcher />
@@ -294,7 +296,7 @@ export default function Navbar() {
                     onClick={signOut}
                     className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors font-medium text-left"
                   >
-                    Logout
+                    {t('nav.logout')}
                   </button>
                 </div>
               </>
@@ -305,14 +307,14 @@ export default function Navbar() {
                   className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
                 >
                   <MessageSquare size={20} />
-                  Discussions
+                  {t('nav.feed')}
                 </Link>
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-2 mt-2">
                   <Link
                     href="/auth/login"
                     className="block text-center bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 dark:shadow-blue-900/30 font-bold"
                   >
-                    Login
+                    {t('nav.login')}
                   </Link>
                 </div>
               </>

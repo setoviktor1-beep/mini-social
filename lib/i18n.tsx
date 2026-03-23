@@ -13,6 +13,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.logout': 'Atsijungti',
     'nav.login': 'Prisijungti',
     'nav.register': 'Registruotis',
+    'nav.profile': 'Profilis',
 
     'settings.title': 'Nustatymai',
     'settings.subtitle': 'Tvarkykite savo profilio ir paskyros nustatymus',
@@ -91,6 +92,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.logout': 'Logout',
     'nav.login': 'Login',
     'nav.register': 'Register',
+    'nav.profile': 'Profile',
 
     'settings.title': 'Settings',
     'settings.subtitle': 'Manage your profile and account preferences',
@@ -169,6 +171,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.logout': 'Выйти',
     'nav.login': 'Войти',
     'nav.register': 'Регистрация',
+    'nav.profile': 'Профиль',
 
     'settings.title': 'Настройки',
     'settings.subtitle': 'Управляйте своим профилем и настройками аккаунта',
@@ -247,6 +250,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.logout': 'Wyloguj',
     'nav.login': 'Zaloguj',
     'nav.register': 'Zarejestruj się',
+    'nav.profile': 'Profil',
 
     'settings.title': 'Ustawienia',
     'settings.subtitle': 'Zarządzaj swoim profilem i ustawieniami konta',
@@ -325,6 +329,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.logout': 'Вийти',
     'nav.login': 'Увійти',
     'nav.register': 'Реєстрація',
+    'nav.profile': 'Профіль',
 
     'settings.title': 'Налаштування',
     'settings.subtitle': 'Керуйте своїм профілем та налаштуваннями акаунту',
