@@ -76,7 +76,9 @@ export async function POST(request: Request) {
         stripe_subscription_id: subscription.id,
         plan,
         status,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000).toISOString()
+          : null,
         cancel_at_period_end: subscription.cancel_at_period_end,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
