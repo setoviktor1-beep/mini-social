@@ -103,14 +103,28 @@ export default function Register() {
         address_lng: addressLng,
       }
 
-      const { error: profileError } = await supabase
+      const { data: updatedProfile, error: updateProfileError } = await supabase
         .from('profiles')
-        .upsert(profilePayload, { onConflict: 'id' })
+        .update(profilePayload)
+        .eq('id', signUpData.user.id)
+        .select('id')
 
-      if (profileError) {
-        setError(`Nepavyko išsaugoti profilio: ${profileError.message}`)
+      if (updateProfileError) {
+        setError(`Nepavyko išsaugoti profilio: ${updateProfileError.message}`)
         setLoading(false)
         return
+      }
+
+      if (!updatedProfile || updatedProfile.length === 0) {
+        const { error: insertProfileError } = await supabase
+          .from('profiles')
+          .insert(profilePayload)
+
+        if (insertProfileError) {
+          setError(`Nepavyko išsaugoti profilio: ${insertProfileError.message}`)
+          setLoading(false)
+          return
+        }
       }
 
       if (addressLat !== null && addressLng !== null) {
