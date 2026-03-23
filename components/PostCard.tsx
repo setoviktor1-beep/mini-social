@@ -68,6 +68,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [showEditModal, setShowEditModal] = useState(false)
   const [editedContent, setEditedContent] = useState(post.content)
   const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
   const [localContent, setLocalContent] = useState(post.content)
   const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -207,20 +208,28 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   }
 
   const handleEdit = async () => {
-    if (!editedContent.trim() || editedContent.trim() === localContent) {
+    const trimmed = editedContent.trim()
+    if (!trimmed) {
+      setEditError('Įrašas negali būti tuščias.')
+      return
+    }
+    if (trimmed === localContent) {
       setShowEditModal(false)
       return
     }
     setEditLoading(true)
+    setEditError('')
     const now = new Date().toISOString()
     const { error } = await supabase
       .from('posts')
-      .update({ content: editedContent.trim(), edited_at: now })
+      .update({ content: trimmed, edited_at: now })
       .eq('id', post.id)
     if (!error) {
-      setLocalContent(editedContent.trim())
+      setLocalContent(trimmed)
       setLocalEditedAt(now)
       setShowEditModal(false)
+    } else {
+      setEditError('Nepavyko išsaugoti. Bandykite dar kartą.')
     }
     setEditLoading(false)
   }
@@ -385,15 +394,15 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               reposted {repostTimeAgo || ''}
             </div>
           )}
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-gray-100 hover:underline text-sm sm:text-base">
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-gray-100 hover:underline text-sm sm:text-base truncate max-w-[120px] sm:max-w-[200px]">
                 {post.profiles?.display_name}
               </Link>
-              <Link href={`/u/${post.profiles?.username}`} className="text-gray-500 text-xs sm:text-sm hover:underline hidden sm:inline">
+              <Link href={`/u/${post.profiles?.username}`} className="text-gray-500 text-xs sm:text-sm hover:underline hidden sm:inline truncate max-w-[100px]">
                 @{post.profiles?.username}
               </Link>
-              <span className="text-gray-500 text-xs sm:text-sm">&middot; {timeAgo}</span>
+              <span className="text-gray-500 text-xs sm:text-sm shrink-0">&middot; {timeAgo}</span>
             </div>
             {canDelete && (
               <div className="flex items-center gap-1">
@@ -621,7 +630,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     </div>
                   ))}
                   {comments.length === 0 && (
-                    <p className="text-sm text-gray-400 text-center py-2">No comments yet.</p>
+                    <p className="text-sm text-gray-400 text-center py-2">Komentarų dar nėra.</p>
                   )}
                 </>
               )}
@@ -633,7 +642,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     value={commentText}
                     onChange={e => setCommentText(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleComment()}
-                    placeholder="Write a comment..."
+                    placeholder="Parašykite komentarą..."
                     className="flex-1 bg-gray-900 border border-gray-700 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-500/20 text-gray-200 min-h-[44px]"
                     maxLength={500}
                   />
@@ -698,32 +707,35 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg dark:text-gray-100">Edit Post</h3>
-                  <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center">
+                  <h3 className="font-bold text-lg dark:text-gray-100">Redaguoti įrašą</h3>
+                  <button onClick={() => { setShowEditModal(false); setEditError('') }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center">
                     <X size={20} />
                   </button>
                 </div>
                 <textarea
                   value={editedContent}
-                  onChange={(e) => setEditedContent(e.target.value)}
-                  placeholder="What's on your mind?"
+                  onChange={(e) => { setEditedContent(e.target.value); setEditError('') }}
+                  placeholder="Ką galvojate?"
                   className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-blue-300 resize-none min-h-[120px] bg-white dark:bg-gray-800 dark:text-gray-200"
                   maxLength={2000}
                   autoFocus
                 />
+                {editError && (
+                  <p className="mt-2 text-sm text-red-500">{editError}</p>
+                )}
                 <div className="mt-4 flex justify-end gap-3">
                   <button
-                    onClick={() => setShowEditModal(false)}
+                    onClick={() => { setShowEditModal(false); setEditError('') }}
                     className="px-4 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold min-h-[44px]"
                   >
-                    Cancel
+                    Atšaukti
                   </button>
                   <button
                     onClick={handleEdit}
                     disabled={editLoading || !editedContent.trim()}
                     className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50 min-h-[44px]"
                   >
-                    {editLoading ? 'Saving...' : 'Save'}
+                    {editLoading ? 'Saugoma...' : 'Išsaugoti'}
                   </button>
                 </div>
               </div>
@@ -734,20 +746,20 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           {showDeleteConfirm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteConfirm(false)}>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-lg mb-2 dark:text-gray-100">Delete Post?</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 sm:mb-6">This action cannot be undone. The post will be permanently removed.</p>
+                <h3 className="font-bold text-lg mb-2 dark:text-gray-100">Ištrinti įrašą?</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 sm:mb-6">Šio veiksmo negalima atšaukti. Įrašas bus pašalintas.</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
                     className="flex-1 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-full font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
                   >
-                    Cancel
+                    Atšaukti
                   </button>
                   <button
                     onClick={handleDelete}
                     className="flex-1 bg-red-600 text-white py-2.5 rounded-full font-bold hover:bg-red-700 transition-colors min-h-[44px]"
                   >
-                    Delete
+                    Ištrinti
                   </button>
                 </div>
               </div>

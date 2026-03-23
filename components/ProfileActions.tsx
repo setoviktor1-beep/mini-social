@@ -104,13 +104,6 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
       )}
       {isOwner && (
         <>
-          <button
-            onClick={() => setShowEditModal(true)}
-            className="border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all min-h-[44px]"
-          >
-            Edit Profile
-          </button>
-
           {showEditModal && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>

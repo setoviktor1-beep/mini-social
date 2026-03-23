@@ -3,10 +3,11 @@ import { redirect } from 'next/navigation'
 import ProDashboardTabs from '@/components/pro/ProDashboardTabs'
 import ProDashboardHeader from '@/components/pro/ProDashboardHeader'
 import SubscriptionCard from '@/components/pro/SubscriptionCard'
+import SubscribedBanner from '@/components/pro/SubscribedBanner'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ProDashboard() {
+export default async function ProDashboard({ searchParams }: { searchParams: { subscribed?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -51,6 +52,8 @@ export default async function ProDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {searchParams.subscribed === '1' && <SubscribedBanner plan={sub?.plan ?? null} />}
+
       {/* Header Card */}
       <ProDashboardHeader
         userId={user.id}

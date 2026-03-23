@@ -51,6 +51,7 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [youtube, setYoutube] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
+  const [postError, setPostError] = useState('')
   const supabase = createClient()
   const router = useRouter()
 
@@ -61,20 +62,25 @@ export default function PostComposer({ userId }: { userId: string }) {
   }
 
   const handlePost = async () => {
-    if (!content && files.length === 0) return
+    const trimmedContent = content.trim()
+    if (!trimmedContent && files.length === 0) {
+      setPostError('Parašykite ką nors arba pridėkite nuotrauką.')
+      return
+    }
+    setPostError('')
     setLoading(true)
 
     const ytId = youtube ? extractYoutubeId(youtube) : null
 
     const { data: post, error } = await supabase.from('posts').insert({
       user_id: userId,
-      content,
+      content: trimmedContent,
       youtube_url: youtube || null,
       youtube_video_id: ytId
     }).select().single()
 
     if (error) {
-      alert(error.message)
+      setPostError('Nepavyko paskelbti. Bandykite dar kartą.')
       setLoading(false)
       return
     }
@@ -132,7 +138,7 @@ export default function PostComposer({ userId }: { userId: string }) {
       <textarea
         value={content}
         onChange={e => setContent(e.target.value)}
-        placeholder="What's on your mind?"
+        placeholder="Ką galvojate?"
         className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-gray-100 placeholder-gray-500 outline-none"
       />
 
@@ -150,10 +156,13 @@ export default function PostComposer({ userId }: { userId: string }) {
       )}
 
       <div className="flex flex-col gap-3 border-t border-gray-800/60 pt-3">
+        {postError && (
+          <p className="text-sm text-red-400 mb-2">{postError}</p>
+        )}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
             <ImageIcon size={18} />
-            <span>Photos</span>
+            <span>Nuotraukos</span>
             <input type="file" multiple accept="image/*" className="hidden" onChange={e => e.target.files && setFiles([...files, ...Array.from(e.target.files)])} />
           </label>
           <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-400 focus-within:text-purple-300">
@@ -173,7 +182,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             disabled={loading || (!content && files.length === 0)}
             className="min-h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
           >
-            {loading ? 'Posting...' : <><Send size={16}/> Post</>}
+            {loading ? 'Skelbiama...' : <><Send size={16}/> Skelbti</>}
           </button>
         </div>
       </div>
