@@ -336,8 +336,11 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
   const [showModal, setShowModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [message, setMessage] = useState(`Sveiki, norėčiau užsisakyti: ${service.name}`);
   const [notLoggedIn, setNotLoggedIn] = useState(false);
+
+  const isOwnService = currentUserId && service.providerId === currentUserId;
 
   const handleContact = () => {
     if (!currentUserId) {
@@ -345,30 +348,44 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
       return;
     }
     setNotLoggedIn(false);
+    setSendError('');
     setShowModal(true);
   };
 
   const handleSend = async () => {
     if (!currentUserId || !service.providerId) return;
+    if (isOwnService) {
+      setSendError('Tai jūsų pačių paslauga — negalite siųsti žinutės sau.');
+      return;
+    }
     setIsSending(true);
+    setSendError('');
     try {
       const { data: conversationId, error: rpcError } = await supabase.rpc(
         'get_or_create_conversation',
         { other_user_id: service.providerId }
       );
-      if (rpcError) throw rpcError;
+      if (rpcError) throw new Error(rpcError.message);
 
       const { error: msgError } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: currentUserId,
         content: message,
       });
-      if (msgError) throw msgError;
+      if (msgError) throw new Error(msgError.message);
 
       setSent(true);
       setShowModal(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to send message:', err);
+      const msg = err?.message || '';
+      if (msg.includes('yourself')) {
+        setSendError('Tai jūsų pačių paslauga — negalite siųsti žinutės sau.');
+      } else if (msg.includes('blocked')) {
+        setSendError('Negalite susisiekti su šiuo teikėju.');
+      } else {
+        setSendError('Klaida siunčiant žinutę. Bandykite dar kartą.');
+      }
     } finally {
       setIsSending(false);
     }
@@ -454,6 +471,18 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
               rows={4}
               className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 resize-none mb-4"
             />
+
+            {sendError && (
+              <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-sm text-red-400">
+                {sendError}
+              </div>
+            )}
+
+            {isOwnService && (
+              <div className="mb-4 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-sm text-amber-400">
+                Tai jūsų pačių paslauga. Klientai galės susisiekti su jumis.
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
