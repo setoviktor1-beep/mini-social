@@ -30,8 +30,9 @@ async function markCheckoutSessionCompleted(
     .eq('stripe_session_id', sessionId)
 
   const { data, error } = await query.select('id').limit(1)
-  if (error) return { error, matched: Boolean(data?.length) }
-  if (data && data.length > 0) return { error: null, matched: true }
+  const directMatches = Array.isArray(data) ? data.length > 0 : Boolean(data)
+  if (error) return { error, matched: directMatches }
+  if (directMatches) return { error: null, matched: true }
 
   if (!userId) {
     return { error: null, matched: false }
@@ -54,7 +55,7 @@ async function markCheckoutSessionCompleted(
 
   return {
     error: fallback.error,
-    matched: Boolean(fallback.data?.length),
+    matched: Array.isArray(fallback.data) ? fallback.data.length > 0 : Boolean(fallback.data),
   }
 }
 
