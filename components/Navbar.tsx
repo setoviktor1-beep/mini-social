@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { useRouter, usePathname } from 'next/navigation'
-import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase } from 'lucide-react'
+import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase, ClipboardList } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
 import PushNotificationToggle from './PushNotificationToggle'
@@ -122,6 +122,7 @@ export default function Navbar() {
     : null
 
   const profileHref = `/u/${username || user?.user_metadata?.username || ''}`
+  const isProUser = role === 'master' || role === 'admin' || role === 'pro'
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-800/60 bg-[#0a0a0f]/85 backdrop-blur-xl">
@@ -152,7 +153,12 @@ export default function Navbar() {
               </Link>
               <NotificationBell />
               <PushNotificationToggle />
-              {(role === 'master' || role === 'admin' || role === 'pro') ? (
+              {!isProUser && (
+                <Link href="/my-orders" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors" title="Mano Užsakymai">
+                  <ClipboardList size={20} />
+                </Link>
+              )}
+              {isProUser ? (
                 <Link href="/pro" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors" title="Verslo Darbalaukis">
                   <Briefcase size={20} />
                 </Link>
@@ -237,7 +243,16 @@ export default function Navbar() {
                     </span>
                   )}
                 </Link>
-                {(role === 'master' || role === 'admin' || role === 'pro') ? (
+                {!isProUser && (
+                  <Link
+                    href="/my-orders"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
+                  >
+                    <ClipboardList size={20} />
+                    Mano Užsakymai
+                  </Link>
+                )}
+                {isProUser ? (
                   <Link
                     href="/pro"
                     className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"

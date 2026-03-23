@@ -16,6 +16,7 @@ export default function Register() {
   const [addressText, setAddressText] = useState('')
   const [addressLat, setAddressLat] = useState<number | null>(null)
   const [addressLng, setAddressLng] = useState<number | null>(null)
+  const [manualAddress, setManualAddress] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -39,7 +40,7 @@ export default function Register() {
       return
     }
 
-    if (!addressText || addressLat === null || addressLng === null) {
+    if (!addressText.trim()) {
       setError('Prašome nurodyti adresą.')
       setLoading(false)
       return
@@ -87,11 +88,13 @@ export default function Register() {
         })
         .eq('id', signUpData.user.id)
 
-      await supabase.rpc('update_profile_location', {
-        user_id: signUpData.user.id,
-        lat: addressLat,
-        lng: addressLng,
-      })
+      if (addressLat !== null && addressLng !== null) {
+        await supabase.rpc('update_profile_location', {
+          user_id: signUpData.user.id,
+          lat: addressLat,
+          lng: addressLng,
+        })
+      }
 
       // Handle referral code
       const referralCode = localStorage.getItem('referral_code')
@@ -215,18 +218,58 @@ export default function Register() {
               <MapPin size={14} className="inline mr-1 text-blue-400" />
               Adresas
             </label>
-            <AddressAutocomplete
-              value={addressText}
-              onChange={(addr, lat, lng) => {
-                setAddressText(addr)
-                if (lat !== undefined && lng !== undefined) {
-                  setAddressLat(lat)
-                  setAddressLng(lng)
-                }
-              }}
-              placeholder="Pvz.: Gedimino pr. 1, Vilnius"
-              className="w-full border border-[var(--border-subtle)] rounded-xl pl-4 pr-4 py-2.5 text-[var(--text-primary)] bg-[var(--bg-input)] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-colors placeholder:text-[var(--text-tertiary)] min-h-[44px]"
-            />
+            {manualAddress ? (
+              <>
+                <input
+                  type="text"
+                  value={addressText}
+                  onChange={e => {
+                    setAddressText(e.target.value)
+                    setAddressLat(null)
+                    setAddressLng(null)
+                  }}
+                  placeholder="Pvz.: Gedimino pr. 1, Vilnius"
+                  className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setManualAddress(false)}
+                  className="mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Naudoti adreso paiešką
+                </button>
+              </>
+            ) : (
+              <>
+                <AddressAutocomplete
+                  value={addressText}
+                  onChange={(addr, lat, lng) => {
+                    setAddressText(addr)
+                    if (lat !== undefined && lng !== undefined) {
+                      setAddressLat(lat)
+                      setAddressLng(lng)
+                    } else {
+                      setAddressLat(null)
+                      setAddressLng(null)
+                    }
+                  }}
+                  placeholder="Pvz.: Gedimino pr. 1, Vilnius"
+                  className="w-full border border-[var(--border-subtle)] rounded-xl pl-4 pr-4 py-2.5 text-[var(--text-primary)] bg-[var(--bg-input)] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-colors placeholder:text-[var(--text-tertiary)] min-h-[44px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualAddress(true)
+                    setAddressLat(null)
+                    setAddressLng(null)
+                  }}
+                  className="mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Įvesti adresą rankiniu būdu
+                </button>
+              </>
+            )}
           </div>
 
           <div>

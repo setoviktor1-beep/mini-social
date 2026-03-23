@@ -55,13 +55,13 @@ export default function WalletCard() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-50">
-        <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+      <div className="px-6 py-5 border-b border-gray-50 dark:border-gray-800">
+        <h2 className="font-bold text-xl text-gray-900 dark:text-white flex items-center gap-2">
           <Wallet size={20} className="text-blue-600" />
           Wallet
         </h2>
-        <p className="text-sm text-gray-500 mt-0.5">Top up and use AI tools pay-per-use</p>
+        <p className="text-sm text-gray-500 dark:text-white mt-0.5">Top up and use AI tools pay-per-use</p>
       </div>
 
       <div className="p-6 space-y-4">
@@ -97,4 +97,3 @@ export default function WalletCard() {
     </div>
   )
 }
-

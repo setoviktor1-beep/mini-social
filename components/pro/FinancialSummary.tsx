@@ -242,7 +242,7 @@ export default function FinancialSummary({ isPro }: { isPro: boolean }) {
           {/* Income input */}
           <div className="bg-gray-900/40 rounded-2xl border border-gray-800/60 p-5 space-y-3">
             <h4 className="text-sm font-bold text-white">💰 Įplaukos (rankiniu būdu)</h4>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
                 <input
