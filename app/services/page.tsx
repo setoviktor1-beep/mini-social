@@ -33,6 +33,20 @@ const CATEGORY_MAP: Record<string, string[]> = {
   Kita: ["kita", "other", "foto", "fotografas"],
 };
 
+function getActiveProfileLocation(profile: any) {
+  const useTravel =
+    Boolean(profile?.travel_mode) &&
+    profile?.travel_lat != null &&
+    profile?.travel_lng != null;
+
+  return {
+    lat: useTravel ? profile.travel_lat : profile?.address_lat,
+    lng: useTravel ? profile.travel_lng : profile?.address_lng,
+    addressText: useTravel ? profile?.travel_address_text : profile?.address_text,
+    usesTravel: useTravel,
+  };
+}
+
 export default function ServicesPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -65,9 +79,9 @@ export default function ServicesPage() {
         setUserRadiusKm(radius);
         const homeLat = data?.address_lat;
         const homeLng = data?.address_lng;
-        const travelMode = data?.travel_mode && data?.travel_lat && data?.travel_lng;
-        const lat = travelMode ? data.travel_lat : homeLat;
-        const lng = travelMode ? data.travel_lng : homeLng;
+        const activeLocation = getActiveProfileLocation(data);
+        const lat = activeLocation.lat;
+        const lng = activeLocation.lng;
         if (homeLat && homeLng) {
           setHomeLat(homeLat);
           setHomeLng(homeLng);
@@ -75,7 +89,7 @@ export default function ServicesPage() {
         if (lat && lng) {
           setUserLat(lat);
           setUserLng(lng);
-          await fetchAll(lat, lng, radius, "Visi", travelMode ? homeLat : null, travelMode ? homeLng : null);
+          await fetchAll(lat, lng, radius, "Visi", activeLocation.usesTravel ? homeLat : null, activeLocation.usesTravel ? homeLng : null);
         } else {
           setIsLoading(false);
         }
@@ -88,10 +102,10 @@ export default function ServicesPage() {
 
   useEffect(() => {
     if (userLat && userLng) {
-      const travelMode = profile?.travel_mode && profile?.travel_lat && profile?.travel_lng;
-      fetchAll(userLat, userLng, userRadiusKm, activeCategory, travelMode ? homeLat : null, travelMode ? homeLng : null);
+      const activeLocation = getActiveProfileLocation(profile);
+      fetchAll(userLat, userLng, userRadiusKm, activeCategory, activeLocation.usesTravel ? homeLat : null, activeLocation.usesTravel ? homeLng : null);
     }
-  }, [activeCategory]);
+  }, [activeCategory, userLat, userLng, userRadiusKm, profile, homeLat, homeLng]);
 
   const fetchAll = async (lat: number, lng: number, radiusKm: number, category: string, hLat?: number | null, hLng?: number | null) => {
     setIsLoading(true);
@@ -110,7 +124,7 @@ export default function ServicesPage() {
   const fetchLocalServices = async (lat: number, lng: number, radiusKm: number, category: string) => {
     const { data } = await supabase
       .from("pro_services")
-      .select("*, profiles!pro_id(display_name, business_name, business_category, address_text, address_lat, address_lng, avatar_path)")
+      .select("*, profiles!pro_id(display_name, business_name, business_category, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path)")
       .eq("is_active", true);
 
     if (!data) return;
@@ -118,8 +132,9 @@ export default function ServicesPage() {
     const filtered = data
       .filter((s: any) => {
         const p = s.profiles;
-        if (!p?.address_lat || !p?.address_lng) return false;
-        const distKm = haversineKm(lat, lng, p.address_lat, p.address_lng);
+        const providerLocation = getActiveProfileLocation(p);
+        if (providerLocation.lat == null || providerLocation.lng == null) return false;
+        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
         if (distKm > radiusKm) return false;
         if (category === "Visi") return true;
         const cats = CATEGORY_MAP[category] || [];
@@ -127,13 +142,14 @@ export default function ServicesPage() {
       })
       .map((s: any) => {
         const p = s.profiles;
-        const distKm = haversineKm(lat, lng, p.address_lat, p.address_lng);
+        const providerLocation = getActiveProfileLocation(p);
+        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
         const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
         return {
           id: s.id,
           name: s.name,
           description: s.description || p.business_name || "",
-          address: p.address_text || "",
+          address: providerLocation.addressText || p.address_text || "",
           rating: 0,
           isOpen: true,
           distance: distLabel,
@@ -152,14 +168,15 @@ export default function ServicesPage() {
   const fetchHomeLocalServices = async (lat: number, lng: number, radiusKm: number, category: string) => {
     const { data } = await supabase
       .from("pro_services")
-      .select("*, profiles!pro_id(display_name, business_name, business_category, address_text, address_lat, address_lng, avatar_path)")
+      .select("*, profiles!pro_id(display_name, business_name, business_category, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path)")
       .eq("is_active", true);
     if (!data) return;
     const filtered = data
       .filter((s: any) => {
         const p = s.profiles;
-        if (!p?.address_lat || !p?.address_lng) return false;
-        const distKm = haversineKm(lat, lng, p.address_lat, p.address_lng);
+        const providerLocation = getActiveProfileLocation(p);
+        if (providerLocation.lat == null || providerLocation.lng == null) return false;
+        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
         if (distKm > radiusKm) return false;
         if (category === "Visi") return true;
         const cats = CATEGORY_MAP[category] || [];
@@ -167,13 +184,14 @@ export default function ServicesPage() {
       })
       .map((s: any) => {
         const p = s.profiles;
-        const distKm = haversineKm(lat, lng, p.address_lat, p.address_lng);
+        const providerLocation = getActiveProfileLocation(p);
+        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
         const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
         return {
           id: s.id,
           name: s.name,
           description: s.description || p.business_name || "",
-          address: p.address_text || "",
+          address: providerLocation.addressText || p.address_text || "",
           rating: 0,
           isOpen: true,
           distance: distLabel,
@@ -228,7 +246,7 @@ export default function ServicesPage() {
         )}
       </div>
 
-      {!profile?.address_text ? (
+      {!getActiveProfileLocation(profile).addressText ? (
         <div className="text-center py-20 bg-amber-500/5 rounded-3xl border border-dashed border-amber-500/20">
           <MapPin className="mx-auto text-amber-500 mb-4" size={48} />
           <h2 className="text-xl font-bold text-white mb-2">Lokacija nenustatyta</h2>
@@ -240,15 +258,15 @@ export default function ServicesPage() {
             Nustatyti lokaciją
           </button>
         </div>
-      ) : !profile?.address_lat || !profile?.address_lng ? (
+      ) : getActiveProfileLocation(profile).lat == null || getActiveProfileLocation(profile).lng == null ? (
         <div className="text-center py-20 bg-amber-500/5 rounded-3xl border border-dashed border-amber-500/20">
           <MapPin className="mx-auto text-amber-500 mb-4" size={48} />
           <h2 className="text-xl font-bold text-white mb-2">Adreso koordinatės nerasta</h2>
           <p className="text-gray-400 mb-2 px-4">
-            Adresas: <strong className="text-white">{profile.address_text}</strong>
+            Adresas: <strong className="text-white">{getActiveProfileLocation(profile).addressText}</strong>
           </p>
           <p className="text-gray-400 mb-6 px-4 text-sm">
-            Koordinatės nerasta — atnaujink adresą Nustatymuose naudodamas automatinę paiešką.
+            Koordinatės nerasta — atnaujink aktyvią vietą Nustatymuose naudodamas automatinę paiešką.
           </p>
           <button
             onClick={() => router.push("/settings")}

@@ -3,7 +3,7 @@ import PricingClient from './PricingClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PricingPage() {
+export default async function PricingPage({ searchParams }: { searchParams?: { checkout?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -23,5 +23,11 @@ export default async function PricingPage() {
     }
   }
 
-  return <PricingClient currentPlan={currentPlan} currentStatus={currentStatus} />
+  return (
+    <PricingClient
+      currentPlan={currentPlan}
+      currentStatus={currentStatus}
+      checkoutStatus={searchParams?.checkout ?? null}
+    />
+  )
 }

@@ -74,9 +74,10 @@ const COLOR_MAP: Record<string, { border: string; badge: string; btn: string; ic
 interface Props {
   currentPlan: string | null
   currentStatus: string | null
+  checkoutStatus: string | null
 }
 
-export default function PricingClient({ currentPlan, currentStatus }: Props) {
+export default function PricingClient({ currentPlan, currentStatus, checkoutStatus }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
 
@@ -95,6 +96,10 @@ export default function PricingClient({ currentPlan, currentStatus }: Props) {
       }
       if (data.error === 'ALREADY_SUBSCRIBED') {
         router.push('/pro')
+        return
+      }
+      if (data.error === 'CHECKOUT_IN_PROGRESS' && data.url) {
+        window.location.href = data.url
         return
       }
       if (data.url) {
@@ -120,6 +125,12 @@ export default function PricingClient({ currentPlan, currentStatus }: Props) {
         </p>
         <p className="text-gray-600 text-xs">Kainos su PVM (21%)</p>
       </div>
+
+      {checkoutStatus === 'success' && (
+        <div className="mx-auto max-w-2xl rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+          Checkout baigtas. Laukiama galutinio Stripe prenumeratos patvirtinimo, po kurio planas taps aktyvus.
+        </div>
+      )}
 
       {currentPlan && (
         <div className="text-center">

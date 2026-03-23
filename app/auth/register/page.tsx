@@ -12,6 +12,8 @@ export default function Register() {
   const [username, setUsername] = useState('')
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [city, setCity] = useState('')
+  const [country, setCountry] = useState('Lietuva')
   const [postalCode, setPostalCode] = useState('')
   const [addressText, setAddressText] = useState('')
   const [addressLat, setAddressLat] = useState<number | null>(null)
@@ -46,6 +48,18 @@ export default function Register() {
       return
     }
 
+    if (!city.trim()) {
+      setError('Prašome nurodyti miestą.')
+      setLoading(false)
+      return
+    }
+
+    if (!country.trim()) {
+      setError('Prašome nurodyti šalį.')
+      setLoading(false)
+      return
+    }
+
     const { data: existingUser } = await supabase
       .from('profiles')
       .select('username')
@@ -76,24 +90,41 @@ export default function Register() {
     }
 
     if (signUpData?.user) {
-      await supabase
+      const profilePayload = {
+        id: signUpData.user.id,
+        username: username.toLowerCase(),
+        display_name: fullName,
+        phone,
+        city: city.trim(),
+        country: country.trim(),
+        postal_code: postalCode.trim(),
+        address_text: addressText.trim(),
+        address_lat: addressLat,
+        address_lng: addressLng,
+      }
+
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({
-          display_name: fullName,
-          phone,
-          postal_code: postalCode,
-          address_text: addressText,
-          address_lat: addressLat,
-          address_lng: addressLng,
-        })
-        .eq('id', signUpData.user.id)
+        .upsert(profilePayload, { onConflict: 'id' })
+
+      if (profileError) {
+        setError(`Nepavyko išsaugoti profilio: ${profileError.message}`)
+        setLoading(false)
+        return
+      }
 
       if (addressLat !== null && addressLng !== null) {
-        await supabase.rpc('update_profile_location', {
+        const { error: locationError } = await supabase.rpc('update_profile_location', {
           user_id: signUpData.user.id,
           lat: addressLat,
           lng: addressLng,
         })
+
+        if (locationError) {
+          setError(`Nepavyko išsaugoti lokacijos: ${locationError.message}`)
+          setLoading(false)
+          return
+        }
       }
 
       // Handle referral code
@@ -198,6 +229,32 @@ export default function Register() {
               placeholder="+370 600 00000"
               required
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Miestas</label>
+              <input
+                type="text"
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+                placeholder="Lentvaris"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Šalis</label>
+              <input
+                type="text"
+                value={country}
+                onChange={e => setCountry(e.target.value)}
+                className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
+                placeholder="Lietuva"
+                required
+              />
+            </div>
           </div>
 
           <div>

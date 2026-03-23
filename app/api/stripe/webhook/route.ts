@@ -9,6 +9,10 @@ function getStripeCustomerId(customer: string | Stripe.Customer | Stripe.Deleted
   return typeof customer === 'string' ? customer : customer?.id ?? null
 }
 
+function getSubscriptionRole(status: string) {
+  return status === 'active' || status === 'trialing' ? 'pro' : 'user'
+}
+
 export async function POST(request: Request) {
   const sig = request.headers.get('stripe-signature')
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -34,9 +38,9 @@ export async function POST(request: Request) {
       ? eventObject.id
       : null
 
-  const { data: duplicateEvent, error: duplicateLookupError } = await supabase
+  const { data: existingEvent, error: duplicateLookupError } = await supabase
     .from('processed_events')
-    .select('event_id')
+    .select('event_id, status, attempt_count')
     .eq('event_id', event.id)
     .maybeSingle()
 
@@ -44,23 +48,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'WEBHOOK_DB_ERROR' }, { status: 500 })
   }
 
-  if (duplicateEvent) {
+  if (existingEvent?.status === 'processed') {
     return NextResponse.json({ received: true, duplicate: true })
   }
 
-  const { error: reserveEventError } = await supabase
-    .from('processed_events')
-    .insert({
-      event_id: event.id,
-      event_type: event.type,
-      stripe_object_id: stripeObjectId,
-    })
+  const reservePayload = {
+    event_type: event.type,
+    stripe_object_id: stripeObjectId,
+    status: 'processing',
+    last_error: null,
+    updated_at: new Date().toISOString(),
+  }
+
+  const reserveEventError = existingEvent
+    ? (
+        await supabase
+          .from('processed_events')
+          .update({
+            ...reservePayload,
+            attempt_count: (existingEvent.attempt_count ?? 0) + 1,
+          })
+          .eq('event_id', event.id)
+      ).error
+    : (
+        await supabase
+          .from('processed_events')
+          .insert({
+            event_id: event.id,
+            attempt_count: 1,
+            ...reservePayload,
+          })
+      ).error
 
   if (reserveEventError) {
-    if (reserveEventError.code === '23505') {
-      return NextResponse.json({ received: true, duplicate: true })
-    }
-
     return NextResponse.json({ error: 'WEBHOOK_DB_ERROR' }, { status: 500 })
   }
 
@@ -75,17 +95,62 @@ export async function POST(request: Request) {
         const amount = Number(session.metadata?.topup_amount)
 
         if (userId && Number.isFinite(amount) && amount > 0) {
-          const { error } = await supabase.rpc('credit_wallet_balance', {
-            p_user_id: userId,
-            p_amount: amount,
-          })
-          if (error) {
-            throw new Error('WEBHOOK_DB_ERROR')
+          const nowIso = new Date().toISOString()
+          const { data: existingTransaction } = await supabase
+            .from('wallet_transactions')
+            .select('id, status')
+            .eq('stripe_session_id', session.id)
+            .maybeSingle()
+
+          if (existingTransaction?.status !== 'completed') {
+            if (existingTransaction) {
+              const { error: markProcessingError } = await supabase
+                .from('wallet_transactions')
+                .update({
+                  status: 'processing',
+                  updated_at: nowIso,
+                })
+                .eq('id', existingTransaction.id)
+
+              if (markProcessingError) throw new Error('WEBHOOK_DB_ERROR')
+            } else {
+              const { error: insertTransactionError } = await supabase
+                .from('wallet_transactions')
+                .insert({
+                  user_id: userId,
+                  stripe_session_id: session.id,
+                  amount,
+                })
+
+              if (insertTransactionError && insertTransactionError.code !== '23505') {
+                throw new Error('WEBHOOK_DB_ERROR')
+              }
+            }
+
+            const { error } = await supabase.rpc('credit_wallet_balance', {
+              p_user_id: userId,
+              p_amount: amount,
+            })
+            if (error) {
+              throw new Error('WEBHOOK_DB_ERROR')
+            }
+
+            const { error: completeTransactionError } = await supabase
+              .from('wallet_transactions')
+              .update({
+                status: 'completed',
+                credited_at: nowIso,
+                updated_at: nowIso,
+              })
+              .eq('stripe_session_id', session.id)
+
+            if (completeTransactionError) {
+              throw new Error('WEBHOOK_DB_ERROR')
+            }
           }
         }
       }
 
-      // Handle subscription checkout completion — link customer_id to user
       if (session.mode === 'subscription') {
         const userId = session.metadata?.user_id
         const customerId = getStripeCustomerId(session.customer)
@@ -96,25 +161,27 @@ export async function POST(request: Request) {
             user_id: userId,
             stripe_customer_id: customerId,
             plan,
-            status: 'active',
+            status: 'pending',
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id' })
 
           if (error) {
             throw new Error('WEBHOOK_DB_ERROR')
           }
-
-          // Pre-set role immediately so the redirect to /pro works even before
-          // customer.subscription.created fires (avoids the race condition).
-          const { error: roleError } = await supabase
-            .from('profiles')
-            .update({ role: 'pro' })
-            .eq('id', userId)
-
-          if (roleError) {
-            throw new Error('WEBHOOK_DB_ERROR')
-          }
         }
+      }
+
+      const { error: checkoutCompletedError } = await supabase
+        .from('billing_checkout_sessions')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_session_id', session.id)
+
+      if (checkoutCompletedError) {
+        throw new Error('WEBHOOK_DB_ERROR')
       }
     }
 
@@ -147,7 +214,7 @@ export async function POST(request: Request) {
         // Enterprise-specific features are gated by subscriptions.plan='enterprise', not by role.
         const isActive = status === 'active' || status === 'trialing'
         const role = isActive ? 'pro' : 'user'
-        const { error: profileError } = await supabase.from('profiles').update({ role }).eq('id', userId)
+        const { error: profileError } = await supabase.from('profiles').update({ role: getSubscriptionRole(status) }).eq('id', userId)
 
         if (profileError) {
           throw new Error('WEBHOOK_DB_ERROR')
@@ -184,16 +251,25 @@ export async function POST(request: Request) {
 
     const { error: markProcessedError } = await supabase
       .from('processed_events')
-      .update({ processed_at: new Date().toISOString() })
+      .update({
+        status: 'processed',
+        processed_at: new Date().toISOString(),
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq('event_id', event.id)
 
     if (markProcessedError) {
       throw new Error('WEBHOOK_DB_ERROR')
     }
-  } catch {
+  } catch (error) {
     await supabase
       .from('processed_events')
-      .delete()
+      .update({
+        status: 'failed',
+        last_error: error instanceof Error ? error.message : 'WEBHOOK_DB_ERROR',
+        updated_at: new Date().toISOString(),
+      })
       .eq('event_id', event.id)
 
     return NextResponse.json({ error: 'WEBHOOK_DB_ERROR' }, { status: 500 })
