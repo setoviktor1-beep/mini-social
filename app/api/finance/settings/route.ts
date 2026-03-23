@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getCurrentUserAccess, hasProAccess } from '@/lib/server/access'
 
 export async function GET() {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, profile, subscription } = await getCurrentUserAccess()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+  if (!hasProAccess(subscription, profile?.role)) {
+    return NextResponse.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+  }
 
   const { data } = await supabase
     .from('financial_settings')
@@ -24,9 +26,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, profile, subscription } = await getCurrentUserAccess()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+  if (!hasProAccess(subscription, profile?.role)) {
+    return NextResponse.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+  }
 
   const body = await request.json()
   const { gpm_percent, sodra_percent, pvm_percent, is_pvm_payer, business_type } = body

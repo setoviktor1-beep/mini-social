@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
 import webpush from 'web-push'
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify the caller is an authenticated user
     const supabaseAuth = createSupabaseServerClient()
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAuth.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,6 +19,9 @@ export async function POST(req: NextRequest) {
     if (!userId || !title) {
       return NextResponse.json({ error: 'Missing userId or title' }, { status: 400 })
     }
+    if (userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     webpush.setVapidDetails(
       process.env.VAPID_EMAIL || 'mailto:support@minisocial.lt',
@@ -25,10 +29,7 @@ export async function POST(req: NextRequest) {
       process.env.VAPID_PRIVATE_KEY!
     )
 
-    const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createSupabaseServiceClient()
 
     const { data: subscriptions, error } = await supabase
       .from('push_subscriptions')

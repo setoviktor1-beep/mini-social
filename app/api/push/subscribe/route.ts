@@ -1,19 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { subscription, userId } = body
+    const supabaseAuth = createSupabaseServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAuth.auth.getUser()
 
-    if (!subscription || !userId) {
-      return NextResponse.json({ error: 'Missing subscription or userId' }, { status: 400 })
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const body = await req.json()
+    const { subscription } = body
+
+    if (!subscription) {
+      return NextResponse.json({ error: 'Missing subscription' }, { status: 400 })
+    }
+
+    const supabase = createSupabaseServiceClient()
 
     const { endpoint, keys } = subscription
     const { p256dh, auth } = keys || {}
@@ -25,7 +32,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase
       .from('push_subscriptions')
       .upsert(
-        { user_id: userId, endpoint, p256dh, auth },
+        { user_id: user.id, endpoint, p256dh, auth },
         { onConflict: 'user_id,endpoint' }
       )
 

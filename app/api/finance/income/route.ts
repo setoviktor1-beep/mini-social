@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getCurrentUserAccess, hasProAccess } from '@/lib/server/access'
 
 export async function GET(request: Request) {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, profile, subscription } = await getCurrentUserAccess()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+  if (!hasProAccess(subscription, profile?.role)) {
+    return NextResponse.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+  }
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month') || new Date().toISOString().slice(0, 7)
@@ -20,9 +22,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, profile, subscription } = await getCurrentUserAccess()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+  if (!hasProAccess(subscription, profile?.role)) {
+    return NextResponse.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+  }
 
   const { month, amount, note } = await request.json()
   if (!month || amount === undefined) {
