@@ -121,7 +121,9 @@ export default function Navbar() {
     ? supabase.storage.from('post-images').getPublicUrl(avatarPath).data.publicUrl
     : null
 
-  const profileHref = `/u/${username || user?.user_metadata?.username || ''}`
+  const profileHref = username || user?.user_metadata?.username
+    ? `/u/${username || user?.user_metadata?.username}`
+    : '/settings'
   const isProUser = role === 'master' || role === 'admin' || role === 'pro'
 
   return (

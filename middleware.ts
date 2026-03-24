@@ -49,10 +49,17 @@ export async function middleware(request: NextRequest) {
   // Pass pathname to layout via header
   response.headers.set('x-pathname', pathname)
 
+  const protectedPrefixes = [
+    '/messages',
+    '/notifications',
+    '/settings',
+    '/my-orders',
+    '/pro',
+    '/wallet',
+  ]
   const isProtectedUserRoute =
-    pathname.startsWith('/messages') ||
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/pro')
+    protectedPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
+    pathname === '/discussions/new'
 
   if (isProtectedUserRoute && !user) {
     return NextResponse.redirect(loginUrl)

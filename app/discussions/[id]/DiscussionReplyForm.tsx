@@ -19,7 +19,7 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
 
   const handleSubmit = async () => {
     const trimmed = content.trim()
-    if (!trimmed) return
+    if (!trimmed || loading) return
 
     setLoading(true)
     const { error } = await supabase.from('discussion_replies').insert({
@@ -44,14 +44,21 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
   }
 
   return (
-    <div className="p-5">
+    <form
+      className="p-5"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void handleSubmit()
+      }}
+    >
       <div className="flex gap-3">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              handleSubmit()
+              e.preventDefault()
+              void handleSubmit()
             }
           }}
           placeholder="Write your reply..."
@@ -63,7 +70,7 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
       <div className="flex items-center justify-between mt-3">
         <p className="text-xs text-gray-400 dark:text-gray-500">{content.length}/2000 &middot; Ctrl+Enter to submit</p>
         <button
-          onClick={handleSubmit}
+          type="submit"
           disabled={loading || !content.trim()}
           className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center gap-2 shadow-sm shadow-blue-200 dark:shadow-blue-900/30"
         >
@@ -77,6 +84,6 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
           )}
         </button>
       </div>
-    </div>
+    </form>
   )
 }

@@ -13,6 +13,10 @@ import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
+function pluralizeFollowers(count: number) {
+  return count === 1 ? 'follower' : 'followers'
+}
+
 interface ProfilePageProps {
   params: {
     username: string
@@ -232,7 +236,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <div className="flex gap-4 sm:gap-6 mt-3 justify-center md:justify-start flex-wrap">
               <span className="text-sm">
                 <strong className="text-gray-900 dark:text-gray-100">{followersCount || 0}</strong>{' '}
-                <span className="text-gray-500 dark:text-gray-400">followers</span>
+                <span className="text-gray-500 dark:text-gray-400">{pluralizeFollowers(followersCount || 0)}</span>
               </span>
               <span className="text-sm">
                 <strong className="text-gray-900 dark:text-gray-100">{followingCount || 0}</strong>{' '}

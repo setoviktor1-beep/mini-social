@@ -46,6 +46,35 @@ async function compressImage(file: File): Promise<File> {
   })
 }
 
+function extractYoutubeId(url: string) {
+  const value = url.trim()
+  if (!value) return null
+
+  try {
+    const parsed = new URL(value)
+    const hostname = parsed.hostname.replace(/^www\./, '')
+
+    if (hostname === 'youtu.be') {
+      const id = parsed.pathname.split('/').filter(Boolean)[0]
+      return id?.length === 11 ? id : null
+    }
+
+    if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+      const fromQuery = parsed.searchParams.get('v')
+      if (fromQuery?.length === 11) return fromQuery
+
+      const segments = parsed.pathname.split('/').filter(Boolean)
+      const candidate = segments[1]
+      if (['embed', 'shorts', 'live', 'v'].includes(segments[0]) && candidate?.length === 11) {
+        return candidate
+      }
+    }
+  } catch {}
+
+  const match = value.match(/([a-zA-Z0-9_-]{11})/)
+  return match?.[1] ?? null
+}
+
 export default function PostComposer({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
   const [youtube, setYoutube] = useState('')
@@ -55,13 +84,8 @@ export default function PostComposer({ userId }: { userId: string }) {
   const supabase = createClient()
   const router = useRouter()
 
-  const extractYoutubeId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-    const match = url.match(regExp)
-    return (match && match[2].length === 11) ? match[2] : null
-  }
-
   const handlePost = async () => {
+    if (loading) return
     const trimmedContent = content.trim()
     if (!trimmedContent && files.length === 0) {
       setPostError('Parašykite ką nors arba pridėkite nuotrauką.')
@@ -71,6 +95,11 @@ export default function PostComposer({ userId }: { userId: string }) {
     setLoading(true)
 
     const ytId = youtube ? extractYoutubeId(youtube) : null
+    if (youtube.trim() && !ytId) {
+      setPostError('Neteisinga YouTube nuoroda.')
+      setLoading(false)
+      return
+    }
 
     const { data: post, error } = await supabase.from('posts').insert({
       user_id: userId,
@@ -138,6 +167,12 @@ export default function PostComposer({ userId }: { userId: string }) {
       <textarea
         value={content}
         onChange={e => setContent(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault()
+            void handlePost()
+          }
+        }}
         placeholder="Ką galvojate?"
         className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-gray-100 placeholder-gray-500 outline-none"
       />

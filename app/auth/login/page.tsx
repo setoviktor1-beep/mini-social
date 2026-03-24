@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, CheckCircle } from 'lucide-react'
 
@@ -15,11 +15,34 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextPath = (() => {
+    const candidate = searchParams.get('next')
+    if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//')) {
+      return '/home'
+    }
+    return candidate
+  })()
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active || !data.session) return
+      router.replace(nextPath)
+      router.refresh()
+    })
+
+    return () => {
+      active = false
+    }
+  }, [nextPath, router, supabase])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
     setError('')
 
@@ -34,14 +57,16 @@ export default function Login() {
       }
       setLoading(false)
     } else {
-      router.push('/')
+      router.replace(nextPath)
       router.refresh()
     }
   }
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (resetLoading) return
     setResetLoading(true)
+    setError('')
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
 
@@ -49,20 +74,23 @@ export default function Login() {
       redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
     })
 
-    if (!error) {
+    if (error) {
+      setError(error.message)
+    } else {
       setResetSent(true)
     }
     setResetLoading(false)
   }
 
   const handleGoogleSignIn = async () => {
+    if (googleLoading || loading) return
     setError('')
     setGoogleLoading(true)
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${siteUrl}/auth/callback?next=/`,
+        redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     })
     if (error) {
@@ -193,7 +221,7 @@ export default function Login() {
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          Don&apos;t have an account? <Link href="/auth/register" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Register</Link>
+          Don&apos;t have an account? <Link href={`/auth/register?next=${encodeURIComponent(nextPath)}`} className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Register</Link>
         </p>
       </div>
     </div>

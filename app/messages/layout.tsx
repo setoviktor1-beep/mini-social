@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
+import { requireAuthenticatedUser } from '@/lib/server/access'
 
 export const metadata: Metadata = {
   title: 'Messages',
   description: 'Chat with friends in real-time.',
 }
 
-export default function MessagesLayout({ children }: { children: React.ReactNode }) {
+export default async function MessagesLayout({ children }: { children: React.ReactNode }) {
+  await requireAuthenticatedUser('/messages')
   return children
 }
-

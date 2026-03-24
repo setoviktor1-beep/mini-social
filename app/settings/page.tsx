@@ -15,6 +15,9 @@ interface Profile {
   bio: string | null
   avatar_path: string | null
   role: string
+  city: string | null
+  country: string | null
+  postal_code: string | null
   address_text: string | null
   business_name: string | null
   business_category: string | null
@@ -72,6 +75,9 @@ export default function SettingsPage() {
 
   // Nextdoor features
   const [addressText, setAddressText] = useState('')
+  const [city, setCity] = useState('')
+  const [country, setCountry] = useState('Lietuva')
+  const [postalCode, setPostalCode] = useState('')
   const [addressLat, setAddressLat] = useState<number | null>(null)
   const [addressLng, setAddressLng] = useState<number | null>(null)
   const [userRadiusKm, setUserRadiusKm] = useState(5.0)
@@ -103,7 +109,7 @@ export default function SettingsPage() {
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/auth/login')
+        router.replace('/auth/login?next=/settings')
         return
       }
       setUserEmail(user.email || '')
@@ -115,7 +121,7 @@ export default function SettingsPage() {
         .single()
 
       if (error || !profileData) {
-        router.push('/auth/login')
+        router.replace('/auth/login?next=/settings')
         return
       }
 
@@ -125,6 +131,9 @@ export default function SettingsPage() {
       setBio(profileData.bio || '')
       setAvatarPath(profileData.avatar_path)
       setAddressText(profileData.address_text || '')
+      setCity(profileData.city || '')
+      setCountry(profileData.country || 'Lietuva')
+      setPostalCode(profileData.postal_code || '')
       setAddressLat(profileData.address_lat ?? null)
       setAddressLng(profileData.address_lng ?? null)
       setUserRadiusKm(profileData.user_radius_km ?? 5.0)
@@ -318,6 +327,9 @@ export default function SettingsPage() {
           username: username.trim().toLowerCase(),
           bio: bio.trim() || null,
           avatar_path: newAvatarPath,
+          city: city.trim() || null,
+          country: country.trim() || null,
+          postal_code: postalCode.trim() || null,
           address_text: addressText.trim() || null,
           address_lat: addressLat,
           address_lng: addressLng,
@@ -347,11 +359,17 @@ export default function SettingsPage() {
 
       // Save location coordinates if available
       if (addressLat !== null && addressLng !== null) {
-        await supabase.rpc('update_profile_location', {
+        const { error: locationError } = await supabase.rpc('update_profile_location', {
           user_id: profile.id,
           lat: addressLat,
           lng: addressLng,
         })
+
+        if (locationError) {
+          setErrorMessage('Nepavyko išsaugoti lokacijos: ' + locationError.message)
+          setSaving(false)
+          return
+        }
       }
 
       // Update local state
@@ -366,6 +384,9 @@ export default function SettingsPage() {
         username: username.trim().toLowerCase(),
         bio: bio.trim() || null,
         avatar_path: newAvatarPath,
+        city: city.trim() || null,
+        country: country.trim() || null,
+        postal_code: postalCode.trim() || null,
         address_text: addressText.trim() || null,
         role: safeRole,
         business_name: ['pro', 'master', 'admin'].includes(safeRole) ? businessName.trim() : null,
@@ -391,8 +412,9 @@ export default function SettingsPage() {
   const handlePasswordReset = async () => {
     if (!userEmail) return
     setResetEmailSending(true)
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
     const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
     })
     setResetEmailSending(false)
     if (error) {
@@ -693,6 +715,39 @@ export default function SettingsPage() {
               <p className="text-xs text-gray-400 mt-1">Naudok automatinę paiešką koordinatėms gauti. Kelionėms naudok Travel Mode žemiau.</p>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-bold text-gray-700 block mb-1.5">Miestas</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+                  placeholder="Lentvaris"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-gray-700 block mb-1.5">Šalis</label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={e => setCountry(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+                  placeholder="Lietuva"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-gray-700 block mb-1.5">Pašto kodas</label>
+                <input
+                  type="text"
+                  value={postalCode}
+                  onChange={e => setPostalCode(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+                  placeholder="LT-25100"
+                />
+              </div>
+            </div>
+
             {/* Radius Slider */}
             <div>
               <label className="text-sm font-bold text-gray-700 block mb-1.5">
@@ -829,6 +884,11 @@ export default function SettingsPage() {
 
           {/* Save Button */}
           <div className="pt-2">
+            {(successMessage || errorMessage) && (
+              <div className={`mb-3 rounded-xl px-4 py-3 text-sm font-medium ${successMessage ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {successMessage || errorMessage}
+              </div>
+            )}
             <button
               onClick={handleSave}
               disabled={saving}

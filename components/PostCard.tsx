@@ -11,6 +11,34 @@ import ParsedContent from '@/lib/parseContent'
 import { notifyMentions } from '@/lib/mentions'
 import { sendPushNotification } from '@/lib/pushNotify'
 
+function extractYoutubeId(value?: string | null) {
+  if (!value) return null
+
+  try {
+    const parsed = new URL(value)
+    const hostname = parsed.hostname.replace(/^www\./, '')
+
+    if (hostname === 'youtu.be') {
+      const id = parsed.pathname.split('/').filter(Boolean)[0]
+      return id?.length === 11 ? id : null
+    }
+
+    if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+      const fromQuery = parsed.searchParams.get('v')
+      if (fromQuery?.length === 11) return fromQuery
+
+      const segments = parsed.pathname.split('/').filter(Boolean)
+      const candidate = segments[1]
+      if (['embed', 'shorts', 'live', 'v'].includes(segments[0]) && candidate?.length === 11) {
+        return candidate
+      }
+    }
+  } catch {}
+
+  const match = value.match(/([a-zA-Z0-9_-]{11})/)
+  return match?.[1] ?? null
+}
+
 interface PostCardProps {
   post: {
     id: string
@@ -18,6 +46,7 @@ interface PostCardProps {
     content: string
     created_at: string
     user_id?: string
+    youtube_url?: string | null
     youtube_video_id?: string
     edited_at?: string | null
     reposted_at?: string
@@ -72,6 +101,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [localContent, setLocalContent] = useState(post.content)
   const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const youtubeVideoId = post.youtube_video_id || extractYoutubeId(post.youtube_url)
 
   const isOwner = currentUserId === post.user_id
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'moderator'
@@ -81,7 +111,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
 
   const postUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/u/${post.profiles?.username}`
+    ? `${window.location.origin}/posts/${post.id}`
     : ''
 
   useEffect(() => {
@@ -151,11 +181,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       post_id: post.id,
       user_id: currentUserId,
       content
-    }).select('id').single()
+    }).select('id, post_id, user_id, content, created_at, profiles:user_id(username, display_name, avatar_path)').single()
     if (!error) {
       setCommentText('')
       setCommentCount(prev => prev + 1)
-      await loadComments()
+      setComments(prev => [...prev, newComment])
+      if (!showComments) {
+        setShowComments(true)
+      }
 
       if (post.user_id && post.user_id !== currentUserId) {
         await supabase.from('notifications').insert({
@@ -208,6 +241,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   }
 
   const handleEdit = async () => {
+    if (!currentUserId || !isOwner || editLoading) return
     const trimmed = editedContent.trim()
     if (!trimmed) {
       setEditError('Įrašas negali būti tuščias.')
@@ -220,18 +254,20 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     setEditLoading(true)
     setEditError('')
     const now = new Date().toISOString()
-    const { data: updatedRows, error } = await supabase
+    const { data: updatedRow, error } = await supabase
       .from('posts')
-      .update({ content: trimmed, edited_at: now })
+      .update({ content: trimmed })
       .eq('id', post.id)
-      .eq('user_id', currentUserId!)
-      .select('id')
-    if (!error && updatedRows && updatedRows.length > 0) {
-      setLocalContent(trimmed)
+      .eq('user_id', currentUserId)
+      .eq('status', 'active')
+      .select('content')
+      .maybeSingle()
+    if (!error && updatedRow) {
+      setLocalContent(updatedRow.content)
       setLocalEditedAt(now)
       setShowEditModal(false)
     } else {
-      setEditError('Nepavyko išsaugoti. Bandykite dar kartą.')
+      setEditError(error?.message || 'Nepavyko išsaugoti. Bandykite dar kartą.')
     }
     setEditLoading(false)
   }
@@ -379,6 +415,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 fill
                 sizes="48px"
                 className="object-cover"
+                unoptimized
               />
             ) : (
               <span className="text-base sm:text-lg font-bold text-blue-300 dark:text-blue-500">
@@ -467,6 +504,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     fill
                     sizes={(post.post_media?.length || 0) > 1 ? '(min-width: 640px) 50vw, 100vw' : '100vw'}
                     className="object-cover hover:scale-105 transition-transform"
+                    unoptimized
                   />
                 </div>
               ))}
@@ -481,12 +519,16 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             />
           )}
 
-          {post.youtube_video_id && (
+          {youtubeVideoId && (
             <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-gray-800 bg-black">
               <iframe
                 width="100%" height="100%"
-                src={`https://www.youtube-nocookie.com/embed/${post.youtube_video_id}`}
-                title="YouTube" frameBorder="0" allowFullScreen
+                src={`https://www.youtube-nocookie.com/embed/${youtubeVideoId}`}
+                title="YouTube"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
               />
             </div>
           )}
@@ -609,6 +651,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                             fill
                             sizes="32px"
                             className="object-cover"
+                            unoptimized
                           />
                         ) : (
                           <span className="text-xs font-bold text-blue-300 dark:text-blue-500">

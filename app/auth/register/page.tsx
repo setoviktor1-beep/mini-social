@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, MapPin } from 'lucide-react'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
@@ -22,11 +22,34 @@ export default function Register() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextPath = (() => {
+    const candidate = searchParams.get('next')
+    if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//')) {
+      return '/home'
+    }
+    return candidate
+  })()
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active || !data.session) return
+      router.replace(nextPath)
+      router.refresh()
+    })
+
+    return () => {
+      active = false
+    }
+  }, [nextPath, router, supabase])
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
     setError('')
 
@@ -159,12 +182,17 @@ export default function Register() {
       }
     }
 
+    const { data: sessionData } = await supabase.auth.getSession()
     setSuccess(true)
     setLoading(false)
     setTimeout(() => {
-      router.push('/')
+      if (sessionData.session) {
+        router.replace(nextPath)
+      } else {
+        router.replace(`/auth/login?next=${encodeURIComponent(nextPath)}`)
+      }
       router.refresh()
-    }, 1500)
+    }, 1200)
   }
 
   if (success) {
@@ -176,7 +204,7 @@ export default function Register() {
           </div>
           <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">Sveiki atvykę į MiniSocial!</h1>
           <p className="text-[var(--text-secondary)] mb-6 text-sm sm:text-base">
-            Paskyra sukurta. Nukreipiame jus...
+            Paskyra sukurta sėkmingai. Nukreipiame jus...
           </p>
         </div>
       </div>
@@ -366,7 +394,7 @@ export default function Register() {
 
         <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
           Jau turite paskyrą?{' '}
-          <Link href="/auth/login" className="text-blue-400 font-semibold hover:underline">
+          <Link href={`/auth/login?next=${encodeURIComponent(nextPath)}`} className="text-blue-400 font-semibold hover:underline">
             Prisijungti
           </Link>
         </p>

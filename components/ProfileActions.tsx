@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { X, Camera } from 'lucide-react'
@@ -30,19 +30,28 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
 
   const isOwner = currentUserId === profileId
 
+  useEffect(() => {
+    setFollowing(initialFollowing)
+  }, [initialFollowing])
+
   const handleFollow = async () => {
-    if (!currentUserId) return
+    if (!currentUserId || loading) return
     setLoading(true)
 
     if (following) {
-      await supabase.from('follows').delete()
+      const { error } = await supabase.from('follows').delete()
         .eq('follower_id', currentUserId)
         .eq('following_id', profileId)
-      setFollowing(false)
+      if (!error) {
+        setFollowing(false)
+      }
     } else {
-      const { error } = await supabase.from('follows').insert({
+      const { error } = await supabase.from('follows').upsert({
         follower_id: currentUserId,
         following_id: profileId
+      }, {
+        onConflict: 'follower_id,following_id',
+        ignoreDuplicates: true,
       })
       if (!error) {
         setFollowing(true)

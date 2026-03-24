@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Send } from 'lucide-react'
@@ -24,7 +24,7 @@ interface OtherUser {
 }
 
 export default function ChatPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const params = useParams()
   const conversationId = params.conversationId as string
@@ -40,8 +40,8 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' })
   }, [])
 
   const markAsRead = useCallback(async (userId: string) => {
@@ -107,6 +107,7 @@ export default function ChatPage() {
 
       setMessages(messagesData || [])
       setLoading(false)
+      scrollToBottom('auto')
 
       await markAsRead(user.id)
 
@@ -146,10 +147,10 @@ export default function ChatPage() {
         supabase.removeChannel(channel)
       }
     }
-  }, [conversationId])
+  }, [conversationId, markAsRead, router, scrollToBottom, supabase])
 
   useEffect(() => {
-    scrollToBottom()
+    scrollToBottom(messages.length > 1 ? 'smooth' : 'auto')
   }, [messages, scrollToBottom])
 
   const handleSend = async () => {
@@ -176,6 +177,7 @@ export default function ChatPage() {
       if (prev.some((m) => m.id === inserted.id)) return prev
       return [...prev, inserted as Message]
     })
+    scrollToBottom('auto')
 
     await supabase
       .from('conversations')
@@ -185,10 +187,10 @@ export default function ChatPage() {
     setSending(false)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      void handleSend()
     }
   }
 
@@ -219,7 +221,7 @@ export default function ChatPage() {
           <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             {otherUser?.avatar_path ? (
               <div className="relative w-full h-full">
-                <Image src={getAvatarUrl(otherUser.avatar_path) || ''} alt="" fill sizes="40px" className="object-cover" />
+                        <Image src={getAvatarUrl(otherUser.avatar_path) || ''} alt="" fill sizes="40px" className="object-cover" unoptimized />
               </div>
             ) : (
               <span className="text-sm font-bold text-blue-300 dark:text-blue-500">

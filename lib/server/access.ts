@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { hasActiveSubscription, hasProAccess } from '@/lib/subscription-access'
+import { redirect } from 'next/navigation'
 
 export { hasActiveSubscription, hasProAccess }
 
@@ -24,4 +25,17 @@ export async function getCurrentUserAccess() {
   ])
 
   return { supabase, user, profile, subscription }
+}
+
+export async function requireAuthenticatedUser(nextPath: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect(`/auth/login?next=${encodeURIComponent(nextPath)}`)
+  }
+
+  return { supabase, user }
 }
