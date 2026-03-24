@@ -146,12 +146,30 @@ export default function PostComposer({ userId }: { userId: string }) {
       for (const file of files) {
         const uploadFile = file.type.startsWith('image/') ? await compressImage(file) : file
         const path = `${userId}/${Date.now()}_${uploadFile.name}`
-        await supabase.storage.from('post-images').upload(path, uploadFile)
-        await supabase.from('post_media').insert({
+        const { error: uploadError } = await supabase.storage.from('post-images').upload(path, uploadFile, {
+          contentType: uploadFile.type,
+        })
+
+        if (uploadError) {
+          await supabase.from('posts').delete().eq('id', post.id).eq('user_id', userId)
+          setPostError('Nepavyko įkelti nuotraukos. Bandykite dar kartą.')
+          setLoading(false)
+          return
+        }
+
+        const { error: mediaError } = await supabase.from('post_media').insert({
           post_id: post.id,
           user_id: userId,
           storage_path: path
         })
+
+        if (mediaError) {
+          await supabase.storage.from('post-images').remove([path])
+          await supabase.from('posts').delete().eq('id', post.id).eq('user_id', userId)
+          setPostError('Nepavyko susieti nuotraukos su įrašu. Bandykite dar kartą.')
+          setLoading(false)
+          return
+        }
       }
     }
 
@@ -167,12 +185,6 @@ export default function PostComposer({ userId }: { userId: string }) {
       <textarea
         value={content}
         onChange={e => setContent(e.target.value)}
-        onKeyDown={(e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-            e.preventDefault()
-            void handlePost()
-          }
-        }}
         placeholder="Ką galvojate?"
         className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-gray-100 placeholder-gray-500 outline-none"
       />
@@ -203,18 +215,29 @@ export default function PostComposer({ userId }: { userId: string }) {
           <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-400 focus-within:text-purple-300">
             <Youtube size={18} className="flex-shrink-0" />
             <input
-              type="text"
+              type="url"
               placeholder="YouTube URL"
               value={youtube}
               onChange={e => setYoutube(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="min-h-[44px] w-full border-b border-transparent bg-transparent text-gray-200 outline-none focus:border-purple-300 sm:w-40"
             />
           </div>
         </div>
+        <p className="text-xs text-gray-500">
+          YouTube nuorodą įklijuokite pilną. Įrašas paskelbiamas tik paspaudus „Skelbti“.
+        </p>
         <div className="flex justify-end">
           <button
             onClick={handlePost}
-            disabled={loading || (!content && files.length === 0)}
+            disabled={loading || (!content.trim() && files.length === 0)}
             className="min-h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
           >
             {loading ? 'Skelbiama...' : <><Send size={16}/> Skelbti</>}

@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/server-supabase'
 import PostCard from '@/components/PostCard'
 import ProfileActions from '@/components/ProfileActions'
+import ProfileStats from '@/components/ProfileStats'
 import SendMessageButton from '@/components/SendMessageButton'
 import FriendButton from '@/components/FriendButton'
 import { notFound } from 'next/navigation'
@@ -12,10 +13,6 @@ import Image from 'next/image'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
-
-function pluralizeFollowers(count: number) {
-  return count === 1 ? 'follower' : 'followers'
-}
 
 interface ProfilePageProps {
   params: {
@@ -233,20 +230,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             {profile.bio && (
               <p className="mt-2 sm:mt-3 text-gray-700 dark:text-gray-300 leading-relaxed max-w-md break-words">{profile.bio}</p>
             )}
-            <div className="flex gap-4 sm:gap-6 mt-3 justify-center md:justify-start flex-wrap">
-              <span className="text-sm">
-                <strong className="text-gray-900 dark:text-gray-100">{followersCount || 0}</strong>{' '}
-                <span className="text-gray-500 dark:text-gray-400">{pluralizeFollowers(followersCount || 0)}</span>
-              </span>
-              <span className="text-sm">
-                <strong className="text-gray-900 dark:text-gray-100">{followingCount || 0}</strong>{' '}
-                <span className="text-gray-500 dark:text-gray-400">following</span>
-              </span>
-              <span className="text-sm">
-                <strong className="text-gray-900 dark:text-gray-100">{posts?.length || 0}</strong>{' '}
-                <span className="text-gray-500 dark:text-gray-400">posts</span>
-              </span>
-            </div>
+            <ProfileStats
+              profileId={profile.id}
+              followersCount={followersCount || 0}
+              followingCount={followingCount || 0}
+              postsCount={posts?.length || 0}
+            />
           </div>
           <div className="flex flex-row md:flex-col gap-2 items-center flex-wrap justify-center">
             {currentUser && currentUser.id === profile.id && (
@@ -280,6 +269,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   profileId={profile.id}
                   currentUserId={currentUser?.id}
                   isFollowing={isFollowing}
+                  initialFollowersCount={followersCount || 0}
                   profile={profile}
                 />
                 <FriendButton profileId={profile.id} currentUserId={currentUser?.id} />

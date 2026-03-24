@@ -11,6 +11,29 @@ import ParsedContent from '@/lib/parseContent'
 import { notifyMentions } from '@/lib/mentions'
 import { sendPushNotification } from '@/lib/pushNotify'
 
+function PostMediaImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false)
+
+  if (failed) {
+    return (
+      <div className="flex h-full items-center justify-center bg-gray-900 text-xs text-gray-400">
+        Image unavailable
+      </div>
+    )
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      className="h-full w-full object-cover transition-transform hover:scale-105"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
 function extractYoutubeId(value?: string | null) {
   if (!value) return null
 
@@ -498,14 +521,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   className="relative w-full h-48 sm:h-64 overflow-hidden cursor-pointer"
                   onClick={() => setLightboxIndex(i)}
                 >
-                  <Image
-                    src={publicUrl(m.storage_path)}
-                    alt=""
-                    fill
-                    sizes={(post.post_media?.length || 0) > 1 ? '(min-width: 640px) 50vw, 100vw' : '100vw'}
-                    className="object-cover hover:scale-105 transition-transform"
-                    unoptimized
-                  />
+                  <PostMediaImage src={publicUrl(m.storage_path)} />
                 </div>
               ))}
             </div>

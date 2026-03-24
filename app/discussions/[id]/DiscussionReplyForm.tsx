@@ -68,7 +68,7 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
         />
       </div>
       <div className="flex items-center justify-between mt-3">
-        <p className="text-xs text-gray-400 dark:text-gray-500">{content.length}/2000 &middot; Ctrl+Enter to submit</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">{content.length}/2000 &middot; Reply with the button or Ctrl/Cmd+Enter</p>
         <button
           type="submit"
           disabled={loading || !content.trim()}

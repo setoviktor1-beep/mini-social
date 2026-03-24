@@ -131,7 +131,7 @@ export default function MessagesPage() {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3 sm:gap-4">
-        <Link href="/" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
+        <Link href="/home" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
           <ArrowLeft size={22} className="text-gray-600 dark:text-gray-400" />
         </Link>
         <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Messages</h1>

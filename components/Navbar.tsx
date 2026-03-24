@@ -121,6 +121,7 @@ export default function Navbar() {
     ? supabase.storage.from('post-images').getPublicUrl(avatarPath).data.publicUrl
     : null
 
+  const homeHref = user ? '/home' : '/'
   const profileHref = username || user?.user_metadata?.username
     ? `/u/${username || user?.user_metadata?.username}`
     : '/settings'
@@ -129,7 +130,7 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-800/60 bg-[#0a0a0f]/85 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16">
-        <Link href="/" className="font-black text-xl sm:text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+        <Link href={homeHref} className="font-black text-xl sm:text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
           MiniSocial
         </Link>
 

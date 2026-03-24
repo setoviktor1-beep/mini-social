@@ -64,6 +64,7 @@ function buildTrendingFromPosts(posts: any[]) {
 export default async function Home(props: { searchParams?: { tab?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const homeHref = user ? '/home' : '/'
 
   const requestedTab = parseTab(props.searchParams?.tab)
   const activeTab: TabKey = user ? (requestedTab || 'latest') : 'latest'
@@ -105,7 +106,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
           <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)]">
             <nav className="space-y-1 rounded-2xl border border-gray-800/60 bg-gray-900/40 p-2">
               {[
-                { href: '/', icon: HomeIcon, label: 'Home', show: true },
+                { href: homeHref, icon: HomeIcon, label: 'Home', show: true },
                 { href: '/services', icon: Store, label: 'Paslaugos', show: true },
                 { href: '/pro', icon: Briefcase, label: 'Verslo Darbalaukis', show: ['pro', 'master', 'admin'].includes(userRole ?? '') },
                 { href: '/search', icon: Search, label: 'Explore', show: true },
@@ -118,7 +119,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
                   key={item.href}
                   href={item.href}
                   className={`flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors ${
-                    item.href === '/'
+                    item.href === homeHref
                       ? 'bg-blue-500/15 text-blue-400'
                       : 'text-gray-300 hover:bg-gray-800/70'
                   }`}
@@ -163,7 +164,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
                     return (
                       <Link
                         key={t.key}
-                        href={`/?tab=${t.key}`}
+                        href={`/home?tab=${t.key}`}
                         className={`relative flex-1 py-3 text-center text-sm font-medium transition-colors ${
                           active ? 'text-white' : 'text-gray-500 hover:text-gray-300'
                         }`}
@@ -226,7 +227,7 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-800/60 bg-[#0a0a0f]/95 backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-6 py-2">
-          <Link href="/" className="flex flex-col items-center gap-1 py-1 text-xs text-white">
+          <Link href={homeHref} className="flex flex-col items-center gap-1 py-1 text-xs text-white">
             <HomeIcon size={18} />
             Home
           </Link>

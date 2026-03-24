@@ -61,9 +61,10 @@ export default function BottomNav() {
 
   const profileHref = username ? `/u/${username}` : loggedIn ? '/settings' : '/auth/login'
   const isProUser = role === 'master' || role === 'admin' || role === 'pro'
+  const homeHref = loggedIn ? '/home' : '/'
 
   const tabs = [
-    { href: '/', icon: Home, label: 'Home' },
+    { href: homeHref, icon: Home, label: 'Home' },
     { href: '/services', icon: Store, label: 'Paslaugos' },
     { href: '/search', icon: Search, label: 'Paieška' },
     ...(!isProUser && loggedIn ? [{ href: '/my-orders', icon: ClipboardList, label: 'Mano Užsakymai' }] : []),
@@ -72,6 +73,7 @@ export default function BottomNav() {
   ]
 
   function isActive(tab: typeof tabs[0]) {
+    if (tab.href === '/home') return pathname === '/home' || pathname === '/'
     if (tab.href === '/') return pathname === '/'
     if (tab.matchPrefix) return pathname.startsWith(tab.matchPrefix)
     return pathname.startsWith(tab.href)

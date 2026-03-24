@@ -61,6 +61,12 @@ export async function middleware(request: NextRequest) {
     protectedPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
     pathname === '/discussions/new'
 
+  if (pathname === '/' && user) {
+    const homeUrl = request.nextUrl.clone()
+    homeUrl.pathname = '/home'
+    return NextResponse.redirect(homeUrl)
+  }
+
   if (isProtectedUserRoute && !user) {
     return NextResponse.redirect(loginUrl)
   }

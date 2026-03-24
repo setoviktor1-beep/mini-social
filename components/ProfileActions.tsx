@@ -9,6 +9,7 @@ interface ProfileActionsProps {
   profileId: string
   currentUserId?: string
   isFollowing: boolean
+  initialFollowersCount: number
   profile: {
     id: string
     display_name: string
@@ -17,10 +18,17 @@ interface ProfileActionsProps {
   }
 }
 
-export default function ProfileActions({ profileId, currentUserId, isFollowing: initialFollowing, profile }: ProfileActionsProps) {
+export default function ProfileActions({
+  profileId,
+  currentUserId,
+  isFollowing: initialFollowing,
+  initialFollowersCount,
+  profile,
+}: ProfileActionsProps) {
   const supabase = createClient()
   const router = useRouter()
   const [following, setFollowing] = useState(initialFollowing)
+  const [followersCount, setFollowersCount] = useState(initialFollowersCount)
   const [loading, setLoading] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [displayName, setDisplayName] = useState(profile.display_name || '')
@@ -34,6 +42,22 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
     setFollowing(initialFollowing)
   }, [initialFollowing])
 
+  useEffect(() => {
+    setFollowersCount(initialFollowersCount)
+  }, [initialFollowersCount])
+
+  const syncFollowersCount = (nextCount: number) => {
+    setFollowersCount(nextCount)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('profile-follow-count', {
+        detail: {
+          profileId,
+          followersCount: nextCount,
+        },
+      }))
+    }
+  }
+
   const handleFollow = async () => {
     if (!currentUserId || loading) return
     setLoading(true)
@@ -44,6 +68,7 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
         .eq('following_id', profileId)
       if (!error) {
         setFollowing(false)
+        syncFollowersCount(Math.max(0, followersCount - 1))
       }
     } else {
       const { error } = await supabase.from('follows').upsert({
@@ -55,6 +80,7 @@ export default function ProfileActions({ profileId, currentUserId, isFollowing: 
       })
       if (!error) {
         setFollowing(true)
+        syncFollowersCount(followersCount + 1)
         await supabase.from('notifications').insert({
           user_id: profileId,
           actor_id: currentUserId,
