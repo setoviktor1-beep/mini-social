@@ -10,6 +10,7 @@ import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
 import { notifyMentions } from '@/lib/mentions'
 import { sendPushNotification } from '@/lib/pushNotify'
+import { extractYoutubeId, getYoutubeEmbedUrl, isOnlyYoutubeUrl, resolveSupabaseStorageUrl } from '@/lib/media'
 
 function PostMediaImage({ src }: { src: string }) {
   const [failed, setFailed] = useState(false)
@@ -28,38 +29,10 @@ function PostMediaImage({ src }: { src: string }) {
       src={src}
       alt=""
       loading="lazy"
-      className="h-full w-full object-cover transition-transform hover:scale-105"
+      className="block h-full w-full bg-gray-950 object-cover transition-transform hover:scale-105"
       onError={() => setFailed(true)}
     />
   )
-}
-
-function extractYoutubeId(value?: string | null) {
-  if (!value) return null
-
-  try {
-    const parsed = new URL(value)
-    const hostname = parsed.hostname.replace(/^www\./, '')
-
-    if (hostname === 'youtu.be') {
-      const id = parsed.pathname.split('/').filter(Boolean)[0]
-      return id?.length === 11 ? id : null
-    }
-
-    if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
-      const fromQuery = parsed.searchParams.get('v')
-      if (fromQuery?.length === 11) return fromQuery
-
-      const segments = parsed.pathname.split('/').filter(Boolean)
-      const candidate = segments[1]
-      if (['embed', 'shorts', 'live', 'v'].includes(segments[0]) && candidate?.length === 11) {
-        return candidate
-      }
-    }
-  } catch {}
-
-  const match = value.match(/([a-zA-Z0-9_-]{11})/)
-  return match?.[1] ?? null
 }
 
 interface PostCardProps {
@@ -124,14 +97,23 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [localContent, setLocalContent] = useState(post.content)
   const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const youtubeVideoId = post.youtube_video_id || extractYoutubeId(post.youtube_url)
+  const mediaUrls = (post.post_media || [])
+    .map((media) => resolveSupabaseStorageUrl(
+      (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+      media.storage_path
+    ))
+    .filter((value): value is string => Boolean(value))
+  const youtubeVideoId = post.youtube_video_id || extractYoutubeId(post.youtube_url) || extractYoutubeId(post.content)
+  const youtubeEmbedUrl = getYoutubeEmbedUrl(post.youtube_url || post.content)
+  const hidesPlainYoutubeText = !!youtubeVideoId && isOnlyYoutubeUrl(localContent)
+  const avatarUrl = resolveSupabaseStorageUrl(
+    (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+    post.profiles?.avatar_path
+  )
 
   const isOwner = currentUserId === post.user_id
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'moderator'
   const canDelete = isOwner || isAdmin
-
-  const publicUrl = (path: string) =>
-    supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
 
   const postUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/posts/${post.id}`
@@ -433,7 +415,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden relative">
             {post.profiles?.avatar_path ? (
               <Image
-                src={publicUrl(post.profiles.avatar_path)}
+                src={avatarUrl!}
                 alt=""
                 fill
                 sizes="48px"
@@ -488,9 +470,11 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             )}
           </div>
 
-          <p className="text-gray-100 text-[15px] leading-relaxed whitespace-pre-wrap mb-1">
-            <ParsedContent content={localContent} />
-          </p>
+          {!hidesPlainYoutubeText && (
+            <p className="text-gray-100 text-[15px] leading-relaxed whitespace-pre-wrap mb-1">
+              <ParsedContent content={localContent} />
+            </p>
+          )}
           {localEditedAt && (
             <p className="text-xs text-gray-500 mb-3">
               edited {formatDistanceToNow(new Date(localEditedAt), { addSuffix: true })}
@@ -513,36 +497,36 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             </div>
           )}
 
-          {post.post_media && post.post_media.length > 0 && (
-            <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-800 ${post.post_media.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-              {post.post_media.map((m, i) => (
+          {mediaUrls.length > 0 && (
+            <div className={`grid gap-2 mb-3 rounded-2xl overflow-hidden border border-gray-800 bg-gray-950 ${mediaUrls.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {mediaUrls.map((src, i) => (
                 <div
                   key={i}
-                  className="relative w-full h-48 sm:h-64 overflow-hidden cursor-pointer"
+                  className="relative w-full h-48 sm:h-64 overflow-hidden cursor-pointer bg-gray-950"
                   onClick={() => setLightboxIndex(i)}
                 >
-                  <PostMediaImage src={publicUrl(m.storage_path)} />
+                  <PostMediaImage src={src} />
                 </div>
               ))}
             </div>
           )}
 
-          {lightboxIndex !== null && post.post_media && (
+          {lightboxIndex !== null && mediaUrls.length > 0 && (
             <ImageLightbox
-              images={post.post_media.map(m => publicUrl(m.storage_path))}
+              images={mediaUrls}
               initialIndex={lightboxIndex}
               onClose={() => setLightboxIndex(null)}
             />
           )}
 
-          {youtubeVideoId && (
+          {youtubeEmbedUrl && (
             <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-gray-800 bg-black">
               <iframe
                 width="100%" height="100%"
-                src={`https://www.youtube-nocookie.com/embed/${youtubeVideoId}`}
+                src={youtubeEmbedUrl}
                 title="YouTube"
                 frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
               />
@@ -662,7 +646,10 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                         {c.profiles?.avatar_path ? (
                           <Image
-                            src={publicUrl(c.profiles.avatar_path)}
+                            src={resolveSupabaseStorageUrl(
+                              (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+                              c.profiles.avatar_path
+                            )!}
                             alt=""
                             fill
                             sizes="32px"

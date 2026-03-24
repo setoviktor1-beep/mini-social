@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
 import Image from 'next/image'
 import { notifyMentions } from '@/lib/mentions'
+import { extractYoutubeId, normalizeYoutubeUrl } from '@/lib/media'
 
 async function compressImage(file: File): Promise<File> {
   const MAX_SIZE = 1200
@@ -46,35 +47,6 @@ async function compressImage(file: File): Promise<File> {
   })
 }
 
-function extractYoutubeId(url: string) {
-  const value = url.trim()
-  if (!value) return null
-
-  try {
-    const parsed = new URL(value)
-    const hostname = parsed.hostname.replace(/^www\./, '')
-
-    if (hostname === 'youtu.be') {
-      const id = parsed.pathname.split('/').filter(Boolean)[0]
-      return id?.length === 11 ? id : null
-    }
-
-    if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
-      const fromQuery = parsed.searchParams.get('v')
-      if (fromQuery?.length === 11) return fromQuery
-
-      const segments = parsed.pathname.split('/').filter(Boolean)
-      const candidate = segments[1]
-      if (['embed', 'shorts', 'live', 'v'].includes(segments[0]) && candidate?.length === 11) {
-        return candidate
-      }
-    }
-  } catch {}
-
-  const match = value.match(/([a-zA-Z0-9_-]{11})/)
-  return match?.[1] ?? null
-}
-
 export default function PostComposer({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
   const [youtube, setYoutube] = useState('')
@@ -87,15 +59,21 @@ export default function PostComposer({ userId }: { userId: string }) {
   const handlePost = async () => {
     if (loading) return
     const trimmedContent = content.trim()
-    if (!trimmedContent && files.length === 0) {
+    const typedYoutube = youtube.trim()
+    const contentYoutubeId = typedYoutube ? null : extractYoutubeId(trimmedContent)
+    const youtubeId = extractYoutubeId(typedYoutube) || contentYoutubeId
+    const normalizedYoutubeUrl = normalizeYoutubeUrl(typedYoutube || trimmedContent)
+    const contentIsOnlyYoutubeUrl = !!contentYoutubeId && trimmedContent.length > 0
+    const finalContent = contentIsOnlyYoutubeUrl ? '' : trimmedContent
+
+    if (!finalContent && files.length === 0 && !youtubeId) {
       setPostError('Parašykite ką nors arba pridėkite nuotrauką.')
       return
     }
     setPostError('')
     setLoading(true)
 
-    const ytId = youtube ? extractYoutubeId(youtube) : null
-    if (youtube.trim() && !ytId) {
+    if ((typedYoutube || contentYoutubeId) && !youtubeId) {
       setPostError('Neteisinga YouTube nuoroda.')
       setLoading(false)
       return
@@ -103,9 +81,9 @@ export default function PostComposer({ userId }: { userId: string }) {
 
     const { data: post, error } = await supabase.from('posts').insert({
       user_id: userId,
-      content: trimmedContent,
-      youtube_url: youtube || null,
-      youtube_video_id: ytId
+      content: finalContent,
+      youtube_url: normalizedYoutubeUrl,
+      youtube_video_id: youtubeId,
     }).select().single()
 
     if (error) {
@@ -135,7 +113,7 @@ export default function PostComposer({ userId }: { userId: string }) {
 
     await notifyMentions({
       supabase,
-      content,
+      content: finalContent,
       actorId: userId,
       targetId: post.id,
       targetType: 'post',
@@ -204,7 +182,7 @@ export default function PostComposer({ userId }: { userId: string }) {
 
       <div className="flex flex-col gap-3 border-t border-gray-800/60 pt-3">
         {postError && (
-          <p className="text-sm text-red-400 mb-2">{postError}</p>
+        <p className="text-sm text-red-400 mb-2">{postError}</p>
         )}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
@@ -232,12 +210,12 @@ export default function PostComposer({ userId }: { userId: string }) {
           </div>
         </div>
         <p className="text-xs text-gray-500">
-          YouTube nuorodą įklijuokite pilną. Įrašas paskelbiamas tik paspaudus „Skelbti“.
+          Enter palieka naują eilutę. YouTube nuorodą galite dėti į atskirą lauką arba vieną pačią į posto tekstą.
         </p>
         <div className="flex justify-end">
           <button
             onClick={handlePost}
-            disabled={loading || (!content.trim() && files.length === 0)}
+            disabled={loading || (!content.trim() && files.length === 0 && !youtube.trim() && !extractYoutubeId(content.trim()))}
             className="min-h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
           >
             {loading ? 'Skelbiama...' : <><Send size={16}/> Skelbti</>}
