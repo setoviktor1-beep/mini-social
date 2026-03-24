@@ -31,6 +31,12 @@ function PostMediaImage({ src }: { src: string }) {
       loading="lazy"
       className="block h-full w-full bg-gray-950 object-cover transition-transform hover:scale-105"
       onError={() => setFailed(true)}
+      onLoad={(event) => {
+        const element = event.currentTarget
+        if (element.naturalWidth < 32 || element.naturalHeight < 32) {
+          setFailed(true)
+        }
+      }}
     />
   )
 }

@@ -47,6 +47,22 @@ async function compressImage(file: File): Promise<File> {
   })
 }
 
+async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve({ width: img.width, height: img.height })
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Failed to read image dimensions'))
+    }
+    img.src = objectUrl
+  })
+}
+
 export default function PostComposer({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
   const [youtube, setYoutube] = useState('')
@@ -123,6 +139,17 @@ export default function PostComposer({ userId }: { userId: string }) {
     if (files.length > 0) {
       for (const file of files) {
         const uploadFile = file.type.startsWith('image/') ? await compressImage(file) : file
+        const dimensions = uploadFile.type.startsWith('image/')
+          ? await getImageDimensions(uploadFile)
+          : null
+
+        if (dimensions && (dimensions.width < 32 || dimensions.height < 32)) {
+          await supabase.from('posts').delete().eq('id', post.id).eq('user_id', userId)
+          setPostError('Paveikslėlis per mažas arba neteisingas. Įkelkite normalų paveikslėlį.')
+          setLoading(false)
+          return
+        }
+
         const path = `${userId}/${Date.now()}_${uploadFile.name}`
         const { error: uploadError } = await supabase.storage.from('post-images').upload(path, uploadFile, {
           contentType: uploadFile.type,
