@@ -465,16 +465,16 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 {isOwner && (
                   <button
                     onClick={() => { setEditedContent(localContent); setShowEditModal(true) }}
-                    className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
-                    title="Edit post"
+                    className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    title="Redaguoti įrašą"
                   >
                     <Pencil size={16} />
                   </button>
                 )}
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
-                  title="Delete post"
+                  className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  title="Ištrinti įrašą"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -639,7 +639,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             {currentUserId && !isOwner && (
               <button
                 onClick={() => setShowReportModal(true)}
-                className="flex items-center gap-2 hover:text-yellow-600 transition-colors ml-auto opacity-100 sm:opacity-0 group-hover:opacity-100 min-h-[44px]"
+                className="flex items-center gap-2 text-gray-500 hover:text-yellow-600 transition-colors ml-auto min-h-[44px]"
               >
                 <AlertCircle size={18} />
               </button>

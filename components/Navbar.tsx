@@ -162,12 +162,13 @@ export default function Navbar() {
                 </Link>
               )}
               {isProUser ? (
-                <Link href="/pro" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors" title="Verslo Darbalaukis">
+                <Link href="/pro" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors flex items-center gap-1" title="Verslo Darbalaukis" aria-label="Verslo Darbalaukis">
                   <Briefcase size={20} />
                 </Link>
               ) : (
-                <Link href="/pricing" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors" title="Verslo planai">
+                <Link href="/pricing" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold" title="Verslo Darbalaukis – Gauti Pro" aria-label="Verslo Darbalaukis – Gauti Pro">
                   <Briefcase size={20} />
+                  <span className="hidden xl:inline">Pro</span>
                 </Link>
               )}
               {(role === 'admin' || role === 'moderator') && (
