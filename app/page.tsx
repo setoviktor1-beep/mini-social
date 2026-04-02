@@ -195,10 +195,10 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
               </h3>
               <div className="space-y-3">
                 {trending.map((item) => (
-                  <div key={item.tag} className="rounded-xl px-2 py-1.5 hover:bg-gray-800/60">
-                    <div className="text-sm font-medium text-white">#{item.tag}</div>
+                  <Link key={item.tag} href={`/search?q=%23${encodeURIComponent(item.tag)}`} className="block rounded-xl px-2 py-1.5 hover:bg-gray-800/60 cursor-pointer">
+                    <div className="text-sm font-medium text-white hover:text-blue-400 transition-colors">#{item.tag}</div>
                     <div className="text-xs text-gray-400">{item.posts}</div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
