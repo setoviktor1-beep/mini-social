@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
@@ -71,6 +71,15 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [postError, setPostError] = useState('')
   const supabase = createClient()
   const router = useRouter()
+
+  // CB2: Reset composer state when the authenticated user changes
+  useEffect(() => {
+    setContent('')
+    setYoutube('')
+    setFiles([])
+    setPostError('')
+    setLoading(false)
+  }, [userId])
 
   const handlePost = async () => {
     if (loading) return

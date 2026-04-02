@@ -1,5 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -22,6 +24,42 @@ export function useTheme() {
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light'
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+// CB1: Listen for browser back/forward navigation and refresh server data
+function RouterRefreshListener() {
+  const router = useRouter()
+  useEffect(() => {
+    const handlePopState = () => {
+      router.refresh()
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [router])
+  return null
+}
+
+// CB3: Restore Supabase session on page load and keep it alive
+function SupabaseSessionRestorer() {
+  const router = useRouter()
+  useEffect(() => {
+    const supabase = createClient()
+    // Trigger session restoration from cookies/storage
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // Session exists — ensure server components see the refreshed session
+        router.refresh()
+      }
+    })
+    // Listen for auth state changes and refresh server data accordingly
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+        router.refresh()
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [router])
+  return null
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -74,6 +112,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
+      <RouterRefreshListener />
+      <SupabaseSessionRestorer />
       {children}
     </ThemeContext.Provider>
   )

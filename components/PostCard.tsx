@@ -78,7 +78,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const router = useRouter()
   const [liked, setLiked] = useState(post.user_liked || false)
   const [likeCount, setLikeCount] = useState(Number(post.likes?.[0]?.count || 0))
-  const [showComments, setShowComments] = useState(false)
+  const [showComments, setShowComments] = useState(true)
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState('')
   const [commentCount, setCommentCount] = useState(post.comments?.[0]?.count || 0)
@@ -125,16 +125,22 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     ? `${window.location.origin}/posts/${post.id}`
     : ''
 
+  // Load comments on mount since comment section is visible by default
   useEffect(() => {
-    const syncCommentCount = async () => {
-      const { count } = await supabase
+    const loadInitialComments = async () => {
+      setLoadingComments(true)
+      const { data } = await supabase
         .from('comments')
-        .select('*', { count: 'exact', head: true })
+        .select('*, profiles:user_id(username, display_name, avatar_path)')
         .eq('post_id', post.id)
         .eq('status', 'active')
-      setCommentCount(count || 0)
+        .order('created_at', { ascending: true })
+      const rows = data || []
+      setComments(rows)
+      setCommentCount(rows.length)
+      setLoadingComments(false)
     }
-    void syncCommentCount()
+    void loadInitialComments()
   }, [post.id, supabase])
 
   const handleLike = async () => {

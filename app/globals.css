@@ -4,21 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* MB3: Full-page background and text respond to light/dark mode */
+html {
+  background-color: var(--bg-primary);
+  transition: background-color 0.15s ease;
+}
+
 body {
   color: var(--text-primary);
-  background:
-    radial-gradient(circle at 10% 0%, #18243a 0%, transparent 38%),
-    radial-gradient(circle at 90% 100%, #102238 0%, transparent 40%),
-    var(--bg-primary);
-  transition: all 0.15s ease;
+  background-color: var(--bg-primary);
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(24, 36, 58, 0.4) 0%, transparent 38%),
+    radial-gradient(circle at 90% 100%, rgba(16, 34, 56, 0.3) 0%, transparent 40%);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .dark body {
   color: var(--text-primary);
+  background-image:
+    radial-gradient(circle at 10% 0%, #18243a 0%, transparent 38%),
+    radial-gradient(circle at 90% 100%, #102238 0%, transparent 40%);
 }
 
 * {
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 input,

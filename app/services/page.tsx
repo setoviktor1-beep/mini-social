@@ -122,65 +122,121 @@ export default function ServicesPage() {
   };
 
   const fetchLocalServices = async (lat: number, lng: number, radiusKm: number, category: string) => {
-    const { data } = await supabase
-      .from("pro_services")
-      .select("*, profiles!pro_id(display_name, business_name, business_category, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path)")
-      .eq("is_active", true);
+    // CB4: Fetch both pro_services rows AND profiles with business info directly
+    const [{ data: proServicesData }, { data: profileServicesData }] = await Promise.all([
+      supabase
+        .from("pro_services")
+        .select("*, profiles!pro_id(id, display_name, business_name, business_category, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path)")
+        .eq("is_active", true),
+      supabase
+        .from("profiles")
+        .select("id, display_name, business_name, business_category, business_description, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path")
+        .in("role", ["master", "pro", "admin"])
+        .not("business_name", "is", null),
+    ]);
 
-    if (!data) return;
+    // Collect pro_ids that already have pro_services rows to avoid duplicates
+    const proIdsWithServices = new Set((proServicesData || []).map((s: any) => s.pro_id));
 
-    const filtered = data
+    const mapProService = (s: any) => {
+      const p = s.profiles;
+      const providerLocation = getActiveProfileLocation(p);
+      const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
+      const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
+      return {
+        id: s.id,
+        name: s.name,
+        description: s.description || p.business_name || "",
+        address: providerLocation.addressText || p.address_text || "",
+        rating: 0,
+        isOpen: true,
+        distance: distLabel,
+        icon: categoryIcon(p.business_category || ""),
+        providerName: p.business_name || p.display_name,
+        price: s.price ? `€${s.price}` : null,
+        priceType: s.price_type,
+        isLocal: true,
+        providerId: s.pro_id,
+      };
+    };
+
+    const mapProfileService = (p: any) => {
+      const providerLocation = getActiveProfileLocation(p);
+      const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
+      const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
+      return {
+        id: `profile-${p.id}`,
+        name: p.business_name || p.display_name,
+        description: p.business_description || "",
+        address: providerLocation.addressText || p.address_text || "",
+        rating: 0,
+        isOpen: true,
+        distance: distLabel,
+        icon: categoryIcon(p.business_category || ""),
+        providerName: p.business_name || p.display_name,
+        price: null,
+        priceType: null,
+        isLocal: true,
+        providerId: p.id,
+      };
+    };
+
+    const filterByLocation = (providerLocation: { lat: any; lng: any }, businessCategory: string) => {
+      if (providerLocation.lat == null || providerLocation.lng == null) return false;
+      const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
+      if (distKm > radiusKm) return false;
+      if (category === "Visi") return true;
+      const cats = CATEGORY_MAP[category] || [];
+      return cats.includes((businessCategory || "").toLowerCase());
+    };
+
+    const fromProServices = (proServicesData || [])
       .filter((s: any) => {
         const p = s.profiles;
-        const providerLocation = getActiveProfileLocation(p);
-        if (providerLocation.lat == null || providerLocation.lng == null) return false;
-        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
-        if (distKm > radiusKm) return false;
-        if (category === "Visi") return true;
-        const cats = CATEGORY_MAP[category] || [];
-        return cats.includes((p.business_category || "").toLowerCase());
+        return filterByLocation(getActiveProfileLocation(p), p.business_category || "");
       })
-      .map((s: any) => {
-        const p = s.profiles;
-        const providerLocation = getActiveProfileLocation(p);
-        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
-        const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
-        return {
-          id: s.id,
-          name: s.name,
-          description: s.description || p.business_name || "",
-          address: providerLocation.addressText || p.address_text || "",
-          rating: 0,
-          isOpen: true,
-          distance: distLabel,
-          icon: categoryIcon(p.business_category || ""),
-          providerName: p.business_name || p.display_name,
-          price: s.price ? `€${s.price}` : null,
-          priceType: s.price_type,
-          isLocal: true,
-          providerId: s.pro_id,
-        };
-      });
+      .map(mapProService);
 
-    setLocalServices(filtered);
+    // CB4: Include profiles that have business info but no pro_services rows
+    const fromProfiles = (profileServicesData || [])
+      .filter((p: any) => {
+        if (proIdsWithServices.has(p.id)) return false; // skip duplicates
+        return filterByLocation(getActiveProfileLocation(p), p.business_category || "");
+      })
+      .map(mapProfileService);
+
+    setLocalServices([...fromProServices, ...fromProfiles]);
   };
 
   const fetchHomeLocalServices = async (lat: number, lng: number, radiusKm: number, category: string) => {
-    const { data } = await supabase
-      .from("pro_services")
-      .select("*, profiles!pro_id(display_name, business_name, business_category, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path)")
-      .eq("is_active", true);
-    if (!data) return;
-    const filtered = data
+    // CB4: Also fetch profiles with business info for home neighborhood
+    const [{ data: proServicesData }, { data: profileServicesData }] = await Promise.all([
+      supabase
+        .from("pro_services")
+        .select("*, profiles!pro_id(id, display_name, business_name, business_category, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path)")
+        .eq("is_active", true),
+      supabase
+        .from("profiles")
+        .select("id, display_name, business_name, business_category, business_description, address_text, address_lat, address_lng, travel_mode, travel_address_text, travel_lat, travel_lng, avatar_path")
+        .in("role", ["master", "pro", "admin"])
+        .not("business_name", "is", null),
+    ]);
+
+    const proIdsWithServices = new Set((proServicesData || []).map((s: any) => s.pro_id));
+
+    const filterByLocation = (providerLocation: { lat: any; lng: any }, businessCategory: string) => {
+      if (providerLocation.lat == null || providerLocation.lng == null) return false;
+      const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
+      if (distKm > radiusKm) return false;
+      if (category === "Visi") return true;
+      const cats = CATEGORY_MAP[category] || [];
+      return cats.includes((businessCategory || "").toLowerCase());
+    };
+
+    const fromProServices = (proServicesData || [])
       .filter((s: any) => {
         const p = s.profiles;
-        const providerLocation = getActiveProfileLocation(p);
-        if (providerLocation.lat == null || providerLocation.lng == null) return false;
-        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
-        if (distKm > radiusKm) return false;
-        if (category === "Visi") return true;
-        const cats = CATEGORY_MAP[category] || [];
-        return cats.includes((p.business_category || "").toLowerCase());
+        return filterByLocation(getActiveProfileLocation(p), p.business_category || "");
       })
       .map((s: any) => {
         const p = s.profiles;
@@ -203,7 +259,34 @@ export default function ServicesPage() {
           providerId: s.pro_id,
         };
       });
-    setHomeLocalServices(filtered);
+
+    const fromProfiles = (profileServicesData || [])
+      .filter((p: any) => {
+        if (proIdsWithServices.has(p.id)) return false;
+        return filterByLocation(getActiveProfileLocation(p), p.business_category || "");
+      })
+      .map((p: any) => {
+        const providerLocation = getActiveProfileLocation(p);
+        const distKm = haversineKm(lat, lng, providerLocation.lat, providerLocation.lng);
+        const distLabel = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
+        return {
+          id: `profile-${p.id}`,
+          name: p.business_name || p.display_name,
+          description: p.business_description || "",
+          address: providerLocation.addressText || p.address_text || "",
+          rating: 0,
+          isOpen: true,
+          distance: distLabel,
+          icon: categoryIcon(p.business_category || ""),
+          providerName: p.business_name || p.display_name,
+          price: null,
+          priceType: null,
+          isLocal: true,
+          providerId: p.id,
+        };
+      });
+
+    setHomeLocalServices([...fromProServices, ...fromProfiles]);
   };
 
   const fetchGoogleServices = async (lat: number, lng: number, radiusKm: number, category: string) => {

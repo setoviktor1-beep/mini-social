@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import Image from 'next/image'
@@ -49,12 +50,14 @@ function formatNotificationText(n: NotificationRow) {
 
 function getNotificationHref(n: NotificationRow) {
   if (n.target_type === 'discussion' && n.target_id) return `/discussions/${n.target_id}`
+  if (n.target_type === 'post' && n.target_id) return `/posts/${n.target_id}`
   if (n.actor?.username) return `/u/${n.actor.username}`
   return '/notifications'
 }
 
 export default function NotificationBell() {
   const supabase = useMemo(() => createClient(), [])
+  const router = useRouter()
   const rootRef = useRef<HTMLDivElement | null>(null)
 
   const [open, setOpen] = useState(false)
@@ -79,13 +82,25 @@ export default function NotificationBell() {
 
   const fetchLatest = async (uid: string) => {
     setLoading(true)
-    const { data } = await supabase
+    // MB5: Use explicit profiles table join; fall back to bare notification rows if join fails
+    const { data, error } = await supabase
       .from('notifications')
-      .select('*, actor:actor_id(username, display_name, avatar_path)')
+      .select('*, actor:profiles!notifications_actor_id_fkey(username, display_name, avatar_path)')
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
       .limit(20)
-    setItems((data as NotificationRow[]) || [])
+    if (error || !data) {
+      // Retry without join if FK name is wrong
+      const { data: plain } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      setItems((plain as NotificationRow[]) || [])
+    } else {
+      setItems((data as NotificationRow[]) || [])
+    }
     setLoading(false)
   }
 
@@ -98,6 +113,25 @@ export default function NotificationBell() {
       .eq('is_read', false)
     await fetchLatest(userId)
     await fetchUnreadCount(userId)
+  }
+
+  const navigateToNotification = async (n: NotificationRow) => {
+    let href = getNotificationHref(n)
+
+    if (n.target_type === 'comment' && n.target_id) {
+      const { data: comment } = await supabase
+        .from('comments')
+        .select('post_id')
+        .eq('id', n.target_id)
+        .maybeSingle()
+
+      if (comment?.post_id) {
+        href = `/posts/${comment.post_id}#comment-${n.target_id}`
+      }
+    }
+
+    setOpen(false)
+    router.push(href)
   }
 
   useEffect(() => {
@@ -195,16 +229,15 @@ export default function NotificationBell() {
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {items.map((n) => {
-                  const href = getNotificationHref(n)
                   const avatarUrl = getAvatarUrl(n.actor?.avatar_path || null)
                   return (
-                    <Link
+                    <button
                       key={n.id}
-                      href={href}
-                      onClick={() => setOpen(false)}
+                      type="button"
+                      onClick={() => void navigateToNotification(n)}
                       className={`flex gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors ${
                         n.is_read ? '' : 'bg-blue-50/60 dark:bg-blue-900/10'
-                      }`}
+                      } w-full text-left`}
                     >
                       <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {avatarUrl ? (
@@ -228,7 +261,7 @@ export default function NotificationBell() {
                       {!n.is_read && (
                         <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-2" aria-hidden="true" />
                       )}
-                    </Link>
+                    </button>
                   )
                 })}
               </div>

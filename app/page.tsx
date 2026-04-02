@@ -108,7 +108,8 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
               {[
                 { href: homeHref, icon: HomeIcon, label: 'Home', show: true },
                 { href: '/services', icon: Store, label: 'Paslaugos', show: true },
-                { href: '/pro', icon: Briefcase, label: 'Verslo Darbalaukis', show: ['pro', 'master', 'admin'].includes(userRole ?? '') },
+                // MB2: Show dashboard link for all users; pro users go to /pro, others to /pricing
+                { href: ['pro', 'master', 'admin'].includes(userRole ?? '') ? '/pro' : '/pricing', icon: Briefcase, label: 'Verslo Darbalaukis', show: true },
                 { href: '/search', icon: Search, label: 'Explore', show: true },
                 { href: '/notifications', icon: Bell, label: 'Notifications', show: true },
                 { href: '/messages', icon: Mail, label: 'Messages', show: true },
