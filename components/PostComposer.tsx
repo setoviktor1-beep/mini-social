@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
@@ -69,7 +69,8 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [postError, setPostError] = useState('')
-  const supabase = createClient()
+  // UX5: Memoize supabase client to prevent recreation causing re-render loops
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   // CB2: Reset composer state when the authenticated user changes

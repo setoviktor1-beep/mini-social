@@ -12,11 +12,11 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 const categoryConfig: Record<string, { label: string; bg: string; text: string }> = {
-  general: { label: 'General', bg: 'bg-blue-50 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
-  help: { label: 'Help', bg: 'bg-green-50 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
-  offtopic: { label: 'Off-topic', bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400' },
-  feedback: { label: 'Feedback', bg: 'bg-purple-50 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-300' },
-  news: { label: 'News', bg: 'bg-orange-50 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300' },
+  general: { label: 'Bendras', bg: 'bg-blue-50 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
+  help: { label: 'Pagalba', bg: 'bg-green-50 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
+  offtopic: { label: 'Laisvalaikis', bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400' },
+  feedback: { label: 'Atsiliepimai', bg: 'bg-purple-50 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-300' },
+  news: { label: 'Naujienos', bg: 'bg-orange-50 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300' },
 }
 
 interface DiscussionPageProps {
