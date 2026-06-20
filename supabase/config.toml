@@ -1,2 +1,3 @@
-[project]
-project_id = "sqgnooxihstgmktuzeg"
+# A string used to differentiate different Supabase projects on the same host.
+# Defaults to the working directory name.
+project_id = "sqgnooxihstgmktuzeqg"
