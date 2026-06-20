@@ -3,12 +3,15 @@ type RateLimitEntry = {
   resetTime: number;
 };
 
-type CheckResult = {
+export type CheckResult = {
   success: boolean;
   remaining: number;
-  resetIn: number;
+  resetIn: number; // in seconds
 };
 
+export interface RateLimiter {
+  check(key: string): Promise<CheckResult> | CheckResult;
+}
 const store = new Map<string, RateLimitEntry>();
 
 let cleanupTimerStarted = false;
@@ -17,17 +20,20 @@ function startCleanupTimer() {
   if (cleanupTimerStarted) return;
   cleanupTimerStarted = true;
 
-  setInterval(() => {
-    const now = Date.now();
-    store.forEach((entry, key) => {
-      if (entry.resetTime <= now) {
-        store.delete(key);
-      }
-    });
-  }, 5 * 60 * 1000);
+  if (typeof setInterval !== 'undefined') {
+    setInterval(() => {
+      const now = Date.now();
+      store.forEach((entry, key) => {
+        if (entry.resetTime <= now) {
+          store.delete(key);
+        }
+      });
+    }, 5 * 60 * 1000);
+  }
 }
 
-export function rateLimit({ limit, windowMs }: { limit: number; windowMs: number }) {
+export function rateLimit({ limit, windowMs }: { limit: number; windowMs: number }): RateLimiter {
+  // In-process fallback rate limiter. To swap with Redis, return a Redis-backed implementation here.
   startCleanupTimer();
 
   return {

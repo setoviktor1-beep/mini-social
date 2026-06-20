@@ -100,6 +100,7 @@ export default function SettingsPage() {
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [resetEmailSending, setResetEmailSending] = useState(false)
   const [resetEmailSent, setResetEmailSent] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   const [blockedUsers, setBlockedUsers] = useState<BlockedUserRow[]>([])
   const [loadingBlockedUsers, setLoadingBlockedUsers] = useState(false)
@@ -423,6 +424,30 @@ export default function SettingsPage() {
       setResetEmailSent(true)
       setSuccessMessage('Slaptažodžio atstatymo el. laiškas išsiųstas! Patikrinkite paštą.')
     }
+  }
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm('Ar tikrai norite visam laikui ištrinti paskyrą? Šio veiksmo atšaukti nebus galima.')
+    if (!confirmed) return
+
+    setDeletingAccount(true)
+    setErrorMessage('')
+
+    const res = await fetch('/api/account/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'DELETE' }),
+    })
+
+    if (!res.ok) {
+      setDeletingAccount(false)
+      setErrorMessage('Nepavyko ištrinti paskyros. Susisiekite su palaikymo komanda.')
+      return
+    }
+
+    await supabase.auth.signOut()
+    router.replace('/auth/login')
+    router.refresh()
   }
 
   // Current avatar URL from storage
@@ -960,6 +985,25 @@ export default function SettingsPage() {
                 'Siųsti slaptažodžio atstatymo el. laišką'
               )}
             </button>
+          </div>
+
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-red-800">Ištrinti paskyrą</h3>
+                <p className="mt-1 text-sm text-red-700">
+                  Paskyra ir su ja susieti profilio duomenys bus pašalinti visam laikui.
+                </p>
+              </div>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deletingAccount ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {deletingAccount ? 'Trinama...' : 'Ištrinti'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

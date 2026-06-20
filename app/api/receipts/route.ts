@@ -1,5 +1,26 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
+
+async function addSignedReceiptUrls(receipts: any[]) {
+  const serviceClient = createSupabaseServiceClient()
+
+  return Promise.all(
+    receipts.map(async (receipt) => {
+      if (!receipt.image_url || /^https?:\/\//.test(receipt.image_url)) {
+        return receipt
+      }
+
+      const { data } = await serviceClient.storage
+        .from('receipts')
+        .createSignedUrl(receipt.image_url, 5 * 60)
+
+      return {
+        ...receipt,
+        image_url: data?.signedUrl || null,
+      }
+    })
+  )
+}
 
 export async function GET(request: Request) {
   const supabase = createSupabaseServerClient()
@@ -24,7 +45,8 @@ export async function GET(request: Request) {
   const { data, error } = await query
   if (error) return NextResponse.json({ error: 'DB_ERROR' }, { status: 500 })
 
-  return NextResponse.json({ receipts: data || [] })
+  const receipts = await addSignedReceiptUrls(data || [])
+  return NextResponse.json({ receipts })
 }
 
 export async function DELETE(request: Request) {
@@ -35,6 +57,13 @@ export async function DELETE(request: Request) {
   const { id } = await request.json()
   if (!id) return NextResponse.json({ error: 'MISSING_ID' }, { status: 400 })
 
+  const { data: receipt } = await supabase
+    .from('receipts')
+    .select('image_url')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
   const { error } = await supabase
     .from('receipts')
     .delete()
@@ -42,5 +71,11 @@ export async function DELETE(request: Request) {
     .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: 'DB_ERROR' }, { status: 500 })
+
+  if (receipt?.image_url && !/^https?:\/\//.test(receipt.image_url)) {
+    const serviceClient = createSupabaseServiceClient()
+    await serviceClient.storage.from('receipts').remove([receipt.image_url])
+  }
+
   return NextResponse.json({ ok: true })
 }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mini Social</string>
+    <string name="title_activity_main">Mini Social</string>
+    <string name="package_name">lt.minisocial.app</string>
+    <string name="custom_url_scheme">lt.minisocial.app</string>
+</resources>

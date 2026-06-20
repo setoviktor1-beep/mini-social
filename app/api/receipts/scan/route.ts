@@ -1,14 +1,31 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { rateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
+
+const scanLimiter = rateLimit({
+  limit: 10,
+  windowMs: 60 * 1000,
+})
 
 export async function POST(request: Request) {
   try {
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+
+    const limitResult = await scanLimiter.check(`receipt-scan:${user.id}`)
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: 'RATE_LIMITED' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(limitResult.resetIn) },
+        }
+      )
+    }
 
     // Only Enterprise
     const { data: sub } = await supabase
@@ -26,7 +43,7 @@ export async function POST(request: Request) {
     if (!imageBase64) return NextResponse.json({ error: 'MISSING_IMAGE' }, { status: 400 })
 
     // Upload to Supabase Storage
-    let imageUrl: string | null = null
+    let imagePath: string | null = null
     try {
       const serviceClient = createSupabaseServiceClient()
       const buffer = Buffer.from(imageBase64, 'base64')
@@ -35,8 +52,7 @@ export async function POST(request: Request) {
         .from('receipts')
         .upload(filename, buffer, { contentType: mimeType, upsert: false })
       if (uploadData) {
-        const { data: urlData } = serviceClient.storage.from('receipts').getPublicUrl(uploadData.path)
-        imageUrl = urlData.publicUrl
+        imagePath = uploadData.path
       }
     } catch {
       // Storage upload failure is non-critical — continue without image URL
@@ -73,7 +89,7 @@ export async function POST(request: Request) {
       .from('receipts')
       .insert({
         user_id: user.id,
-        image_url: imageUrl,
+        image_url: imagePath,
         vendor: extracted.vendor || null,
         amount: extracted.amount ? Number(extracted.amount) : null,
         category: extracted.category || 'kita',
@@ -85,7 +101,16 @@ export async function POST(request: Request) {
 
     if (error) return NextResponse.json({ error: 'DB_ERROR' }, { status: 500 })
 
-    return NextResponse.json({ receipt, extracted })
+    let receiptWithSignedUrl = receipt
+    if (receipt.image_url) {
+      const serviceClient = createSupabaseServiceClient()
+      const { data: signed } = await serviceClient.storage
+        .from('receipts')
+        .createSignedUrl(receipt.image_url, 5 * 60)
+      receiptWithSignedUrl = { ...receipt, image_url: signed?.signedUrl || null }
+    }
+
+    return NextResponse.json({ receipt: receiptWithSignedUrl, extracted })
   } catch (error) {
     console.error('Receipt scan error:', error)
     return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 })

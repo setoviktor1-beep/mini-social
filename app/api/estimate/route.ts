@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@/lib/server-supabase';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Initialize Gemini SDK. Expects GEMINI_API_KEY in .env.local
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+// In-process fallback rate limiter: 5 requests per 1 minute.
+// Easily swap-able with Redis since it's defined in lib/rate-limit.ts.
+const limiter = rateLimit({
+  limit: 5,
+  windowMs: 60 * 1000,
+});
 
 const SYSTEM_PROMPT = `
 Tu esi profesionalus statybų ir buities remonto sąmatininkas.
@@ -22,6 +31,29 @@ Jei užklausa visiškai nesusijusi su buities darbais ar remontu, grąžink:
 
 export async function POST(req: Request) {
   try {
+    // Authenticate user via Supabase
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Identify requester by User ID or fallback to IP address
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+               req.headers.get('x-real-ip') ||
+               'anonymous';
+    const rateLimitKey = user ? `user:${user.id}` : `ip:${ip}`;
+
+    const limitResult = await limiter.check(rateLimitKey);
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(limitResult.resetIn),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { description } = body;
 

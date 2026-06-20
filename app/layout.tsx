@@ -71,6 +71,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/legal/terms" className="hover:text-blue-600 py-1">
                 Terms
               </a>
+              <a href="/legal/cookies" className="hover:text-blue-600 py-1">
+                Cookies
+              </a>
               <a href="/legal/contact" className="hover:text-blue-600 py-1">
                 Contact
               </a>

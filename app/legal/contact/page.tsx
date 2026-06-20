@@ -1,4 +1,6 @@
 export default function ContactPage() {
+  const supportEmail = 'support@minisocial.lt'
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -11,12 +13,9 @@ export default function ContactPage() {
       <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold">Email</h2>
         <p className="mt-2 text-gray-700">
-          <a className="font-bold text-blue-600 hover:text-blue-700" href="mailto:support@example.com">
-            support@example.com
+          <a className="font-bold text-blue-600 hover:text-blue-700" href={`mailto:${supportEmail}`}>
+            {supportEmail}
           </a>
-        </p>
-        <p className="mt-3 text-sm text-gray-500">
-          Replace this placeholder email with your real support address.
         </p>
       </section>
 
@@ -29,4 +28,3 @@ export default function ContactPage() {
     </div>
   )
 }
-
