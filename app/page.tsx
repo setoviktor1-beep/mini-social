@@ -3,6 +3,7 @@ import { createClient } from '@/lib/server-supabase'
 import PostComposer from '@/components/PostComposer'
 import Link from 'next/link'
 import FeedListClient from '@/components/FeedListClient'
+import WhoToFollowRow from '@/components/WhoToFollowRow'
 import { attachUserInteractionFlags, getFeedItems, parseTab, type TabKey } from '@/lib/feed-service'
 import {
   Home as HomeIcon,
@@ -91,11 +92,21 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
 
   const { data: suggestionsRaw } = await supabase
     .from('profiles')
-    .select('id, username, display_name')
+    .select('id, username, display_name, avatar_path')
     .neq('id', user?.id || '')
     .limit(3)
 
   const suggestions = suggestionsRaw || []
+  const suggestionIds = suggestions.map((item) => item.id)
+  const followedSuggestionIds = user && suggestionIds.length > 0
+    ? new Set(
+        ((await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id)
+          .in('following_id', suggestionIds)).data || []).map((row: any) => row.following_id)
+      )
+    : new Set<string>()
 
   const trending = buildTrendingFromPosts(postsWithLikeStatus)
 
@@ -207,18 +218,12 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
               <h3 className="mb-3 text-base font-semibold text-white">Who to follow</h3>
               <div className="space-y-3">
                 {suggestions.map((s: any) => (
-                  <div key={s.id} className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-white">{s.display_name || s.username}</div>
-                      <div className="truncate text-xs text-gray-400">@{s.username}</div>
-                    </div>
-                    <Link
-                      href={`/u/${s.username}`}
-                      className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black hover:bg-gray-200"
-                    >
-                      Follow
-                    </Link>
-                  </div>
+                  <WhoToFollowRow
+                    key={s.id}
+                    suggestion={s}
+                    currentUserId={user?.id}
+                    initiallyFollowing={followedSuggestionIds.has(s.id)}
+                  />
                 ))}
               </div>
             </div>

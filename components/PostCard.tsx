@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -74,7 +74,7 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, currentUserId, currentUserRole }: PostCardProps) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [liked, setLiked] = useState(post.user_liked || false)
   const [likeCount, setLikeCount] = useState(Number(post.likes?.[0]?.count || 0))
@@ -89,6 +89,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [quoteText, setQuoteText] = useState('')
   const [quoteLoading, setQuoteLoading] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
+  const [likeLoading, setLikeLoading] = useState(false)
+  const [commentLoading, setCommentLoading] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportSent, setReportSent] = useState(false)
@@ -103,6 +105,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [localContent, setLocalContent] = useState(post.content)
   const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const commentSubmitLockRef = useRef(false)
   const mediaUrls = (post.post_media || [])
     .map((media) => resolveSupabaseStorageUrl(
       (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
@@ -125,8 +128,30 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     ? `${window.location.origin}/posts/${post.id}`
     : ''
 
+  useEffect(() => {
+    setLiked(Boolean(post.user_liked))
+    setLikeCount(Number(post.likes?.[0]?.count || 0))
+    setCommentCount(Number(post.comments?.[0]?.count || 0))
+    setReposted(Boolean(post.user_reposted))
+    setRepostCount(Number(post.reposts?.[0]?.count || 0))
+    setEditedContent(post.content)
+    setLocalContent(post.content)
+    setLocalEditedAt(post.edited_at ?? null)
+  }, [
+    post.id,
+    post.user_liked,
+    post.user_reposted,
+    post.content,
+    post.edited_at,
+    post.likes,
+    post.comments,
+    post.reposts,
+  ])
+
   // Load comments on mount since comment section is visible by default
   useEffect(() => {
+    let active = true
+
     const loadInitialComments = async () => {
       setLoadingComments(true)
       const { data } = await supabase
@@ -136,23 +161,42 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         .eq('status', 'active')
         .order('created_at', { ascending: true })
       const rows = data || []
+      if (!active) return
       setComments(rows)
       setCommentCount(rows.length)
       setLoadingComments(false)
     }
     void loadInitialComments()
+
+    return () => {
+      active = false
+    }
   }, [post.id, supabase])
 
   const handleLike = async () => {
-    if (!currentUserId) return
+    if (!currentUserId || likeLoading) return
+    const nextLiked = !liked
+    const previousLiked = liked
+    const previousLikeCount = likeCount
+
+    setLikeLoading(true)
+    setLiked(nextLiked)
+    setLikeCount((prev) => Math.max(0, prev + (nextLiked ? 1 : -1)))
+
     if (liked) {
-      await supabase.from('likes').delete().eq('user_id', currentUserId).eq('post_id', post.id)
-      setLiked(false)
-      setLikeCount(prev => Math.max(0, prev - 1))
+      const { error } = await supabase.from('likes').delete().eq('user_id', currentUserId).eq('post_id', post.id)
+      if (error) {
+        setLiked(previousLiked)
+        setLikeCount(previousLikeCount)
+      }
     } else {
-      await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
-      setLiked(true)
-      setLikeCount(prev => prev + 1)
+      const { error } = await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
+      if (error) {
+        setLiked(previousLiked)
+        setLikeCount(previousLikeCount)
+        setLikeLoading(false)
+        return
+      }
 
       if (post.user_id && post.user_id !== currentUserId) {
         await supabase.from('notifications').insert({
@@ -170,6 +214,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         )
       }
     }
+    setLikeLoading(false)
   }
 
   const loadComments = async () => {
@@ -192,7 +237,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   }
 
   const handleComment = async () => {
-    if (!currentUserId || !commentText.trim()) return
+    if (!currentUserId || !commentText.trim() || commentLoading || commentSubmitLockRef.current) return
+    commentSubmitLockRef.current = true
+    setCommentLoading(true)
     const content = commentText.trim()
     const { data: newComment, error } = await supabase.from('comments').insert({
       post_id: post.id,
@@ -232,6 +279,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         excludeUserIds: post.user_id ? [post.user_id] : [],
       })
     }
+    setCommentLoading(false)
+    commentSubmitLockRef.current = false
   }
 
   const handleReport = async () => {
@@ -547,11 +596,16 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Action buttons */}
           <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-gray-500">
-            <button onClick={handleLike} className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] ${liked ? 'text-red-500' : 'hover:text-red-600'}`}>
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={likeLoading}
+              className={`flex items-center gap-1.5 sm:gap-2 transition-colors min-h-[44px] disabled:opacity-60 ${liked ? 'text-red-500' : 'hover:text-red-600'}`}
+            >
               <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
               <span className="text-sm">{Number.isFinite(likeCount) ? likeCount : 0}</span>
             </button>
-            <button onClick={toggleComments} className="flex items-center gap-1.5 sm:gap-2 hover:text-blue-600 transition-colors min-h-[44px]">
+            <button type="button" onClick={toggleComments} className="flex items-center gap-1.5 sm:gap-2 hover:text-blue-600 transition-colors min-h-[44px]">
               <MessageCircle size={20} />
               <span className="text-sm">{commentCount}</span>
             </button>
@@ -696,24 +750,36 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               )}
 
               {currentUserId && (
-                <div className="flex gap-2 mt-2">
+                <form
+                  className="flex gap-2 mt-2"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handleComment()
+                  }}
+                >
                   <input
                     type="text"
                     value={commentText}
                     onChange={e => setCommentText(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleComment()}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        void handleComment()
+                      }
+                    }}
                     placeholder="Parašykite komentarą..."
                     className="flex-1 bg-gray-900 border border-gray-700 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-500/20 text-gray-200 min-h-[44px]"
                     maxLength={500}
+                    disabled={commentLoading}
                   />
                   <button
-                    onClick={handleComment}
-                    disabled={!commentText.trim()}
+                    type="submit"
+                    disabled={!commentText.trim() || commentLoading}
                     className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                   >
                     <Send size={16} />
                   </button>
-                </div>
+                </form>
               )}
             </div>
           )}

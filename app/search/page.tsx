@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Search, Users, FileText, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import Image from 'next/image'
+import Link from 'next/link'
 
 type Tab = 'users' | 'posts'
 
@@ -29,7 +30,6 @@ interface PostResult {
 }
 
 export default function SearchPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -204,9 +204,9 @@ export default function SearchPage() {
             {users.length > 0 ? (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {users.map((user) => (
-                  <button
+                  <Link
                     key={user.id}
-                    onClick={() => router.push(`/u/${user.username}`)}
+                    href={`/u/${user.username}`}
                     className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left min-h-[64px]"
                   >
                     <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
@@ -231,7 +231,7 @@ export default function SearchPage() {
                         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{user.bio}</p>
                       )}
                     </div>
-                  </button>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -250,9 +250,9 @@ export default function SearchPage() {
             {posts.length > 0 ? (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {posts.map((post) => (
-                  <button
+                  <Link
                     key={post.id}
-                    onClick={() => router.push(`/u/${post.profiles.username}`)}
+                    href={`/posts/${post.id}`}
                     className="w-full p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left min-h-[64px]"
                   >
                     <div className="flex items-start gap-3 sm:gap-4">
@@ -288,7 +288,7 @@ export default function SearchPage() {
                         </p>
                       </div>
                     </div>
-                  </button>
+                  </Link>
                 ))}
               </div>
             ) : (

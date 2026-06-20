@@ -4,6 +4,13 @@ export function extractYoutubeId(value?: string | null) {
   const trimmed = value.trim()
   if (!trimmed) return null
 
+  // Regex to match various YouTube URL formats and capture the 11-character video ID
+  const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  const match = trimmed.match(youtubeRegex)
+  if (match && match[1]) {
+    return match[1]
+  }
+
   const normalizedInput = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 
   try {

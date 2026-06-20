@@ -111,7 +111,7 @@ export default function ProfileActions({
 
     await supabase.from('profiles').update({
       display_name: displayName.trim() || 'User',
-      bio: bio.trim() || null,
+      bio: bio.trim() ? bio : null,
       avatar_path: avatarPath
     }).eq('id', currentUserId)
 

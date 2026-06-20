@@ -1,18 +1,7 @@
 // app/auth/callback/route.ts
 import { createClient } from '@/lib/server-supabase'
+import { normalizeNextPath } from '@/lib/auth-redirect'
 import { NextResponse } from 'next/server'
-
-function normalizeNextPath(next: string | null) {
-  if (!next || !next.startsWith('/')) {
-    return '/home'
-  }
-
-  if (next.startsWith('//')) {
-    return '/home'
-  }
-
-  return next
-}
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)

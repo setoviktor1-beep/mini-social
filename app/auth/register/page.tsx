@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, MapPin } from 'lucide-react'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
+import { normalizeNextPath } from '@/lib/auth-redirect'
+
+type RegisterField = 'fullName' | 'username' | 'email' | 'phone' | 'city' | 'country' | 'postalCode' | 'addressText' | 'password'
+type RegisterErrors = Partial<Record<RegisterField, string>>
 
 export default function Register() {
   const [email, setEmail] = useState('')
@@ -19,19 +23,14 @@ export default function Register() {
   const [addressLat, setAddressLat] = useState<number | null>(null)
   const [addressLng, setAddressLng] = useState<number | null>(null)
   const [manualAddress, setManualAddress] = useState(false)
+  const [errors, setErrors] = useState<RegisterErrors>({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const searchParams = useSearchParams()
-  const nextPath = (() => {
-    const candidate = searchParams.get('next')
-    if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//')) {
-      return '/home'
-    }
-    return candidate
-  })()
+  const nextPath = normalizeNextPath(searchParams.get('next'))
 
   useEffect(() => {
     let active = true
@@ -47,38 +46,39 @@ export default function Register() {
     }
   }, [nextPath, router, supabase])
 
+  const updateFieldError = (field: RegisterField, message?: string) => {
+    setErrors((prev) => ({ ...prev, [field]: message }))
+  }
+
+  const validateForm = () => {
+    const nextErrors: RegisterErrors = {}
+
+    if (!fullName.trim()) nextErrors.fullName = 'Įveskite vardą ir pavardę.'
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      nextErrors.username = 'Vartotojo vardas turi būti 3-20 simbolių: raidės, skaičiai arba _.'
+    }
+    if (!email.trim()) nextErrors.email = 'Įveskite el. paštą.'
+    if (!phone.trim()) nextErrors.phone = 'Įveskite telefono numerį.'
+    if (password.length < 6) nextErrors.password = 'Slaptažodis turi būti bent 6 simboliai.'
+    if (!addressText.trim()) nextErrors.addressText = 'Prašome nurodyti adresą.'
+    if (!city.trim()) nextErrors.city = 'Prašome nurodyti miestą.'
+    if (!country.trim()) nextErrors.country = 'Prašome nurodyti šalį.'
+    if (postalCode.trim() && !/^[A-Za-z0-9 -]{3,12}$/.test(postalCode.trim())) {
+      nextErrors.postalCode = 'Pašto kodas turi būti 3-12 simbolių.'
+    }
+
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loading) return
     setLoading(true)
     setError('')
+    setErrors({})
 
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-      setError('Vartotojo vardas turi būti 3-20 simbolių (raidės, skaičiai, _).')
-      setLoading(false)
-      return
-    }
-
-    if (password.length < 6) {
-      setError('Slaptažodis turi būti bent 6 simboliai.')
-      setLoading(false)
-      return
-    }
-
-    if (!addressText.trim()) {
-      setError('Prašome nurodyti adresą.')
-      setLoading(false)
-      return
-    }
-
-    if (!city.trim()) {
-      setError('Prašome nurodyti miestą.')
-      setLoading(false)
-      return
-    }
-
-    if (!country.trim()) {
-      setError('Prašome nurodyti šalį.')
+    if (!validateForm()) {
       setLoading(false)
       return
     }
@@ -90,6 +90,7 @@ export default function Register() {
       .maybeSingle()
 
     if (existingUser) {
+      updateFieldError('username', 'Šis vartotojo vardas jau užimtas.')
       setError('Šis vartotojo vardas jau užimtas.')
       setLoading(false)
       return
@@ -229,11 +230,17 @@ export default function Register() {
             <input
               type="text"
               value={fullName}
-              onChange={e => setFullName(e.target.value)}
+              onChange={e => {
+                setFullName(e.target.value)
+                updateFieldError('fullName')
+              }}
+              autoComplete="name"
+              maxLength={80}
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="Vardenis Pavardenis"
               required
             />
+            {errors.fullName && <p className="mt-1 text-xs text-red-400">{errors.fullName}</p>}
           </div>
 
           <div>
@@ -241,12 +248,21 @@ export default function Register() {
             <input
               type="text"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={e => {
+                setUsername(e.target.value)
+                updateFieldError('username')
+              }}
+              autoComplete="username"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={20}
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="vardenis"
               required
             />
             <p className="text-xs text-[var(--text-tertiary)] mt-1">3-20 simbolių, tik raidės, skaičiai, _</p>
+            {errors.username && <p className="mt-1 text-xs text-red-400">{errors.username}</p>}
           </div>
 
           <div>
@@ -254,11 +270,16 @@ export default function Register() {
             <input
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => {
+                setEmail(e.target.value)
+                updateFieldError('email')
+              }}
+              autoComplete="email"
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="vardas@gmail.com"
               required
             />
+            {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
           </div>
 
           <div>
@@ -266,11 +287,17 @@ export default function Register() {
             <input
               type="tel"
               value={phone}
-              onChange={e => setPhone(e.target.value)}
+              onChange={e => {
+                setPhone(e.target.value)
+                updateFieldError('phone')
+              }}
+              autoComplete="tel"
+              maxLength={32}
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="+370 600 00000"
               required
             />
+            {errors.phone && <p className="mt-1 text-xs text-red-400">{errors.phone}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -279,11 +306,17 @@ export default function Register() {
               <input
                 type="text"
                 value={city}
-                onChange={e => setCity(e.target.value)}
+                onChange={e => {
+                  setCity(e.target.value)
+                  updateFieldError('city')
+                }}
+                autoComplete="address-level2"
+                maxLength={60}
                 className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
                 placeholder="Lentvaris"
                 required
               />
+              {errors.city && <p className="mt-1 text-xs text-red-400">{errors.city}</p>}
             </div>
 
             <div>
@@ -291,11 +324,17 @@ export default function Register() {
               <input
                 type="text"
                 value={country}
-                onChange={e => setCountry(e.target.value)}
+                onChange={e => {
+                  setCountry(e.target.value)
+                  updateFieldError('country')
+                }}
+                autoComplete="country-name"
+                maxLength={60}
                 className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
                 placeholder="Lietuva"
                 required
               />
+              {errors.country && <p className="mt-1 text-xs text-red-400">{errors.country}</p>}
             </div>
           </div>
 
@@ -304,12 +343,17 @@ export default function Register() {
             <input
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={e => {
+                setPassword(e.target.value)
+                updateFieldError('password')
+              }}
+              autoComplete="new-password"
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="••••••••"
               required
               minLength={6}
             />
+            {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password}</p>}
           </div>
 
           <div>
@@ -326,7 +370,10 @@ export default function Register() {
                     setAddressText(e.target.value)
                     setAddressLat(null)
                     setAddressLng(null)
+                    updateFieldError('addressText')
                   }}
+                  autoComplete="street-address"
+                  maxLength={160}
                   placeholder="Pvz.: Gedimino pr. 1, Vilnius"
                   className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
                   required
@@ -345,6 +392,7 @@ export default function Register() {
                   value={addressText}
                   onChange={(addr, lat, lng) => {
                     setAddressText(addr)
+                    updateFieldError('addressText')
                     if (lat !== undefined && lng !== undefined) {
                       setAddressLat(lat)
                       setAddressLng(lng)
@@ -369,6 +417,7 @@ export default function Register() {
                 </button>
               </>
             )}
+            {errors.addressText && <p className="mt-1 text-xs text-red-400">{errors.addressText}</p>}
           </div>
 
           <div>
@@ -376,11 +425,17 @@ export default function Register() {
             <input
               type="text"
               value={postalCode}
-              onChange={e => setPostalCode(e.target.value)}
+              onChange={e => {
+                setPostalCode(e.target.value)
+                updateFieldError('postalCode')
+              }}
+              autoComplete="postal-code"
+              maxLength={12}
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="LT-01001"
-              required
             />
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">Nebūtina, bet jei įvedate, naudokite realų pašto kodą.</p>
+            {errors.postalCode && <p className="mt-1 text-xs text-red-400">{errors.postalCode}</p>}
           </div>
 
           <button

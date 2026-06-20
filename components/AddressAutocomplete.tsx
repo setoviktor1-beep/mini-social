@@ -149,7 +149,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Pv
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
         {loading && <Loader2 size={15} className="animate-spin text-gray-400" />}
         {input && !loading && (
-          <button onClick={clear} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button type="button" onClick={clear} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={15} />
           </button>
         )}
@@ -160,7 +160,11 @@ export default function AddressAutocomplete({ value, onChange, placeholder = 'Pv
           {suggestions.map(s => (
             <li key={s.placeId}>
               <button
-                onMouseDown={() => selectSuggestion(s)}
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  selectSuggestion(s)
+                }}
                 className="w-full flex items-start gap-3 px-4 py-3 hover:bg-blue-50 text-left transition-colors"
               >
                 <MapPin size={14} className="text-gray-400 mt-0.5 shrink-0" />

@@ -325,7 +325,7 @@ export default function SettingsPage() {
         .update({
           display_name: displayName.trim(),
           username: username.trim().toLowerCase(),
-          bio: bio.trim() || null,
+          bio: bio.trim() ? bio : null,
           avatar_path: newAvatarPath,
           city: city.trim() || null,
           country: country.trim() || null,
@@ -382,7 +382,7 @@ export default function SettingsPage() {
         ...prev,
         display_name: displayName.trim(),
         username: username.trim().toLowerCase(),
-        bio: bio.trim() || null,
+        bio: bio.trim() ? bio : null,
         avatar_path: newAvatarPath,
         city: city.trim() || null,
         country: country.trim() || null,

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, CheckCircle } from 'lucide-react'
+import { normalizeNextPath } from '@/lib/auth-redirect'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -14,17 +15,12 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState('')
   const [resetSent, setResetSent] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
+  const [resetError, setResetError] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const searchParams = useSearchParams()
-  const nextPath = (() => {
-    const candidate = searchParams.get('next')
-    if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//')) {
-      return '/home'
-    }
-    return candidate
-  })()
+  const nextPath = normalizeNextPath(searchParams.get('next'))
 
   useEffect(() => {
     let active = true
@@ -67,6 +63,7 @@ export default function Login() {
     if (resetLoading) return
     setResetLoading(true)
     setError('')
+    setResetError('')
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
 
@@ -75,7 +72,7 @@ export default function Login() {
     })
 
     if (error) {
-      setError(error.message)
+      setResetError(error.message)
     } else {
       setResetSent(true)
     }
@@ -138,6 +135,11 @@ export default function Login() {
                     required
                   />
                 </div>
+                {resetError && (
+                  <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+                    {resetError}
+                  </div>
+                )}
                 <button
                   disabled={resetLoading}
                   className="w-full text-white py-3 rounded-full font-bold disabled:opacity-50 transition-colors min-h-[44px]"
@@ -206,7 +208,12 @@ export default function Login() {
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => setShowReset(true)}
+              onClick={() => {
+                setShowReset(true)
+                setResetSent(false)
+                setResetError('')
+                setResetEmail(email)
+              }}
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline min-h-[44px] flex items-center"
             >
               Forgot password?

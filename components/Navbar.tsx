@@ -113,8 +113,8 @@ export default function Navbar() {
     setUsername(null)
     setAvatarPath(null)
     setMobileMenuOpen(false)
+    router.replace('/auth/login')
     router.refresh()
-    router.push('/auth/login')
   }
 
   const avatarUrl = avatarPath
@@ -127,6 +127,14 @@ export default function Navbar() {
     : '/settings'
   const isProUser = role === 'master' || role === 'admin' || role === 'pro'
 
+  const isActive = (href: string) => {
+    if (href === '/home' || href === '/') {
+      return pathname === '/home' || pathname === '/'
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-800/60 bg-[#0a0a0f]/85 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16">
@@ -137,16 +145,16 @@ export default function Navbar() {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-600 dark:text-gray-300">
           <LanguageSwitcher />
-          <Link href="/search" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors" title="Search">
+          <Link href="/search" className={`p-2 rounded-lg transition-colors ${isActive('/search') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Search">
             <Search size={20} />
           </Link>
           <ThemeToggle />
           {user ? (
             <>
-              <Link href="/discussions" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors" title="Discussions">
+              <Link href="/discussions" className={`p-2 rounded-lg transition-colors ${isActive('/discussions') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Discussions">
                 <MessageSquare size={20} />
               </Link>
-              <Link href="/messages" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors relative" title="Messages">
+              <Link href="/messages" className={`relative p-2 rounded-lg transition-colors ${isActive('/messages') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Messages">
                 <MessagesSquare size={20} />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
@@ -157,16 +165,16 @@ export default function Navbar() {
               <NotificationBell />
               <PushNotificationToggle />
               {!isProUser && (
-                <Link href="/my-orders" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors" title="Mano Užsakymai">
+                <Link href="/my-orders" className={`p-2 rounded-lg transition-colors ${isActive('/my-orders') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Mano Užsakymai">
                   <ClipboardList size={20} />
                 </Link>
               )}
               {isProUser ? (
-                <Link href="/pro" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors flex items-center gap-1" title="Verslo Darbalaukis" aria-label="Verslo Darbalaukis">
+                <Link href="/pro" className={`flex items-center gap-1 rounded-lg p-2 transition-colors ${isActive('/pro') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`} title="Verslo Darbalaukis" aria-label="Verslo Darbalaukis">
                   <Briefcase size={20} />
                 </Link>
               ) : (
-                <Link href="/pricing" className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold" title="Verslo Darbalaukis – Gauti Pro" aria-label="Verslo Darbalaukis – Gauti Pro">
+                <Link href="/pricing" className={`flex items-center gap-1 rounded-lg p-2 text-xs font-semibold transition-colors ${isActive('/pricing') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`} title="Verslo Darbalaukis – Gauti Pro" aria-label="Verslo Darbalaukis – Gauti Pro">
                   <Briefcase size={20} />
                   <span className="hidden xl:inline">Pro</span>
                 </Link>
@@ -176,7 +184,7 @@ export default function Navbar() {
                   <Shield size={20} />
                 </Link>
               )}
-              <Link href="/settings" className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors" title="Settings">
+              <Link href="/settings" className={`p-2 rounded-lg transition-colors ${isActive('/settings') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Settings">
                 <Settings size={20} />
               </Link>
               <Link

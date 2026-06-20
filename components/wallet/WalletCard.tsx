@@ -43,7 +43,11 @@ export default function WalletCard() {
       })
       const json = await res.json()
       if (!res.ok || !json?.url) {
-        setError(json?.error || 'Failed to start checkout')
+        if (json?.error === 'CHECKOUT_IN_PROGRESS') {
+          setError('Jau turite aktyvų apmokėjimo langą. Palaukite arba grįžkite į jau atidarytą Stripe langą.')
+        } else {
+          setError(json?.error || 'Failed to start checkout')
+        }
         return
       }
       window.location.href = json.url

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Send } from 'lucide-react'
@@ -18,11 +18,13 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
+  const submitLockRef = useRef(false)
 
   const handleSubmit = async () => {
     const trimmed = content.trim()
-    if (!trimmed || loading) return
+    if (!trimmed || loading || submitLockRef.current) return
 
+    submitLockRef.current = true
     setLoading(true)
     const { error } = await supabase.from('discussion_replies').insert({
       discussion_id: discussionId,
@@ -47,6 +49,7 @@ export default function DiscussionReplyForm({ discussionId, userId }: Discussion
       })
     }
     setLoading(false)
+    submitLockRef.current = false
   }
 
   return (

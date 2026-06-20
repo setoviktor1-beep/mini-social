@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useId } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
@@ -69,6 +69,7 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [postError, setPostError] = useState('')
+  const fileInputId = useId()
   // UX5: Memoize supabase client to prevent recreation causing re-render loops
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -81,6 +82,17 @@ export default function PostComposer({ userId }: { userId: string }) {
     setPostError('')
     setLoading(false)
   }, [userId])
+
+  const previews = useMemo(
+    () => files.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [files]
+  )
+
+  useEffect(() => {
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview.url))
+    }
+  }, [previews])
 
   const handlePost = async () => {
     if (loading) return
@@ -197,6 +209,18 @@ export default function PostComposer({ userId }: { userId: string }) {
 
   return (
     <div className="border-b border-gray-800/60 bg-transparent p-4">
+      <input
+        id={fileInputId}
+        type="file"
+        multiple
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          if (!e.target.files) return
+          setFiles((prev) => [...prev, ...Array.from(e.target.files || [])])
+          e.target.value = ''
+        }}
+      />
       <textarea
         value={content}
         onChange={e => setContent(e.target.value)}
@@ -206,10 +230,10 @@ export default function PostComposer({ userId }: { userId: string }) {
 
       {files.length > 0 && (
         <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto -mx-1 px-1">
-          {files.map((f, i) => (
+          {previews.map(({ file, url }, i) => (
             <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 border border-gray-700">
-              <Image src={URL.createObjectURL(f)} alt="" fill sizes="80px" className="object-cover" unoptimized />
-              <button onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center">
+              <Image src={url} alt="" fill sizes="80px" className="object-cover pointer-events-none" unoptimized />
+              <button type="button" onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 z-10 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center">
                 <X size={14} />
               </button>
             </div>
@@ -222,10 +246,9 @@ export default function PostComposer({ userId }: { userId: string }) {
         <p className="text-sm text-red-400 mb-2">{postError}</p>
         )}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
+          <label htmlFor={fileInputId} className="flex w-fit min-h-[44px] cursor-pointer items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
             <ImageIcon size={18} />
             <span>Nuotraukos</span>
-            <input type="file" multiple accept="image/*" className="hidden" onChange={e => e.target.files && setFiles([...files, ...Array.from(e.target.files)])} />
           </label>
           <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-400 focus-within:text-purple-300">
             <Youtube size={18} className="flex-shrink-0" />
@@ -251,6 +274,7 @@ export default function PostComposer({ userId }: { userId: string }) {
         </p>
         <div className="flex justify-end">
           <button
+            type="button"
             onClick={handlePost}
             disabled={loading}
             className="min-h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"

@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { hasActiveSubscription, hasProAccess } from '@/lib/subscription-access'
+import { normalizeNextPath } from '@/lib/auth-redirect'
 import { redirect } from 'next/navigation'
 
 export { hasActiveSubscription, hasProAccess }
@@ -34,7 +35,8 @@ export async function requireAuthenticatedUser(nextPath: string) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect(`/auth/login?next=${encodeURIComponent(nextPath)}`)
+    const normalizedNextPath = normalizeNextPath(nextPath)
+    redirect(`/auth/login?next=${encodeURIComponent(normalizedNextPath)}`)
   }
 
   return { supabase, user }
