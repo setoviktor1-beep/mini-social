@@ -131,33 +131,33 @@ export default function Navbar() {
     if (href === '/home' || href === '/') {
       return pathname === '/home' || pathname === '/'
     }
-
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-800/60 bg-[#0a0a0f]/85 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl shadow-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16">
-        <Link href={homeHref} className="font-black text-xl sm:text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+        {/* Logo */}
+        <Link href={homeHref} className="font-black text-xl sm:text-2xl bg-gradient-to-r from-[#1A1A2E] to-[#E94560] bg-clip-text text-transparent hover:opacity-80 transition-opacity">
           MiniSocial
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-600 dark:text-gray-300">
+        <div className="hidden md:flex items-center gap-1 text-sm font-medium">
           <LanguageSwitcher />
-          <Link href="/search" className={`p-2 rounded-lg transition-colors ${isActive('/search') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Search">
-            <Search size={20} />
+          <Link href="/search" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/search') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Search">
+            <Search size={20} strokeWidth={isActive('/search') ? 2.5 : 1.5} />
           </Link>
           <ThemeToggle />
           {user ? (
             <>
-              <Link href="/discussions" className={`p-2 rounded-lg transition-colors ${isActive('/discussions') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Discussions">
-                <MessageSquare size={20} />
+              <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Discussions">
+                <MessageSquare size={20} strokeWidth={isActive('/discussions') ? 2.5 : 1.5} />
               </Link>
-              <Link href="/messages" className={`relative p-2 rounded-lg transition-colors ${isActive('/messages') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Messages">
-                <MessagesSquare size={20} />
+              <Link href="/messages" className={`relative p-2.5 rounded-xl transition-all duration-200 ${isActive('/messages') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Messages">
+                <MessagesSquare size={20} strokeWidth={isActive('/messages') ? 2.5 : 1.5} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
+                  <span className="absolute -top-0.5 -right-0.5 bg-[#E94560] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -165,51 +165,51 @@ export default function Navbar() {
               <NotificationBell />
               <PushNotificationToggle />
               {!isProUser && (
-                <Link href="/my-orders" className={`p-2 rounded-lg transition-colors ${isActive('/my-orders') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Mano Užsakymai">
+                <Link href="/my-orders" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/my-orders') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Mano Uzsakymai">
                   <ClipboardList size={20} />
                 </Link>
               )}
               {isProUser ? (
-                <Link href="/pro" className={`flex items-center gap-1 rounded-lg p-2 transition-colors ${isActive('/pro') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`} title="Verslo Darbalaukis" aria-label="Verslo Darbalaukis">
+                <Link href="/pro" className={`flex items-center gap-1 rounded-xl p-2.5 transition-all duration-200 ${isActive('/pro') ? 'bg-emerald-50 text-emerald-600' : 'text-emerald-600 hover:bg-emerald-50'}`} title="Verslo Darbalaukis" aria-label="Verslo Darbalaukis">
                   <Briefcase size={20} />
                 </Link>
               ) : (
-                <Link href="/pricing" className={`flex items-center gap-1 rounded-lg p-2 text-xs font-semibold transition-colors ${isActive('/pricing') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`} title="Verslo Darbalaukis – Gauti Pro" aria-label="Verslo Darbalaukis – Gauti Pro">
+                <Link href="/pricing" className={`flex items-center gap-1 rounded-xl p-2 text-xs font-semibold transition-all duration-200 ${isActive('/pricing') ? 'bg-emerald-50 text-emerald-600' : 'text-emerald-600 hover:bg-emerald-50'}`} title="Verslo Darbalaukis – Gauti Pro" aria-label="Verslo Darbalaukis – Gauti Pro">
                   <Briefcase size={20} />
                   <span className="hidden xl:inline">Pro</span>
                 </Link>
               )}
               {(role === 'admin' || role === 'moderator') && (
-                <Link href="/admin/dashboard" className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 rounded-lg transition-colors" title="Admin Panel">
+                <Link href="/admin/dashboard" className="p-2.5 hover:bg-red-50 text-red-500 rounded-xl transition-all duration-200" title="Admin Panel">
                   <Shield size={20} />
                 </Link>
               )}
-              <Link href="/settings" className={`p-2 rounded-lg transition-colors ${isActive('/settings') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600'}`} title="Settings">
-                <Settings size={20} />
+              <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Settings">
+                <Settings size={20} strokeWidth={isActive('/settings') ? 2.5 : 1.5} />
               </Link>
               <Link
                 href={profileHref}
-                className="ml-1 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="ml-1 p-1.5 rounded-xl hover:bg-slate-50 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 title="Profile"
               >
-                <div className="w-7 h-7 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm">
                   {avatarUrl ? (
                     <div className="relative w-full h-full">
-                      <Image src={avatarUrl} alt="" fill sizes="28px" className="object-cover" />
+                      <Image src={avatarUrl} alt="" fill sizes="32px" className="object-cover" />
                     </div>
                   ) : (
-                    <span className="text-xs font-bold text-blue-300 dark:text-blue-500">
+                    <span className="text-xs font-bold text-blue-600">
                       {(username || user.user_metadata?.username || '?')?.charAt(0)?.toUpperCase()}
                     </span>
                   )}
                 </div>
               </Link>
-              <button onClick={signOut} className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-all ml-1">Logout</button>
+              <button onClick={signOut} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-full hover:bg-slate-200 transition-all duration-200 text-sm font-medium ml-1">Logout</button>
             </>
           ) : (
             <>
-              <Link href="/discussions" className="hover:text-blue-600 transition-colors">Discussions</Link>
-              <Link href="/auth/login" className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 dark:shadow-blue-900/30 ml-1">
+              <Link href="/discussions" className="text-slate-600 hover:text-slate-900 transition-colors px-3">Discussions</Link>
+              <Link href="/auth/login" className="bg-[#1A1A2E] text-white px-6 py-2.5 rounded-full hover:bg-[#16213E] transition-all duration-200 shadow-sm text-sm font-semibold ml-1">
                 Login
               </Link>
             </>
@@ -222,7 +222,7 @@ export default function Navbar() {
           {user && <NotificationBell />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2.5 hover:bg-slate-100 rounded-xl transition-all duration-200 text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -232,115 +232,82 @@ export default function Navbar() {
 
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
+        <div className="md:hidden border-t border-slate-100 bg-white/95 backdrop-blur-md shadow-lg">
           <div className="max-w-2xl mx-auto px-4 py-3 space-y-1">
             {user ? (
               <>
-                <Link
-                  href="/discussions"
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
-                >
+                <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
                   <MessageSquare size={20} />
                   {t('nav.feed')}
                 </Link>
-                <Link
-                  href="/messages"
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
-                >
+                <Link href="/messages" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
                   <MessagesSquare size={20} />
                   {t('nav.messages')}
                   {unreadCount > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold ml-auto">
+                    <span className="bg-[#E94560] text-white text-xs px-2 py-0.5 rounded-full font-bold ml-auto">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </Link>
                 {!isProUser && (
-                  <Link
-                    href="/my-orders"
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
-                  >
+                  <Link href="/my-orders" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
                     <ClipboardList size={20} />
-                    Mano Užsakymai
+                    Mano Uzsakymai
                   </Link>
                 )}
                 {isProUser ? (
-                  <Link
-                    href="/pro"
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"
-                  >
+                  <Link href="/pro" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-600 transition-colors font-medium">
                     <Briefcase size={20} />
                     Verslo Darbalaukis
                   </Link>
                 ) : (
-                  <Link
-                    href="/pricing"
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-500 transition-colors font-medium"
-                  >
+                  <Link href="/pricing" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-600 transition-colors font-medium">
                     <Briefcase size={20} />
                     Verslo planai
                   </Link>
                 )}
                 {(role === 'admin' || role === 'moderator') && (
-                  <Link
-                    href="/admin/dashboard"
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 transition-colors font-medium"
-                  >
+                  <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-50 text-red-500 transition-colors font-medium">
                     <Shield size={20} />
                     Admin Panel
                   </Link>
                 )}
-                <Link
-                  href={profileHref}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
-                >
-                  <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center overflow-hidden">
+                <Link href={profileHref} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden">
                     {avatarUrl ? (
                       <div className="relative w-full h-full">
-                        <Image src={avatarUrl} alt="" fill sizes="20px" className="object-cover" />
+                        <Image src={avatarUrl} alt="" fill sizes="24px" className="object-cover" />
                       </div>
                     ) : (
-                      <span className="text-xs font-bold text-blue-500">
+                      <span className="text-xs font-bold text-blue-600">
                         {(username || user.user_metadata?.username || '?')?.charAt(0)?.toUpperCase()}
                       </span>
                     )}
                   </div>
                   {t('nav.profile')}
                 </Link>
-                <Link
-                  href="/settings"
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
-                >
+                <Link href="/settings" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
                   <Settings size={20} />
                   {t('nav.settings')}
                 </Link>
-                <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-gray-800 mt-2 pt-2 gap-3">
+                <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 mt-2 pt-2 gap-3">
                   <LanguageSwitcher />
                   <PushNotificationToggle />
                 </div>
                 <div className="pt-1">
-                  <button
-                    onClick={signOut}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors font-medium text-left"
-                  >
+                  <button onClick={signOut} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors font-medium text-left">
                     {t('nav.logout')}
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <Link
-                  href="/discussions"
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors font-medium"
-                >
+                <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
                   <MessageSquare size={20} />
                   {t('nav.feed')}
                 </Link>
-                <div className="border-t border-gray-100 dark:border-gray-800 pt-2 mt-2">
-                  <Link
-                    href="/auth/login"
-                    className="block text-center bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 dark:shadow-blue-900/30 font-bold"
-                  >
+                <div className="border-t border-slate-100 pt-2 mt-2">
+                  <Link href="/auth/login" className="block text-center bg-[#1A1A2E] text-white px-6 py-3 rounded-full hover:bg-[#16213E] transition-all shadow-sm font-bold">
                     {t('nav.login')}
                   </Link>
                 </div>

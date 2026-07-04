@@ -67,22 +67,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navbar />
           <ServiceWorkerRegister />
           <main className="mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 md:pb-8" style={{ maxWidth: 'var(--content-max)' }}>{children}</main>
-          <footer className="mx-auto px-3 sm:px-4 py-8 sm:py-12 pb-24 md:pb-12 text-center text-sm text-[var(--text-secondary)] border-t border-[var(--border-subtle)] mt-12 sm:mt-20" style={{ maxWidth: 'var(--content-max)' }}>
+          <footer className="mx-auto px-3 sm:px-4 py-8 sm:py-12 pb-24 md:pb-12 text-center text-sm text-slate-500 border-t border-slate-200 mt-12 sm:mt-20 bg-white/50 backdrop-blur-sm" style={{ maxWidth: 'var(--content-max)' }}>
             <div className="flex justify-center gap-4 sm:gap-6 mb-4">
-              <a href="/legal/privacy" className="hover:text-blue-600 py-1">
+              <a href="/legal/privacy" className="hover:text-blue-600 py-1 transition-colors">
                 Privacy
               </a>
-              <a href="/legal/terms" className="hover:text-blue-600 py-1">
+              <a href="/legal/terms" className="hover:text-blue-600 py-1 transition-colors">
                 Terms
               </a>
-              <a href="/legal/cookies" className="hover:text-blue-600 py-1">
+              <a href="/legal/cookies" className="hover:text-blue-600 py-1 transition-colors">
                 Cookies
               </a>
-              <a href="/legal/contact" className="hover:text-blue-600 py-1">
+              <a href="/legal/contact" className="hover:text-blue-600 py-1 transition-colors">
                 Contact
               </a>
             </div>
-            <p>&copy; 2026 Mini Social Network. Built for friends.</p>
+            <p className="text-slate-400">&copy; 2026 Mini Social Network. Built for friends.</p>
           </footer>
           <BottomNav />
         </ThemeProvider>

@@ -122,12 +122,12 @@ export default function Login() {
         <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]">
           {resetSent ? (
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-green-50 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="text-green-500" size={32} />
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Check your email</h1>
-              <p className="text-gray-500 dark:text-gray-400 mb-2 text-sm sm:text-base">We sent a password reset link to:</p>
-              <p className="font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center justify-center gap-2 text-sm sm:text-base break-all">
+              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Check your email</h1>
+              <p className="text-gray-500 text-slate-400 mb-2 text-sm sm:text-base">We sent a password reset link to:</p>
+              <p className="font-bold text-gray-900 text-slate-900 mb-6 flex items-center justify-center gap-2 text-sm sm:text-base break-all">
                 <Mail size={18} className="text-blue-500 flex-shrink-0" />
                 {resetEmail}
               </p>
@@ -141,11 +141,11 @@ export default function Login() {
             </div>
           ) : (
             <>
-              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Reset Password</h1>
-              <p className="text-gray-500 dark:text-gray-400 mb-4 sm:mb-6 text-sm">Enter your email and we&apos;ll send you a reset link.</p>
+              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Reset Password</h1>
+              <p className="text-gray-500 text-slate-400 mb-4 sm:mb-6 text-sm">Enter your email and we&apos;ll send you a reset link.</p>
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Email</label>
                   <input
                     type="email"
                     value={resetEmail}
@@ -156,7 +156,7 @@ export default function Login() {
                   />
                 </div>
                 {resetError && (
-                  <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+                  <div className="bg-red-50 bg-red-50 text-red-600 text-red-600 p-3 rounded-lg text-sm">
                     {resetError}
                   </div>
                 )}
@@ -170,7 +170,7 @@ export default function Login() {
               </form>
               <button
                 onClick={() => setShowReset(false)}
-                className="mt-4 w-full text-center text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 min-h-[44px]"
+                className="mt-4 w-full text-center text-sm text-gray-500 text-slate-400 hover:text-blue-600 hover:text-blue-700 min-h-[44px]"
               >
                 Back to Login
               </button>
@@ -184,18 +184,18 @@ export default function Login() {
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
       <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]">
-        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome Back</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-4 sm:mb-6 text-sm">Sign in to your account.</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Welcome Back</h1>
+        <p className="text-gray-500 text-slate-400 mb-4 sm:mb-6 text-sm">Sign in to your account.</p>
 
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4 space-y-2">
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 space-y-2">
             <p>{error}</p>
             {error.includes('confirm your email') && (
               <button
                 type="button"
                 onClick={handleResendConfirmation}
                 disabled={resendStatus === 'sending' || resendStatus === 'sent'}
-                className="text-blue-600 dark:text-blue-400 font-semibold hover:underline disabled:opacity-50"
+                className="text-blue-600 font-semibold hover:underline disabled:opacity-50"
               >
                 {resendStatus === 'sent' ? 'Laiškas išsiųstas dar kartą' : resendStatus === 'sending' ? 'Siunčiama...' : 'Siųsti patvirtinimo laišką dar kartą'}
               </button>
@@ -218,7 +218,7 @@ export default function Login() {
             <div className="h-px flex-1 bg-[var(--border-subtle)]" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Email</label>
             <input
               type="email"
               value={email}
@@ -229,7 +229,7 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Password</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Password</label>
             <input
               type="password"
               value={password}
@@ -248,7 +248,7 @@ export default function Login() {
                 setResetError('')
                 setResetEmail(email)
               }}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline min-h-[44px] flex items-center"
+              className="text-sm text-blue-600 text-blue-600 hover:underline min-h-[44px] flex items-center"
             >
               Forgot password?
             </button>
@@ -261,8 +261,8 @@ export default function Login() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          Don&apos;t have an account? <Link href={`/auth/register?next=${encodeURIComponent(nextPath)}`} className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Register</Link>
+        <p className="mt-6 text-center text-sm text-gray-500 text-slate-400">
+          Don&apos;t have an account? <Link href={`/auth/register?next=${encodeURIComponent(nextPath)}`} className="text-blue-600 text-blue-600 font-semibold hover:underline">Register</Link>
         </p>
       </div>
     </div>

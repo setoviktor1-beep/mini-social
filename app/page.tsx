@@ -111,15 +111,15 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
   const trending = buildTrendingFromPosts(postsWithLikeStatus)
 
   return (
-    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen min-h-screen bg-[#0a0a0f] text-gray-100">
+    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen min-h-screen bg-[#F8F9FA] text-slate-800">
       <div className="mx-auto max-w-7xl px-3 sm:px-4 pb-24 md:pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_300px] gap-4">
+          {/* LEFT SIDEBAR */}
           <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)]">
-            <nav className="space-y-1 rounded-2xl border border-gray-800/60 bg-gray-900/40 p-2">
+            <nav className="space-y-1 rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm">
               {[
                 { href: homeHref, icon: HomeIcon, label: 'Home', show: true },
                 { href: '/services', icon: Store, label: 'Paslaugos', show: true },
-                // MB2: Show dashboard link for all users; pro users go to /pro, others to /pricing
                 { href: ['pro', 'master', 'admin'].includes(userRole ?? '') ? '/pro' : '/pricing', icon: Briefcase, label: 'Verslo Darbalaukis', show: true },
                 { href: '/search', icon: Search, label: 'Explore', show: true },
                 { href: '/notifications', icon: Bell, label: 'Notifications', show: true },
@@ -130,43 +130,44 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors ${
+                  className={`flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-200 hover:translate-x-1 ${
                     item.href === homeHref
-                      ? 'bg-blue-500/15 text-blue-400'
-                      : 'text-gray-300 hover:bg-gray-800/70'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <item.icon size={18} />
+                  <item.icon size={18} strokeWidth={item.href === homeHref ? 2.5 : 1.5} />
                   {item.label}
                 </Link>
               ))}
               {user && (
-                <button className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-sm font-semibold text-white hover:opacity-90">
+                <button className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1A1A2E] to-[#16213E] text-sm font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5">
                   <Plus size={16} />
                   Post
                 </button>
               )}
             </nav>
             {user && (
-              <div className="mt-3 rounded-2xl border border-gray-800/60 bg-gray-900/40 p-3">
-                <div className="text-sm font-semibold text-white">{currentProfile?.display_name || 'User'}</div>
-                <div className="text-xs text-gray-400">@{currentProfile?.username || 'profile'}</div>
+              <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+                <div className="text-sm font-semibold text-slate-900">{currentProfile?.display_name || 'User'}</div>
+                <div className="text-xs text-slate-500">@{currentProfile?.username || 'profile'}</div>
               </div>
             )}
           </aside>
 
+          {/* MAIN FEED */}
           <main className="min-w-0">
-            <div className="overflow-hidden rounded-2xl border border-gray-800/60 bg-gray-900/40">
+            <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
               {user ? (
                 <PostComposer userId={user.id} />
               ) : (
-                <div className="border-b border-gray-800/60 p-4 text-sm text-blue-300">
+                <div className="border-b border-slate-100 p-4 text-sm text-blue-600 bg-blue-50/50">
                   Sign in to join the conversation.
                 </div>
               )}
 
               {user && (
-                <div className="flex border-b border-gray-800/60">
+                <div className="flex border-b border-slate-100">
                   {([
                     { key: 'for_you' as const, label: 'For You' },
                     { key: 'following' as const, label: 'Following' },
@@ -177,12 +178,12 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
                       <Link
                         key={t.key}
                         href={`/home?tab=${t.key}`}
-                        className={`relative flex-1 py-3 text-center text-sm font-medium transition-colors ${
-                          active ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                        className={`relative flex-1 py-3 text-center text-sm font-medium transition-colors hover:bg-slate-50 ${
+                          active ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
                         }`}
                       >
                         {t.label}
-                        {active && <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-blue-500" />}
+                        {active && <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-[#E94560]" />}
                       </Link>
                     )
                   })}
@@ -198,24 +199,34 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
             </div>
           </main>
 
+          {/* RIGHT SIDEBAR */}
           <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)] overflow-y-auto">
-            <div className="rounded-2xl border border-gray-800/60 bg-gray-900/40 p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-white">
-                <TrendingUp size={16} className="text-blue-400" />
+            {/* Trending */}
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider">
+                <TrendingUp size={16} className="text-[#E94560]" />
                 Trending
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {trending.map((item) => (
-                  <Link key={item.tag} href={`/search?q=%23${encodeURIComponent(item.tag)}`} className="block rounded-xl px-2 py-1.5 hover:bg-gray-800/60 cursor-pointer">
-                    <div className="text-sm font-medium text-white hover:text-blue-400 transition-colors">#{item.tag}</div>
-                    <div className="text-xs text-gray-400">{item.posts}</div>
+                  <Link 
+                    key={item.tag} 
+                    href={`/search?q=%23${encodeURIComponent(item.tag)}`} 
+                    className="group block rounded-xl px-3 py-2 hover:bg-slate-50 transition-all duration-200 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#E94560]" />
+                      <span className="text-sm font-semibold text-slate-800 group-hover:text-[#E94560] transition-colors">#{item.tag}</span>
+                    </div>
+                    <div className="text-xs text-slate-400 ml-3.5">{item.posts}</div>
                   </Link>
                 ))}
               </div>
             </div>
 
-            <div className="mt-3 rounded-2xl border border-gray-800/60 bg-gray-900/40 p-4">
-              <h3 className="mb-3 text-base font-semibold text-white">Who to follow</h3>
+            {/* Who to follow */}
+            <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <h3 className="mb-3 text-sm font-bold text-slate-900 uppercase tracking-wider">Who to follow</h3>
               <div className="space-y-3">
                 {suggestions.map((s: any) => (
                   <WhoToFollowRow
@@ -230,35 +241,6 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
           </aside>
         </div>
       </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-800/60 bg-[#0a0a0f]/95 backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-6 py-2">
-          <Link href={homeHref} className="flex flex-col items-center gap-1 py-1 text-xs text-white">
-            <HomeIcon size={18} />
-            Home
-          </Link>
-          <Link href="/services" className="flex flex-col items-center gap-1 py-1 text-xs text-gray-500">
-            <Store size={18} />
-            Paslaugos
-          </Link>
-          <Link href="/search" className="flex flex-col items-center gap-1 py-1 text-xs text-gray-500">
-            <Search size={18} />
-            Search
-          </Link>
-          <Link href="/discussions" className="flex flex-col items-center gap-1 py-1 text-xs text-gray-500">
-            <Users size={18} />
-            Groups
-          </Link>
-          <Link href="/notifications" className="flex flex-col items-center gap-1 py-1 text-xs text-gray-500">
-            <Bell size={18} />
-            Alerts
-          </Link>
-          <Link href="/messages" className="flex flex-col items-center gap-1 py-1 text-xs text-gray-500">
-            <Mail size={18} />
-            Inbox
-          </Link>
-        </div>
-      </nav>
     </div>
   )
 }

@@ -39,16 +39,16 @@ export default function ProfileStats({
   return (
     <div className="flex gap-4 sm:gap-6 mt-3 justify-center md:justify-start flex-wrap">
       <span className="text-sm">
-        <strong className="text-gray-900 dark:text-gray-100">{localFollowersCount}</strong>{' '}
-        <span className="text-gray-500 dark:text-gray-400">{pluralizeFollowers(localFollowersCount)}</span>
+        <strong className="text-slate-900 text-lg font-bold">{localFollowersCount}</strong>{' '}
+        <span className="text-slate-500">{pluralizeFollowers(localFollowersCount)}</span>
       </span>
       <span className="text-sm">
-        <strong className="text-gray-900 dark:text-gray-100">{followingCount}</strong>{' '}
-        <span className="text-gray-500 dark:text-gray-400">following</span>
+        <strong className="text-slate-900 text-lg font-bold">{followingCount}</strong>{' '}
+        <span className="text-slate-500">following</span>
       </span>
       <span className="text-sm">
-        <strong className="text-gray-900 dark:text-gray-100">{postsCount}</strong>{' '}
-        <span className="text-gray-500 dark:text-gray-400">posts</span>
+        <strong className="text-slate-900 text-lg font-bold">{postsCount}</strong>{' '}
+        <span className="text-slate-500">posts</span>
       </span>
     </div>
   )

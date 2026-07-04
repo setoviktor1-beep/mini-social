@@ -122,7 +122,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-gray-400 dark:text-gray-500 text-base sm:text-lg">Loading messages...</div>
+        <div className="text-gray-400 text-slate-400 text-base sm:text-lg">Loading...</div>
       </div>
     )
   }
@@ -132,20 +132,20 @@ export default function MessagesPage() {
       {/* Header */}
       <div className="flex items-center gap-3 sm:gap-4">
         <Link href="/home" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
-          <ArrowLeft size={22} className="text-gray-600 dark:text-gray-400" />
+          <ArrowLeft size={22} className="text-gray-600 text-slate-400" />
         </Link>
-        <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Messages</h1>
+        <h1 className="text-xl sm:text-2xl font-black text-gray-900 text-slate-900">Messages</h1>
       </div>
 
       {/* Conversations list */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
+      <div className="bg-white bg-white rounded-2xl sm:rounded-3xl shadow-sm shadow-sm border border-gray-100 border-slate-200 overflow-hidden">
         {conversations.length === 0 ? (
           <div className="p-10 sm:p-16 text-center">
-            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle size={28} className="text-blue-300 dark:text-blue-500" />
+            <div className="w-16 h-16 bg-blue-50 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle size={28} className="text-blue-300 text-blue-600" />
             </div>
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base sm:text-lg mb-1">No messages yet</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
+            <h3 className="font-bold text-gray-900 text-slate-900 text-base sm:text-lg mb-1">No messages yet</h3>
+            <p className="text-gray-500 text-slate-400 text-sm">
               Start a conversation by visiting someone&apos;s profile and tapping Message.
             </p>
           </div>
@@ -160,16 +160,16 @@ export default function MessagesPage() {
                 <button
                   key={convo.id}
                   onClick={() => router.push(`/messages/${convo.id}`)}
-                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors text-left min-h-[72px]"
+                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50/80 hover:bg-slate-50 transition-colors text-left min-h-[72px]"
                 >
                   {/* Avatar */}
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {avatarUrl ? (
                       <div className="relative w-full h-full">
                         <Image src={avatarUrl} alt="" fill sizes="48px" className="object-cover" />
                       </div>
                     ) : (
-                      <span className="text-base sm:text-lg font-bold text-blue-300 dark:text-blue-500">
+                      <span className="text-base sm:text-lg font-bold text-blue-300 text-blue-600">
                         {otherUser?.display_name?.charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -179,21 +179,21 @@ export default function MessagesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-                        <span className="font-bold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">
+                        <span className="font-bold text-gray-900 text-slate-900 truncate text-sm sm:text-base">
                           {otherUser?.display_name}
                         </span>
-                        <span className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm truncate hidden sm:inline">
+                        <span className="text-gray-400 text-slate-400 text-xs sm:text-sm truncate hidden sm:inline">
                           @{otherUser?.username}
                         </span>
                       </div>
                       {convo.last_message_at && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">
+                        <span className="text-xs text-gray-400 text-slate-400 flex-shrink-0 ml-2">
                           {formatDistanceToNow(new Date(convo.last_message_at), { addSuffix: true })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className={`text-xs sm:text-sm truncate ${hasUnread ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                      <p className={`text-xs sm:text-sm truncate ${hasUnread ? 'text-gray-900 text-slate-900 font-semibold' : 'text-gray-500 text-slate-400'}`}>
                         {convo.lastMessage
                           ? (convo.lastMessage.sender_id === currentUserId ? 'You: ' : '') + convo.lastMessage.content
                           : 'No messages yet'}

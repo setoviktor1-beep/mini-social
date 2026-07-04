@@ -562,7 +562,7 @@ export default function SettingsPage() {
                 setDisplayName(e.target.value)
                 if (errors.displayName) setErrors(prev => ({ ...prev, displayName: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-950 ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors text-gray-900 text-slate-900 bg-white bg-white ${
                 errors.displayName
                   ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -593,7 +593,7 @@ export default function SettingsPage() {
                   setUsername(val)
                   if (errors.username) setErrors(prev => ({ ...prev, username: undefined }))
                 }}
-                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-950 ${
+                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors text-gray-900 text-slate-900 bg-white bg-white ${
                   errors.username
                     ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                     : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -634,7 +634,7 @@ export default function SettingsPage() {
                 setBio(e.target.value)
                 if (errors.bio) setErrors(prev => ({ ...prev, bio: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-950 ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors text-gray-900 text-slate-900 bg-white bg-white ${
                 errors.bio
                   ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -857,7 +857,7 @@ export default function SettingsPage() {
                     type="text"
                     value={businessName}
                     onChange={e => setBusinessName(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
                     placeholder="Pvz.: Santechnikas Jonas"
                   />
                 </div>
@@ -867,7 +867,7 @@ export default function SettingsPage() {
                   <select
                     value={businessCategory}
                     onChange={e => setBusinessCategory(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors"
                   >
                     <option value="">Pasirinkite kategoriją...</option>
                     <option value="Maistas">Maistas</option>
@@ -884,7 +884,7 @@ export default function SettingsPage() {
                   <textarea
                     value={businessDescription}
                     onChange={e => setBusinessDescription(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors resize-none min-h-[80px] placeholder:text-gray-400"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors resize-none min-h-[80px] placeholder:text-gray-400"
                     placeholder="Trumpai apibūdinkite, kokias paslaugas teikiate (pvz., 'Taisau kranus, keičiu radiatorius, greitai atvykstu į vietą')."
                   />
                 </div>
@@ -895,7 +895,7 @@ export default function SettingsPage() {
                     type="text"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-white bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
                     placeholder="+370 600 00000"
                   />
                 </div>
@@ -1023,10 +1023,10 @@ export default function SettingsPage() {
       </div>
 
       {/* ==================== BLOCKED USERS SECTION ==================== */}
-      <div id="blocked" className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-50 dark:border-gray-800">
-          <h2 className="font-bold text-xl text-gray-900 dark:text-gray-100">Užblokuoti vartotojai</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Jūsų užblokuoti vartotojai nerodomi naujienlaištyje ir žinutėse</p>
+      <div id="blocked" className="bg-white bg-white rounded-2xl shadow-sm shadow-sm border border-gray-100 border-slate-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-50 border-slate-200">
+          <h2 className="font-bold text-xl text-gray-900 text-slate-900">Užblokuoti vartotojai</h2>
+          <p className="text-sm text-gray-500 text-slate-500 mt-0.5">Jūsų užblokuoti vartotojai nerodomi naujienlaištyje ir žinutėse</p>
         </div>
         <div className="p-6">
           {loadingBlockedUsers ? (
@@ -1035,10 +1035,10 @@ export default function SettingsPage() {
             </div>
           ) : blockedUsers.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-14 h-14 bg-gray-100 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Ban size={22} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Nėra užblokuotų vartotojų</p>
+              <p className="text-sm font-semibold text-gray-500 text-slate-500">Nėra užblokuotų vartotojų</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Galite blokuoti vartotoją iš jo profilio puslapio</p>
             </div>
           ) : (
@@ -1049,7 +1049,7 @@ export default function SettingsPage() {
                 return (
                   <div
                     key={b.id}
-                    className="flex items-center gap-3 sm:gap-4 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900"
+                    className="flex items-center gap-3 sm:gap-4 p-3 rounded-2xl border border-gray-100 border-slate-200 bg-white bg-white"
                   >
                     <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                       {avatarUrl ? (
@@ -1061,16 +1061,16 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">
+                      <p className="font-bold text-gray-900 text-slate-900 truncate text-sm sm:text-base">
                         {u?.display_name || 'Unknown user'}
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-xs sm:text-sm text-gray-500 text-slate-500 truncate">
                         @{u?.username || 'unknown'}
                       </p>
                     </div>
                     <button
                       onClick={() => handleUnblock(b.id)}
-                      className="px-5 py-2.5 rounded-full font-bold text-sm border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
+                      className="px-5 py-2.5 rounded-full font-bold text-sm border-2 border-gray-200 border-slate-200 text-gray-700 text-slate-600 hover:bg-gray-50 hover:bg-slate-50 transition-colors min-h-[44px]"
                     >
                       Atblokuoti
                     </button>

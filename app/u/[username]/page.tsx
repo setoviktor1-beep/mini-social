@@ -206,117 +206,146 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Profile Header */}
-      <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800">
-        <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-sm overflow-hidden flex-shrink-0">
-            {profile.avatar_path ? (
-              <Image
-                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`}
-                alt=""
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-2xl sm:text-3xl font-bold text-blue-200 dark:text-blue-500">
-                {profile.display_name?.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
-          <div className="text-center md:text-left flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 break-words">{profile.display_name}</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg">@{profile.username}</p>
-            {profile.bio && (
-              <p className="mt-2 sm:mt-3 text-gray-700 dark:text-gray-300 leading-relaxed max-w-md break-words">{profile.bio}</p>
-            )}
-            <ProfileStats
-              profileId={profile.id}
-              followersCount={followersCount || 0}
-              followingCount={followingCount || 0}
-              postsCount={posts?.length || 0}
-            />
-          </div>
-          <div className="flex flex-row md:flex-col gap-2 items-center flex-wrap justify-center">
-            {currentUser && currentUser.id === profile.id && (
-              <Link
-                href="/settings"
-                className="flex items-center gap-2 border-2 border-blue-200 dark:border-blue-700 text-blue-600 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all min-h-[44px]"
-              >
-                <Settings size={16} />
-                Edit Profile
-              </Link>
-            )}
-            {currentUser && currentUser.id !== profile.id && (
-              <form action={toggleBlock} className="contents">
-                <button
-                  className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 rounded-full font-bold transition-all min-h-[44px] ${
-                    hasBlocked
-                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      : 'border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-red-200 dark:hover:border-red-700 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30'
-                  }`}
-                  title={hasBlocked ? 'Unblock user' : 'Block user'}
-                >
-                  <Ban size={16} />
-                  {hasBlocked ? 'Unblock' : 'Block'}
-                </button>
-              </form>
-            )}
-
-            {!isBlockedEitherWay && (
-              <>
-                <ProfileActions
-                  profileId={profile.id}
-                  currentUserId={currentUser?.id}
-                  isFollowing={isFollowing}
-                  initialFollowersCount={followersCount || 0}
-                  profile={profile}
-                />
-                <FriendButton profileId={profile.id} currentUserId={currentUser?.id} />
-                {currentUser && currentUser.id !== profile.id && (
-                  <SendMessageButton otherUserId={profile.id} />
-                )}
-              </>
-            )}
-          </div>
+      {/* Profile Header with Cover */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        {/* Cover Photo Gradient */}
+        <div className="h-32 sm:h-48 bg-gradient-to-r from-[#1A1A2E] via-[#16213E] to-[#E94560] relative">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         </div>
-        {blockedBy && (
-          <div className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl p-3 text-sm text-red-700 dark:text-red-300">
-            You can&apos;t interact with this user right now.
+        
+        <div className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 -mt-12 sm:-mt-16 relative">
+          <div className="flex flex-col md:flex-row items-start md:items-end gap-4 sm:gap-6">
+            {/* Avatar */}
+            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-slate-100">
+              {profile.avatar_path ? (
+                <Image
+                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`}
+                  alt=""
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-3xl sm:text-4xl font-bold text-blue-600">
+                  {profile.display_name?.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            
+            <div className="flex-1 min-w-0 pt-1">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 break-words">{profile.display_name}</h1>
+              <p className="text-slate-500 text-base sm:text-lg">@{profile.username}</p>
+              {profile.bio && (
+                <p className="mt-2 text-slate-600 leading-relaxed max-w-md break-words text-sm sm:text-base">{profile.bio}</p>
+              )}
+              <ProfileStats
+                profileId={profile.id}
+                followersCount={followersCount || 0}
+                followingCount={followingCount || 0}
+                postsCount={posts?.length || 0}
+              />
+            </div>
+            
+            <div className="flex flex-row md:flex-col gap-2 items-center flex-wrap justify-center">
+              {currentUser && currentUser.id === profile.id && (
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 border-2 border-slate-200 text-slate-700 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 hover:border-slate-300 transition-all min-h-[44px] text-sm"
+                >
+                  <Settings size={16} />
+                  Edit Profile
+                </Link>
+              )}
+              {currentUser && currentUser.id !== profile.id && (
+                <form action={toggleBlock} className="contents">
+                  <button
+                    className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 rounded-full font-bold transition-all min-h-[44px] text-sm ${
+                      hasBlocked
+                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'border-2 border-slate-200 text-slate-700 hover:border-red-200 hover:text-red-600 hover:bg-red-50'
+                    }`}
+                    title={hasBlocked ? 'Unblock user' : 'Block user'}
+                  >
+                    <Ban size={16} />
+                    {hasBlocked ? 'Unblock' : 'Block'}
+                  </button>
+                </form>
+              )}
+
+              {!isBlockedEitherWay && (
+                <>
+                  <ProfileActions
+                    profileId={profile.id}
+                    currentUserId={currentUser?.id}
+                    isFollowing={isFollowing}
+                    initialFollowersCount={followersCount || 0}
+                    profile={profile}
+                  />
+                  <FriendButton profileId={profile.id} currentUserId={currentUser?.id} />
+                  {currentUser && currentUser.id !== profile.id && (
+                    <SendMessageButton otherUserId={profile.id} />
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        )}
-        {hasBlocked && (
-          <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-2xl p-3 text-sm text-gray-600 dark:text-gray-300">
-            You blocked this user. Unblock to follow, add friends or send messages.
-          </div>
-        )}
+          
+          {blockedBy && (
+            <div className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
+              You can&apos;t interact with this user right now.
+            </div>
+          )}
+          {hasBlocked && (
+            <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-3 text-sm text-slate-600">
+              You blocked this user. Unblock to follow, add friends or send messages.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* User Posts */}
-      <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-gray-50 dark:border-gray-800">
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg sm:text-xl">Posts</h2>
+      <div className="divide-y divide-slate-100 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-50">
+          <h2 className="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
+            <span className="w-1 h-5 bg-blue-500 rounded-full" />
+            Posts
+          </h2>
         </div>
         {postsWithLikeStatus.map((post) => (
           <PostCard key={post.id} post={post} currentUserId={currentUser?.id} currentUserRole={currentUserRole} />
         ))}
         {postsWithLikeStatus.length === 0 && (
-          <div className="p-10 sm:p-20 text-center text-gray-400">
-            This user hasn&apos;t posted anything yet.
+          <div className="p-10 sm:p-20 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+            <p className="text-slate-500 font-medium">This user hasn&apos;t posted anything yet.</p>
+            <p className="text-slate-400 text-sm mt-1">Posts will appear here once they start sharing.</p>
           </div>
         )}
       </div>
 
-      <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-gray-50 dark:border-gray-800">
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg sm:text-xl">Reposts</h2>
+      <div className="divide-y divide-slate-100 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-50">
+          <h2 className="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
+            <span className="w-1 h-5 bg-emerald-500 rounded-full" />
+            Reposts
+          </h2>
         </div>
         {repostedPosts.map((post: any) => (
           <PostCard key={post.feed_key || post.id} post={post} currentUserId={currentUser?.id} currentUserRole={currentUserRole} />
         ))}
         {repostedPosts.length === 0 && (
-          <div className="p-10 sm:p-20 text-center text-gray-400">
-            No reposts yet.
+          <div className="p-10 sm:p-20 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <p className="text-slate-500 font-medium">No reposts yet.</p>
+            <p className="text-slate-400 text-sm mt-1">Reposted content will appear here.</p>
           </div>
         )}
       </div>

@@ -74,32 +74,32 @@ export default function WhoToFollowRow({ suggestion, currentUserId, initiallyFol
   }
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <Link href={`/u/${suggestion.username}`} className="flex min-w-0 items-center gap-3 rounded-xl px-1 py-1 hover:bg-gray-800/40">
-        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-blue-900/30">
+    <div className="flex items-center justify-between gap-3 group">
+      <Link href={`/u/${suggestion.username}`} className="flex min-w-0 items-center gap-3 rounded-xl px-1 py-1 hover:bg-slate-50 transition-colors">
+        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-blue-100 to-blue-50 ring-2 ring-white shadow-sm">
           {avatarUrl ? (
             <Image src={avatarUrl} alt="" fill sizes="40px" className="object-cover" unoptimized />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-blue-300">
+            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-blue-600">
               {(suggestion.display_name || suggestion.username).charAt(0).toUpperCase()}
             </div>
           )}
         </div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-white hover:text-blue-300">
+          <div className="truncate text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">
             {suggestion.display_name || suggestion.username}
           </div>
-          <div className="truncate text-xs text-gray-400">@{suggestion.username}</div>
+          <div className="truncate text-xs text-slate-400">@{suggestion.username}</div>
         </div>
       </Link>
       <button
         type="button"
         onClick={handleFollow}
         disabled={loading}
-        className={`min-h-[36px] rounded-full px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-60 ${
+        className={`min-h-[32px] rounded-full px-4 py-1 text-xs font-semibold transition-all duration-200 disabled:opacity-60 ${
           following
-            ? 'border border-gray-600 text-gray-200 hover:border-red-500 hover:text-red-300'
-            : 'bg-white text-black hover:bg-gray-200'
+            ? 'border border-slate-300 text-slate-600 hover:border-red-400 hover:text-red-500 hover:bg-red-50'
+            : 'bg-[#1A1A2E] text-white hover:bg-[#16213E] hover:shadow-md'
         }`}
       >
         {loading ? '...' : following ? 'Following' : 'Follow'}

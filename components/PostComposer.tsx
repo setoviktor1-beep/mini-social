@@ -208,7 +208,7 @@ export default function PostComposer({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="border-b border-gray-800/60 bg-transparent p-4">
+    <div className="border-b border-slate-100 bg-white p-4">
       <input
         id={fileInputId}
         type="file"
@@ -225,15 +225,15 @@ export default function PostComposer({ userId }: { userId: string }) {
         value={content}
         onChange={e => setContent(e.target.value)}
         placeholder="Ką galvojate?"
-        className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-gray-100 placeholder-gray-500 outline-none"
+        className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-slate-800 placeholder-slate-400 outline-none"
       />
 
       {files.length > 0 && (
         <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto -mx-1 px-1">
           {previews.map(({ file, url }, i) => (
-            <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 border border-gray-700">
+            <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
               <Image src={url} alt="" fill sizes="80px" className="object-cover pointer-events-none" unoptimized />
-              <button type="button" onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 z-10 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center">
+              <button type="button" onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 z-10 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-black/70 transition-colors">
                 <X size={14} />
               </button>
             </div>
@@ -241,16 +241,16 @@ export default function PostComposer({ userId }: { userId: string }) {
         </div>
       )}
 
-      <div className="flex flex-col gap-3 border-t border-gray-800/60 pt-3">
+      <div className="flex flex-col gap-3 border-t border-slate-100 pt-3">
         {postError && (
-        <p className="text-sm text-red-400 mb-2">{postError}</p>
+        <p className="text-sm text-red-500 mb-2 bg-red-50 px-3 py-2 rounded-lg">{postError}</p>
         )}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <label htmlFor={fileInputId} className="flex w-fit min-h-[44px] cursor-pointer items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
+          <label htmlFor={fileInputId} className="flex w-fit min-h-[44px] cursor-pointer items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors hover:bg-blue-50 px-2 rounded-lg">
             <ImageIcon size={18} />
             <span>Nuotraukos</span>
           </label>
-          <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-400 focus-within:text-purple-300">
+          <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-600 focus-within:text-purple-700 hover:bg-purple-50 px-2 rounded-lg transition-colors">
             <Youtube size={18} className="flex-shrink-0" />
             <input
               type="url"
@@ -265,19 +265,20 @@ export default function PostComposer({ userId }: { userId: string }) {
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
-              className="min-h-[44px] w-full border-b border-transparent bg-transparent text-gray-200 outline-none focus:border-purple-300 sm:w-40"
+              className="min-h-[44px] w-full border-b border-transparent bg-transparent text-slate-700 outline-none focus:border-purple-400 sm:w-40"
             />
           </div>
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-slate-400">
           Enter palieka naują eilutę. YouTube nuorodą galite dėti į atskirą lauką arba vieną pačią į posto tekstą.
         </p>
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-slate-400">{content.length}/2000</span>
           <button
             type="button"
             onClick={handlePost}
             disabled={loading}
-            className="min-h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+            className="min-h-[44px] rounded-full bg-gradient-to-r from-[#1A1A2E] to-[#16213E] px-6 py-2 font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 disabled:opacity-50 flex items-center gap-2 transition-all hover:-translate-y-0.5"
           >
             {loading ? 'Skelbiama...' : <><Send size={16}/> Skelbti</>}
           </button>

@@ -66,8 +66,8 @@ export default function BottomNav() {
   const tabs = [
     { href: homeHref, icon: Home, label: 'Home' },
     { href: '/services', icon: Store, label: 'Paslaugos' },
-    { href: '/search', icon: Search, label: 'Paieška' },
-    ...(!isProUser && loggedIn ? [{ href: '/my-orders', icon: ClipboardList, label: 'Mano Užsakymai' }] : []),
+    { href: '/search', icon: Search, label: 'Paieska' },
+    ...(!isProUser && loggedIn ? [{ href: '/my-orders', icon: ClipboardList, label: 'Mano' }] : []),
     { href: '/messages', icon: MessagesSquare, label: 'Inbox', badge: unread },
     { href: profileHref, icon: User, label: 'Profilis', matchPrefix: '/u/' },
   ]
@@ -80,7 +80,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0a0a0f]/95 backdrop-blur-xl border-t border-gray-800/60 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/80 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
       <div className="flex items-stretch h-16 mb-[env(safe-area-inset-bottom)]">
         {tabs.map((tab) => {
           const Icon = tab.icon
@@ -89,21 +89,21 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors relative min-h-[44px] ${
-                active ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all duration-200 relative min-h-[44px] ${
+                active ? 'text-[#E94560]' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               <div className="relative">
-                <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+                <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
                 {tab.badge != null && tab.badge > 0 && (
-                  <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-2 bg-[#E94560] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                     {tab.badge > 9 ? '9+' : tab.badge}
                   </span>
                 )}
               </div>
               <span className="text-[10px] font-medium leading-tight">{tab.label}</span>
               {active && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-400 rounded-full" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#E94560] rounded-full" />
               )}
             </Link>
           )
