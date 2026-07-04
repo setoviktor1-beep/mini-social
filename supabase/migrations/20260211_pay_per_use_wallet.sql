@@ -152,7 +152,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.charge_ai_usage(UUID, TEXT, TEXT, INT, INT, NUMERIC) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.charge_ai_usage(UUID, TEXT, TEXT, INT, INT, NUMERIC) TO service_role;
 
--- Atomic top-up helper for webhooks
+-- Atomic top-up helper for webhooks (legacy, kept for backwards compatibility)
 CREATE OR REPLACE FUNCTION public.credit_wallet_balance(
   p_user_id UUID,
   p_amount NUMERIC
@@ -179,3 +179,65 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.credit_wallet_balance(UUID, NUMERIC) TO service_role;
+
+-- Atomic top-up + completion marker. This guarantees exactly-once credit even if the
+-- webhook is retried or delivered multiple times in parallel.
+CREATE OR REPLACE FUNCTION public.credit_wallet_and_complete_transaction(
+  p_user_id UUID,
+  p_amount NUMERIC,
+  p_stripe_session_id TEXT
+)
+RETURNS NUMERIC AS $$
+DECLARE
+  v_new_balance NUMERIC(10,2);
+  v_transaction_id UUID;
+  v_already_completed BOOLEAN;
+BEGIN
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'Invalid topup amount';
+  END IF;
+
+  -- Lock the transaction row; if it doesn't exist, raise so the caller can retry.
+  SELECT id, status = 'completed' INTO v_transaction_id, v_already_completed
+  FROM public.wallet_transactions
+  WHERE stripe_session_id = p_stripe_session_id
+  FOR UPDATE;
+
+  IF v_transaction_id IS NULL THEN
+    RAISE EXCEPTION 'WALLET_TRANSACTION_NOT_FOUND';
+  END IF;
+
+  IF v_already_completed THEN
+    SELECT balance INTO v_new_balance
+    FROM public.profiles
+    WHERE id = p_user_id;
+    RETURN v_new_balance;
+  END IF;
+
+  -- Credit wallet
+  INSERT INTO public.profiles (id, balance)
+  VALUES (p_user_id, p_amount)
+  ON CONFLICT (id)
+  DO UPDATE SET balance = public.profiles.balance + EXCLUDED.balance;
+
+  SELECT balance INTO v_new_balance
+  FROM public.profiles
+  WHERE id = p_user_id;
+
+  -- Mark transaction completed atomically
+  UPDATE public.wallet_transactions
+  SET status = 'completed',
+      credited_at = NOW(),
+      updated_at = NOW()
+  WHERE id = v_transaction_id
+    AND status != 'completed';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'WALLET_TRANSACTION_ALREADY_COMPLETED';
+  END IF;
+
+  RETURN v_new_balance;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.credit_wallet_and_complete_transaction(UUID, NUMERIC, TEXT) TO service_role;

@@ -22,6 +22,7 @@
   --radius-full: 9999px;
   --sidebar-width: 280px;
   --content-max: 720px;
+  --skeleton-bg: #e0e0e0;
 }
 
 /* Dark mode overrides applied via .dark class on <html> */
@@ -35,4 +36,5 @@
   --text-primary: #e8e8e8;
   --text-secondary: #8e8e8e;
   --text-tertiary: #5a5a5a;
+  --skeleton-bg: #2e2e2e;
 }

@@ -10,6 +10,10 @@ import { I18nProvider } from '@/lib/i18n'
 const inter = Inter({ subsets: ['latin', 'latin-ext'], weight: ['400', '500', '600'] })
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
+// Prevent static prerender from failing when Supabase env vars are not
+// available at build time. All routes rely on auth/session data anyway.
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {

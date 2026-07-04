@@ -43,7 +43,7 @@ export default function ProDashboardTabs({
   return (
     <div className="space-y-6">
       {/* Navigation Tabs */}
-      <div className="flex overflow-x-auto border-b border-gray-800/60 pb-px scrollbar-hide">
+      <div className="flex overflow-x-auto border-b border-gray-800/60 pb-px scrollbar-hide -mx-3 px-3 sm:-mx-0 sm:px-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

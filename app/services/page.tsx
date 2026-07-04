@@ -5,6 +5,7 @@ import { MapPin, Store, Utensils, Scissors, Car, Heart, Camera, Loader2, Star, B
 import ServiceCard from "@/components/services/ServiceCard";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { SkeletonCard } from "@/components/Skeleton";
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
@@ -66,6 +67,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
@@ -379,9 +381,11 @@ export default function ServicesPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
-              <p className="text-gray-500 animate-pulse">Ieškoma paslaugų tavo apylinkėse...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-8">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
             </div>
           ) : (
             <div className="space-y-10">

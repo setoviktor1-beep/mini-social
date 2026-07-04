@@ -1,0 +1,20 @@
+{
+  "project": "mini-social",
+  "goal": "Public Release Readiness",
+  "tasks": [
+    {"id": "sec-rls", "content": "Saugumas: Pataisyti service_requests RLS politiką", "status": "completed"},
+    {"id": "sec-api-auth", "content": "Saugumas: Pridėti auth ir rate-limiting /api/estimate ir /api/services", "status": "completed"},
+    {"id": "sec-errors", "content": "Saugumas: Implementuoti bendrą klaidų tvarkymą API", "status": "completed"},
+    {"id": "fin-wallet-idemp", "content": "Finansai: Įdiegti wallet top-up idempotenciją", "status": "completed"},
+    {"id": "fin-payment-verify", "content": "Finansai: Pridėti payment_status tikrinimą prieš kreditavimą", "status": "completed"},
+    {"id": "fin-subs-roles", "content": "Finansai: Ištaisyti dubliuojančias prenumeratas ir role corruption", "status": "completed"},
+    {"id": "ux-reg-address", "content": "UX: Leisti rankinį adreso įvedimą registracijoje", "status": "completed"},
+    {"id": "ux-services-gate", "content": "UX: Ištaisyti lokacijos blokavimą paslaugų puslapyje", "status": "completed"},
+    {"id": "ux-resend-email", "content": "UX: Pridėti „Resend confirmation email“ funkciją", "status": "completed"},
+    {"id": "ui-mobile-fix", "content": "UI: Ištaisyti mobilius overflow", "status": "completed"},
+    {"id": "ui-dark-wallet", "content": "UI: Pridėti Dark Mode WalletCard komponentui", "status": "completed"},
+    {"id": "ui-skeletons", "content": "UI: Implementuoti Skeleton loading būsenas", "status": "completed"},
+    {"id": "i18n-json", "content": "i18n: Perkelti vertimus į JSON failus ir išvalyti hardcoded tekstus", "status": "completed"},
+    {"id": "i18n-pro-admin", "content": "i18n: Lokalizuoti Pro ir Admin modulius", "status": "completed"}
+  ]
+}

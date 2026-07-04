@@ -143,55 +143,40 @@ export async function POST(request: Request) {
 
         if (userId && Number.isFinite(amount) && amount > 0) {
           const nowIso = new Date().toISOString()
+
+          // 1) Idempotent reservation: insert-or-ignore the wallet transaction row.
+          // stripe_session_id unique index guarantees only one row per Checkout Session.
+          const { error: reserveTransactionError } = await supabase
+            .from('wallet_transactions')
+            .insert({
+              user_id: userId,
+              stripe_session_id: session.id,
+              amount,
+              status: 'processing',
+            })
+
+          const transactionAlreadyStarted = reserveTransactionError?.code === '23505'
+          if (reserveTransactionError && !transactionAlreadyStarted) {
+            throw new Error('WEBHOOK_DB_ERROR')
+          }
+
+          // 2) If the transaction already completed, skip credit entirely (idempotency).
           const { data: existingTransaction } = await supabase
             .from('wallet_transactions')
             .select('id, status')
             .eq('stripe_session_id', session.id)
             .maybeSingle()
 
-          if (existingTransaction?.status !== 'completed') {
-            if (existingTransaction) {
-              const { error: markProcessingError } = await supabase
-                .from('wallet_transactions')
-                .update({
-                  status: 'processing',
-                  updated_at: nowIso,
-                })
-                .eq('id', existingTransaction.id)
-
-              if (markProcessingError) throw new Error('WEBHOOK_DB_ERROR')
-            } else {
-              const { error: insertTransactionError } = await supabase
-                .from('wallet_transactions')
-                .insert({
-                  user_id: userId,
-                  stripe_session_id: session.id,
-                  amount,
-                })
-
-              if (insertTransactionError && insertTransactionError.code !== '23505') {
-                throw new Error('WEBHOOK_DB_ERROR')
-              }
-            }
-
-            const { error } = await supabase.rpc('credit_wallet_balance', {
+          if (existingTransaction?.status === 'completed') {
+            // Already credited; nothing to do.
+          } else if (existingTransaction) {
+            // 3) Credit exactly once and mark completed in a single DB RPC.
+            const { error: creditError } = await supabase.rpc('credit_wallet_and_complete_transaction', {
               p_user_id: userId,
               p_amount: amount,
+              p_stripe_session_id: session.id,
             })
-            if (error) {
-              throw new Error('WEBHOOK_DB_ERROR')
-            }
-
-            const { error: completeTransactionError } = await supabase
-              .from('wallet_transactions')
-              .update({
-                status: 'completed',
-                credited_at: nowIso,
-                updated_at: nowIso,
-              })
-              .eq('stripe_session_id', session.id)
-
-            if (completeTransactionError) {
+            if (creditError) {
               throw new Error('WEBHOOK_DB_ERROR')
             }
           }
@@ -246,33 +231,74 @@ export async function POST(request: Request) {
       const userId = subscription.metadata?.user_id
       const plan = subscription.metadata?.plan || 'basic'
       const status = subscription.status
+      const currentPeriodEnd = subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toISOString()
+        : null
 
       if (userId) {
-        const { error: subscriptionError } = await supabase.from('subscriptions').upsert({
-          user_id: userId,
-          stripe_customer_id: getStripeCustomerId(subscription.customer),
-          stripe_subscription_id: subscription.id,
-          plan,
-          status,
-          current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
-            : null,
-          cancel_at_period_end: subscription.cancel_at_period_end,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
+        // Resolve which Stripe subscription is the source of truth for this user. The row
+        // may already reference a different subscription (e.g. duplicate checkout), so
+        // we only overwrite when the incoming event is the latest active subscription or
+        // when no subscription_id is currently stored for this user.
+        const { data: existingSub } = await supabase
+          .from('subscriptions')
+          .select('stripe_subscription_id, current_period_end, status, plan')
+          .eq('user_id', userId)
+          .maybeSingle()
 
-        if (subscriptionError) {
-          throw new Error('WEBHOOK_DB_ERROR')
+        const incomingIsActive = status === 'active' || status === 'trialing'
+        const existingIsActive = existingSub
+          ? (existingSub.status === 'active' || existingSub.status === 'trialing')
+          : false
+        const existingPeriodEnd = existingSub?.current_period_end
+          ? new Date(existingSub.current_period_end).getTime()
+          : 0
+        const incomingPeriodEnd = currentPeriodEnd ? new Date(currentPeriodEnd).getTime() : 0
+
+        const shouldUpdate =
+          !existingSub ||
+          !existingSub.stripe_subscription_id ||
+          existingSub.stripe_subscription_id === subscription.id ||
+          (!existingIsActive && incomingIsActive) ||
+          (incomingIsActive && existingIsActive && incomingPeriodEnd > existingPeriodEnd)
+
+        if (shouldUpdate) {
+          const { error: subscriptionError } = await supabase.from('subscriptions').upsert({
+            user_id: userId,
+            stripe_customer_id: getStripeCustomerId(subscription.customer),
+            stripe_subscription_id: subscription.id,
+            plan,
+            status,
+            current_period_end: currentPeriodEnd,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' })
+
+          if (subscriptionError) {
+            throw new Error('WEBHOOK_DB_ERROR')
+          }
         }
 
+        // Protect role from stale events: never downgrade an admin; only promote paid users.
         // All paid subscribers (basic/pro/enterprise) get role='pro'.
         // Enterprise-specific features are gated by subscriptions.plan='enterprise', not by role.
-        const isActive = status === 'active' || status === 'trialing'
-        const role = isActive ? 'pro' : 'user'
-        const { error: profileError } = await supabase.from('profiles').update({ role: getSubscriptionRole(status) }).eq('id', userId)
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .maybeSingle()
 
-        if (profileError) {
-          throw new Error('WEBHOOK_DB_ERROR')
+        const role = getSubscriptionRole(status)
+        if (currentProfile?.role !== 'admin' && role !== currentProfile?.role) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ role })
+            .eq('id', userId)
+            .neq('role', 'admin')
+
+          if (profileError) {
+            throw new Error('WEBHOOK_DB_ERROR')
+          }
         }
       }
     }
@@ -282,24 +308,46 @@ export async function POST(request: Request) {
       const userId = subscription.metadata?.user_id
 
       if (userId) {
-        const { error: subscriptionError } = await supabase.from('subscriptions').upsert({
-          user_id: userId,
-          stripe_customer_id: getStripeCustomerId(subscription.customer),
-          stripe_subscription_id: subscription.id,
-          plan: 'free',
-          status: 'canceled',
-          cancel_at_period_end: false,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
+        // Only mark as canceled if the deleted subscription matches the one we currently
+        // track for this user. Otherwise ignore stale/cross-customer events.
+        const { data: existingSub } = await supabase
+          .from('subscriptions')
+          .select('stripe_subscription_id')
+          .eq('user_id', userId)
+          .maybeSingle()
 
-        if (subscriptionError) {
-          throw new Error('WEBHOOK_DB_ERROR')
-        }
+        if (existingSub?.stripe_subscription_id === subscription.id) {
+          const { error: subscriptionError } = await supabase.from('subscriptions').upsert({
+            user_id: userId,
+            stripe_customer_id: getStripeCustomerId(subscription.customer),
+            stripe_subscription_id: subscription.id,
+            plan: 'free',
+            status: 'canceled',
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' })
 
-        const { error: profileError } = await supabase.from('profiles').update({ role: 'user' }).eq('id', userId)
+          if (subscriptionError) {
+            throw new Error('WEBHOOK_DB_ERROR')
+          }
 
-        if (profileError) {
-          throw new Error('WEBHOOK_DB_ERROR')
+          const { data: currentProfile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+
+          if (currentProfile?.role !== 'admin') {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .update({ role: 'user' })
+              .eq('id', userId)
+              .neq('role', 'admin')
+
+            if (profileError) {
+              throw new Error('WEBHOOK_DB_ERROR')
+            }
+          }
         }
       }
     }

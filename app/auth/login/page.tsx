@@ -36,11 +36,14 @@ export default function Login() {
     }
   }, [nextPath, router, supabase])
 
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loading) return
     setLoading(true)
     setError('')
+    setResendStatus('idle')
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
@@ -55,6 +58,23 @@ export default function Login() {
     } else {
       router.replace(nextPath)
       router.refresh()
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!email || resendStatus === 'sending' || resendStatus === 'sent') return
+    setResendStatus('sending')
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${siteUrl}/auth/callback` },
+    })
+    if (error) {
+      setResendStatus('error')
+      setError(`Nepavyko išsiųsti laiško: ${error.message}`)
+    } else {
+      setResendStatus('sent')
     }
   }
 
@@ -167,7 +187,21 @@ export default function Login() {
         <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome Back</h1>
         <p className="text-gray-500 dark:text-gray-400 mb-4 sm:mb-6 text-sm">Sign in to your account.</p>
 
-        {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4 space-y-2">
+            <p>{error}</p>
+            {error.includes('confirm your email') && (
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={resendStatus === 'sending' || resendStatus === 'sent'}
+                className="text-blue-600 dark:text-blue-400 font-semibold hover:underline disabled:opacity-50"
+              >
+                {resendStatus === 'sent' ? 'Laiškas išsiųstas dar kartą' : resendStatus === 'sending' ? 'Siunčiama...' : 'Siųsti patvirtinimo laišką dar kartą'}
+              </button>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <button
