@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, CheckCircle } from 'lucide-react'
@@ -66,9 +66,8 @@ export default function Login() {
     setResendStatus('sending')
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
     const { error } = await supabase.auth.resend({
-      type: 'signup',
       email,
-      options: { emailRedirectTo: `${siteUrl}/auth/callback` },
+      options: { emailRedirectTo: `${siteUrl}${nextPath}` },
     })
     if (error) {
       setResendStatus('error')
@@ -88,7 +87,7 @@ export default function Login() {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
 
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
+      redirectTo: `${siteUrl}/auth/reset-password`,
     })
 
     if (error) {
@@ -107,7 +106,7 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        redirectTo: `${siteUrl}${nextPath}`,
       },
     })
     if (error) {

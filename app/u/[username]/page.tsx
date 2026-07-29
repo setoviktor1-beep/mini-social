@@ -1,5 +1,5 @@
 // app/u/[username]/page.tsx
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import PostCard from '@/components/PostCard'
 import ProfileActions from '@/components/ProfileActions'
 import ProfileStats from '@/components/ProfileStats'
@@ -15,12 +15,13 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 interface ProfilePageProps {
-  params: {
+  params: Promise<{
     username: string
-  }
+  }>
 }
 
-export default async function ProfilePage({ params }: ProfilePageProps) {
+export default async function ProfilePage(props: ProfilePageProps) {
+  const params = await props.params;
   const supabase = createClient()
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
@@ -219,7 +220,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-slate-100">
               {profile.avatar_path ? (
                 <Image
-                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`}
+                  src={`${process.env.NEXT_PUBLIC_S3_PUBLIC_URL}/post-images/${profile.avatar_path}`}
                   alt=""
                   width={128}
                   height={128}
@@ -353,7 +354,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   )
 }
 
-export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+export async function generateMetadata(props: ProfilePageProps): Promise<Metadata> {
+  const params = await props.params;
   const supabase = createClient()
   const { data: profile } = await supabase
     .from('profiles')

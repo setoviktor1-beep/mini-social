@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/backend-client';
 import { Plus, Pencil, Trash2, Check, X, Tag, Loader2 } from 'lucide-react';
 
 type PriceType = 'fixed' | 'hourly' | 'from';

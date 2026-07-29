@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { MapPin, Store, Utensils, Scissors, Car, Heart, Camera, Loader2, Star, BadgeCheck, CheckCircle2, Send, X } from "lucide-react";
 import ServiceCard from "@/components/services/ServiceCard";
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/backend-client";
 import { useRouter } from "next/navigation";
 import { SkeletonCard } from "@/components/Skeleton";
 

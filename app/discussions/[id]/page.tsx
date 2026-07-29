@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
@@ -20,10 +20,11 @@ const categoryConfig: Record<string, { label: string; bg: string; text: string }
 }
 
 interface DiscussionPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default async function DiscussionPage({ params }: DiscussionPageProps) {
+export default async function DiscussionPage(props: DiscussionPageProps) {
+  const params = await props.params;
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -233,7 +234,8 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
   )
 }
 
-export async function generateMetadata({ params }: DiscussionPageProps): Promise<Metadata> {
+export async function generateMetadata(props: DiscussionPageProps): Promise<Metadata> {
+  const params = await props.params;
   const supabase = createClient()
   const { data: discussion } = await supabase
     .from('discussions')

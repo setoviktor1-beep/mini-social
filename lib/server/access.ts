@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient } from '@/lib/backend-server'
 import { hasActiveSubscription, hasProAccess } from '@/lib/subscription-access'
 import { normalizeNextPath } from '@/lib/auth-redirect'
 import { redirect } from 'next/navigation'

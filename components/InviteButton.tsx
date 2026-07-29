@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Link2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 
 export default function InviteButton() {
   const [referralCode, setReferralCode] = useState<string | null>(null)

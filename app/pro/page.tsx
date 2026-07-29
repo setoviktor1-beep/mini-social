@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import { redirect } from 'next/navigation'
 import ProDashboardTabs from '@/components/pro/ProDashboardTabs'
 import ProDashboardHeader from '@/components/pro/ProDashboardHeader'
@@ -7,7 +7,8 @@ import SubscribedBanner from '@/components/pro/SubscribedBanner'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ProDashboard({ searchParams }: { searchParams: { subscribed?: string } }) {
+export default async function ProDashboard(props: { searchParams: Promise<{ subscribed?: string }> }) {
+  const searchParams = await props.searchParams;
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

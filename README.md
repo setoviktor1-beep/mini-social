@@ -1,12 +1,17 @@
 # Mini Social
 
-Modern social platform built with Next.js App Router, Supabase, Stripe, and Gemini AI.
+Self-hosted social platform built with Next.js App Router, PostgreSQL, Better Auth,
+MinIO, Redis, Socket.IO, Stripe, and Gemini AI.
 
 ## Stack
 
-- Next.js 14 (App Router) + TypeScript
+- Next.js 16 (App Router) + TypeScript
 - Tailwind CSS
-- Supabase (auth, database, storage, RLS, RPC)
+- PostgreSQL 17 + PostGIS (database, RLS, RPC)
+- Better Auth (email/password and optional Google OAuth)
+- PostgREST (internal data API)
+- MinIO (object storage)
+- Redis + Socket.IO (real-time events)
 - Stripe (wallet top-up / payments)
 - Gemini API (AI tools + AI chat)
 
@@ -23,37 +28,37 @@ Modern social platform built with Next.js App Router, Supabase, Stripe, and Gemi
 
 ## Requirements
 
-- Node.js 18+
-- npm
-- Supabase project
+- Docker Engine with Compose
 - Stripe account (for payments)
 - Gemini API key
 
 ## Local Setup
 
-1. Install dependencies:
+1. Create the production environment file and replace all placeholder secrets:
 
 ```bash
-npm install
+cp .env.production.example .env.production
 ```
 
-2. Create `.env.local` from template:
+Alternatively, generate secure core secrets:
 
 ```bash
-cp .env.local.example .env.local
+./scripts/generate-production-env.sh .env.production
 ```
 
-3. Fill required values in `.env.local`.
-
-4. Start development server:
+2. Build and start the self-hosted stack:
 
 ```bash
-npm run dev
+docker compose --env-file .env.production build migrate
+docker compose --env-file .env.production up -d
 ```
 
-5. Open:
+3. Open:
 
-`http://localhost:3000`
+`http://127.0.0.1:3100`
+
+The production Compose configuration expects a shared external Docker network
+named `coolify` for Traefik routing.
 
 ## Available Scripts
 
@@ -61,33 +66,36 @@ npm run dev
 - `npm run build` - production build
 - `npm run start` - run production server
 - `npm run lint` - run lint checks
+- `node scripts/migrate.mjs` - apply pending PostgreSQL migrations
+- `./scripts/smoke-test.sh [base-url]` - verify auth, RLS, storage, and cleanup
 
 ## Environment Variables
 
-See full template in `.env.local.example`.
+See the deployment template in `.env.production.example`.
 
 Main groups:
-- Supabase
+- PostgreSQL and PostgREST
+- Better Auth
+- Redis and MinIO
 - Stripe
 - Gemini AI
-- App URLs
-- Google OAuth placeholders
+- SMTP, Google OAuth, web push, and app URLs
 
-## Supabase
+## Database
 
-- SQL migrations are stored in `supabase/migrations`.
-- Keep schema changes in migration files (do not leave production-only SQL in Dashboard only).
+- Active SQL migrations are stored in `db/migrations`.
+- `scripts/migrate.mjs` records applied files in `schema_migrations`.
 - Use RLS policies for new tables.
+- The old `supabase/migrations` directory is retained only as migration history
+  and is not used by the deployment.
 
 ## Deployment
 
-Recommended target: Vercel.
-
-Basic flow:
-1. Push to GitHub
-2. Connect repo in Vercel
-3. Add environment variables in Vercel project settings
-4. Deploy
+The production target is a VPS running Docker Compose behind Traefik. The
+checked-in configuration routes `mini-social.online` and
+`www.mini-social.online`, provisions TLS through the existing Traefik
+certificate resolver, runs daily PostgreSQL backups, and exposes the app only
+on loopback port `3100`.
 
 ## Notes
 

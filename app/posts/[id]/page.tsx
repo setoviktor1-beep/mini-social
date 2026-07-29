@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import { attachUserInteractionFlags } from '@/lib/feed-service'
 import PostCard from '@/components/PostCard'
 
@@ -23,7 +23,8 @@ const POST_SELECT = `
   reposts(count)
 `
 
-export default async function PostPermalinkPage({ params }: { params: { id: string } }) {
+export default async function PostPermalinkPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createClient()
   const [{ data: authData }, { data: post }, { data: profile }] = await Promise.all([
     supabase.auth.getUser(),

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Store, Search, MessagesSquare, User, ClipboardList } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 
 export default function BottomNav() {
   const pathname = usePathname()

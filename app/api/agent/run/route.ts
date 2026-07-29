@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/backend-server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-// This endpoint is called by Vercel Cron every hour
+// This endpoint is called by the VPS scheduler.
 // Authorization via CRON_SECRET header
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')
@@ -13,10 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const supabase = createServiceClient()
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
   const now = new Date()

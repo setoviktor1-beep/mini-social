@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MapPin, Star, CheckCircle2, ShoppingCart, Loader2, X, Send } from "lucide-react";
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/backend-client";
 
 interface ServiceCardProps {
   service: any;

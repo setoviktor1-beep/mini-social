@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import AdminSidebar from '@/components/admin/AdminSidebar'
@@ -6,7 +6,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 export const metadata = { title: 'Admin — MiniSocial' }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const headersList = headers()
+  const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
 
   // Login page gets a clean layout without sidebar/auth check

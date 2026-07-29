@@ -1,0 +1,209 @@
+name: mini-social
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mini_social}
+      POSTGRES_USER: ${POSTGRES_USER:-mini_social}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      backend:
+        aliases: [mini-social-db]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      backend:
+        aliases: [mini-social-redis]
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      backend:
+        aliases: [mini-social-minio]
+      coolify: {}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.mini-social-media.rule=(Host(`mini-social.online`) || Host(`www.mini-social.online`)) && PathPrefix(`/media/`)
+      - traefik.http.routers.mini-social-media.entrypoints=https
+      - traefik.http.routers.mini-social-media.tls=true
+      - traefik.http.routers.mini-social-media.priority=100
+      - traefik.http.routers.mini-social-media.middlewares=mini-social-media-strip
+      - traefik.http.middlewares.mini-social-media-strip.stripprefix.prefixes=/media
+      - traefik.http.services.mini-social-media.loadbalancer.server.port=9000
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing local/post-images
+        mc mb --ignore-existing local/receipts
+        mc anonymous set download local/post-images
+        mc anonymous set none local/receipts
+    networks: [backend]
+    restart: "no"
+
+  migrate:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${APP_URL:-https://mini-social.online}
+        NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_URL:-https://mini-social.online/media}
+    image: mini-social-app:local
+    command: ["node", "scripts/migrate.mjs"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mini_social}:${POSTGRES_PASSWORD}@mini-social-db:5432/${POSTGRES_DB:-mini_social}
+    networks: [backend]
+    restart: "no"
+
+  postgrest:
+    image: postgrest/postgrest:v12.2.12
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgresql://authenticator:postgrest@mini-social-db:5432/${POSTGRES_DB:-mini_social}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anonymous
+      PGRST_JWT_SECRET: ${POSTGREST_JWT_SECRET:?POSTGREST_JWT_SECRET is required}
+      PGRST_DB_POOL: 20
+      PGRST_SERVER_PORT: 3000
+    healthcheck:
+      test: ["CMD", "postgrest", "--version"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      backend:
+        aliases: [mini-social-postgrest]
+
+  app:
+    image: mini-social-app:local
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgrest:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    env_file: ${APP_ENV_FILE:-.env.production}
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mini_social}:${POSTGRES_PASSWORD}@mini-social-db:5432/${POSTGRES_DB:-mini_social}
+      POSTGREST_URL: http://mini-social-postgrest:3000
+      REDIS_URL: redis://mini-social-redis:6379
+      S3_ENDPOINT: http://mini-social-minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-https://mini-social.online/media}
+      NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_URL:-https://mini-social.online/media}
+    ports:
+      - 127.0.0.1:3100:3000
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      backend: {}
+      coolify: {}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.mini-social-http.rule=Host(`mini-social.online`) || Host(`www.mini-social.online`)
+      - traefik.http.routers.mini-social-http.entrypoints=http
+      - traefik.http.routers.mini-social-http.middlewares=mini-social-https-redirect
+      - traefik.http.middlewares.mini-social-https-redirect.redirectscheme.scheme=https
+      - traefik.http.routers.mini-social.rule=Host(`mini-social.online`) || Host(`www.mini-social.online`)
+      - traefik.http.routers.mini-social.entrypoints=https
+      - traefik.http.routers.mini-social.tls=true
+      - traefik.http.routers.mini-social.tls.certresolver=letsencrypt
+      - traefik.http.routers.mini-social.priority=10
+      - traefik.http.routers.mini-social.middlewares=mini-social-security
+      - traefik.http.middlewares.mini-social-security.headers.stsSeconds=31536000
+      - traefik.http.middlewares.mini-social-security.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.mini-social-security.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.mini-social-security.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.services.mini-social.loadbalancer.server.port=3000
+
+  backup:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: mini-social-db
+      PGDATABASE: ${POSTGRES_DB:-mini_social}
+      PGUSER: ${POSTGRES_USER:-mini_social}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_backups:/backups
+    entrypoint:
+      - /bin/bash
+      - -ec
+      - |
+        while true; do
+          pg_dump --format=custom --file="/backups/mini-social-$$(date -u +%Y%m%dT%H%M%SZ).dump"
+          find /backups -type f -name 'mini-social-*.dump' -mtime +14 -delete
+          sleep 86400
+        done
+    networks: [backend]
+
+networks:
+  backend:
+    internal: true
+  coolify:
+    external: true
+
+volumes:
+  postgres_data:
+  postgres_backups:
+  redis_data:
+  minio_data:

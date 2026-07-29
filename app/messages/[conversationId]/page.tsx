@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Send } from 'lucide-react'
 import Link from 'next/link'

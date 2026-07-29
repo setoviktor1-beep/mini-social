@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient } from '@/lib/backend-server'
 
 const PLAN_PRICE_IDS: Record<string, string | undefined> = {
   basic:      process.env.STRIPE_PRICE_BASIC,

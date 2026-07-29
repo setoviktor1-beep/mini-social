@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/backend-server'
 import webpush from 'web-push'
 
 export async function POST(req: NextRequest) {
-  // Server-to-server only: check service role key
+  // Server-to-server only.
   const authHeader = req.headers.get('authorization')
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!authHeader || authHeader !== `Bearer ${serviceRoleKey}`) {
+  const internalKey = process.env.INTERNAL_API_SECRET
+  if (!internalKey || authHeader !== `Bearer ${internalKey}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -24,10 +24,7 @@ export async function POST(req: NextRequest) {
       process.env.VAPID_PRIVATE_KEY!
     )
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createServiceClient()
 
     const { data: subscriptions, error } = await supabase
       .from('push_subscriptions')

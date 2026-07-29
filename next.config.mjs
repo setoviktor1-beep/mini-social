@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
-const supabaseHostFromEnv = (() => {
+const storageHostFromEnv = (() => {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const url = process.env.NEXT_PUBLIC_S3_PUBLIC_URL
     if (!url) return null
     return new URL(url).hostname
   } catch {
@@ -10,14 +10,15 @@ const supabaseHostFromEnv = (() => {
 })()
 
 const nextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: [
-      ...(supabaseHostFromEnv
+      ...(storageHostFromEnv
         ? [
             {
               protocol: 'https',
-              hostname: supabaseHostFromEnv,
-              pathname: '/storage/v1/object/public/**',
+              hostname: storageHostFromEnv,
+              pathname: '/**',
             },
           ]
         : []),
@@ -26,4 +27,3 @@ const nextConfig = {
 }
 
 export default nextConfig
-

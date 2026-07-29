@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import { Users, FileText, Flag, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 

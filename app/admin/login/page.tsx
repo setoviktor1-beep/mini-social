@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { Shield } from 'lucide-react'
 
@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
       return
     }
 
-    if (!data.user) {
+    if (!data?.user) {
       setError('Login failed')
       setLoading(false)
       return

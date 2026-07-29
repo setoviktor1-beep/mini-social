@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState, useTransition } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { Send } from 'lucide-react'
 import { notifyMentions } from '@/lib/mentions'

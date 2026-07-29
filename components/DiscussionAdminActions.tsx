@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { Loader2, Lock, Pin } from 'lucide-react'
 
 export default function DiscussionAdminActions(props: {

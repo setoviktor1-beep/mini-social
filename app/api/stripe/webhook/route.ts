@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
-import { createSupabaseServiceClient } from '@/lib/supabase/server'
+import { createSupabaseServiceClient } from '@/lib/backend-server'
 
 export const runtime = 'nodejs'
 

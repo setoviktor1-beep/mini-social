@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import DiscussionCard from '@/components/DiscussionCard'
 import Link from 'next/link'
 import { Plus, MessageSquareText } from 'lucide-react'
@@ -15,10 +15,11 @@ const categories = [
 ]
 
 interface DiscussionsPageProps {
-  searchParams: { category?: string }
+  searchParams: Promise<{ category?: string }>
 }
 
-export default async function DiscussionsPage({ searchParams }: DiscussionsPageProps) {
+export default async function DiscussionsPage(props: DiscussionsPageProps) {
+  const searchParams = await props.searchParams;
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

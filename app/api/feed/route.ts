@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import { attachUserInteractionFlags, getFeedItems, parsePage, parseTab } from '@/lib/feed-service'
 
 export async function GET(request: Request) {

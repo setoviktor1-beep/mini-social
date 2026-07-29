@@ -1,8 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { User } from '@supabase/supabase-js'
 import { useRouter, usePathname } from 'next/navigation'
 import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase, ClipboardList } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
@@ -11,6 +10,17 @@ import PushNotificationToggle from './PushNotificationToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 import Image from 'next/image'
 import { useI18n } from '@/lib/i18n'
+
+type User = {
+  id: string
+  email: string
+  name?: string
+  image?: string | null
+  user_metadata?: {
+    username?: string
+    [key: string]: unknown
+  }
+}
 
 export default function Navbar() {
   const { t } = useI18n()

@@ -1,9 +1,10 @@
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import PricingClient from './PricingClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PricingPage({ searchParams }: { searchParams?: { checkout?: string } }) {
+export default async function PricingPage(props: { searchParams?: Promise<{ checkout?: string }> }) {
+  const searchParams = await props.searchParams;
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

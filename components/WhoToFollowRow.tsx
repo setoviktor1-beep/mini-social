@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 
 interface WhoToFollowRowProps {
   suggestion: {

@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, MapPin } from 'lucide-react'
@@ -59,7 +59,7 @@ export default function Register() {
     }
     if (!email.trim()) nextErrors.email = 'Įveskite el. paštą.'
     if (!phone.trim()) nextErrors.phone = 'Įveskite telefono numerį.'
-    if (password.length < 6) nextErrors.password = 'Slaptažodis turi būti bent 6 simboliai.'
+    if (password.length < 8) nextErrors.password = 'Slaptažodis turi būti bent 8 simboliai.'
     if (!addressText.trim()) nextErrors.addressText = 'Prašome nurodyti adresą.'
     if (!city.trim()) nextErrors.city = 'Prašome nurodyti miestą.'
     if (!country.trim()) nextErrors.country = 'Prašome nurodyti šalį.'

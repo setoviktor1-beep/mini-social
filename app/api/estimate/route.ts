@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createClient } from '@/lib/server-supabase';
+import { createClient } from '@/lib/backend-server';
 import { rateLimit } from '@/lib/rate-limit';
 import { handleApiError, badRequest, createErrorResponse } from '@/lib/api-error';
 

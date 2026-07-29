@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Users, FileText, Flag, ScrollText, ArrowLeft, LogOut, Menu, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Bell, BellOff } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 
 export default function PushNotificationToggle() {
   const [supported, setSupported] = useState(false)

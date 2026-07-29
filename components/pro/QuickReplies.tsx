@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/backend-client';
 import { Plus, Trash2, Copy, Check, MessageSquare, Loader2, X } from 'lucide-react';
 
 interface QuickReply {

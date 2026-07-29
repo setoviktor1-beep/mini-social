@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { X, Camera } from 'lucide-react'
 import Image from 'next/image'
@@ -165,7 +165,7 @@ export default function ProfileActions({
                           />
                         ) : profile.avatar_path ? (
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${profile.avatar_path}`}
+                            src={`${process.env.NEXT_PUBLIC_S3_PUBLIC_URL}/post-images/${profile.avatar_path}`}
                             className="w-full h-full object-cover"
                             alt=""
                             width={80}

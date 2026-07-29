@@ -1,5 +1,5 @@
 // app/page.tsx
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import PostComposer from '@/components/PostComposer'
 import Link from 'next/link'
 import FeedListClient from '@/components/FeedListClient'
@@ -62,12 +62,12 @@ function buildTrendingFromPosts(posts: any[]) {
   ]
 }
 
-export default async function Home(props: { searchParams?: { tab?: string } }) {
+export default async function Home(props: { searchParams?: Promise<{ tab?: string }> }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const homeHref = user ? '/home' : '/'
 
-  const requestedTab = parseTab(props.searchParams?.tab)
+  const requestedTab = parseTab((await props.searchParams)?.tab)
   const activeTab: TabKey = user ? (requestedTab || 'latest') : 'latest'
   const [{ posts: rawPosts }, { data: profile }] = await Promise.all([
     getFeedItems({
@@ -90,11 +90,15 @@ export default async function Home(props: { searchParams?: { tab?: string } }) {
   const userRole = profile?.role
   const currentProfile = profile || null
 
-  const { data: suggestionsRaw } = await supabase
+  let suggestionsQuery = supabase
     .from('profiles')
     .select('id, username, display_name, avatar_path')
-    .neq('id', user?.id || '')
-    .limit(3)
+
+  if (user) {
+    suggestionsQuery = suggestionsQuery.neq('id', user.id)
+  }
+
+  const { data: suggestionsRaw } = await suggestionsQuery.limit(3)
 
   const suggestions = suggestionsRaw || []
   const suggestionIds = suggestions.map((item) => item.id)

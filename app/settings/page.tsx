@@ -1,5 +1,5 @@
 'use client'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, Briefcase, MapPin } from 'lucide-react'
@@ -452,7 +452,7 @@ export default function SettingsPage() {
 
   // Current avatar URL from storage
   const currentAvatarUrl = avatarPath
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${avatarPath}`
+    ? `${process.env.NEXT_PUBLIC_S3_PUBLIC_URL}/post-images/${avatarPath}`
     : null
 
   // What to display in avatar circle (preview > existing > fallback)

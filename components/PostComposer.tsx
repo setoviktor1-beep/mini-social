@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect, useMemo, useId } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
-import { Image as ImageIcon, Youtube, Send, X } from 'lucide-react'
+import { Image as ImageIcon, Video, Send, X } from 'lucide-react'
 import Image from 'next/image'
 import { notifyMentions } from '@/lib/mentions'
 import { extractYoutubeId, normalizeYoutubeUrl } from '@/lib/media'
@@ -251,7 +251,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             <span>Nuotraukos</span>
           </label>
           <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-600 focus-within:text-purple-700 hover:bg-purple-50 px-2 rounded-lg transition-colors">
-            <Youtube size={18} className="flex-shrink-0" />
+            <Video size={18} className="flex-shrink-0" />
             <input
               type="url"
               placeholder="YouTube URL"

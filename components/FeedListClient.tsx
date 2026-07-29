@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import PostCard from '@/components/PostCard'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import { Loader2 } from 'lucide-react'
 
 type TabKey = 'for_you' | 'following' | 'latest'
@@ -73,7 +73,7 @@ export default function FeedListClient(props: {
     }
   }
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (loading || !hasMore) return
     setLoading(true)
     controllerRef.current?.abort()
@@ -96,7 +96,7 @@ export default function FeedListClient(props: {
     } finally {
       setLoading(false)
     }
-  }
+  }, [hasMore, loading, page, tab])
 
   useEffect(() => {
     const el = loadMoreRef.current
@@ -109,7 +109,7 @@ export default function FeedListClient(props: {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [loadMoreRef.current, page, hasMore, loading, tab])
+  }, [loadMore])
 
   return (
     <div className="divide-y divide-slate-100 bg-transparent">

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/server-supabase'
+import { createClient } from '@/lib/backend-server'
 import { redirect } from 'next/navigation'
 import { ClipboardList, Clock3, CheckCircle2, Loader2 } from 'lucide-react'
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/backend-client';
 import { ChevronLeft, ChevronRight, Loader2, Plus, Pencil, Trash2, X, Check, Clock } from 'lucide-react';
 
 interface ServiceRequest {

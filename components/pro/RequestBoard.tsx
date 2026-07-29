@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle2, Clock, PlayCircle, MapPin, Hammer, MessageCircle, Plus, X, Loader2, Trash2, PenLine } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/backend-client'
 import Link from 'next/link'
 
 type RequestBoardProps = {

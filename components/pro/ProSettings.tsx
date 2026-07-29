@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/backend-client';
 import { Clock, MapPin, Loader2, Check, Lock } from 'lucide-react';
 
 const DAYS = [

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/server-supabase';
-import { createSupabaseServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/backend-server';
+import { createSupabaseServiceClient } from '@/lib/backend-server';
 import { rateLimit } from '@/lib/rate-limit';
 import { handleApiError, createErrorResponse } from '@/lib/api-error';
 

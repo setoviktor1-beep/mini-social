@@ -1,7 +1,7 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
+import { createClient } from '@/lib/backend-client'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle } from 'lucide-react'
 
 export default function ResetPassword() {
@@ -10,43 +10,14 @@ export default function ResetPassword() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [ready, setReady] = useState(false)
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
-
-  useEffect(() => {
-    let mounted = true
-
-    const validateRecoverySession = async () => {
-      const { data, error: sessionError } = await supabase.auth.getSession()
-
-      if (!mounted) return
-
-      if (sessionError || !data.session) {
-        setError('Reset password link is invalid or expired. Please request a new one.')
-      }
-
-      setReady(true)
-    }
-
-    void validateRecoverySession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        setError('')
-        setReady(true)
-      }
-    })
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [supabase])
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token') || ''
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (loading || !ready) return
+    if (loading) return
     setError('')
 
     if (password.length < 6) {
@@ -61,7 +32,13 @@ export default function ResetPassword() {
 
     setLoading(true)
 
-    const { error } = await supabase.auth.updateUser({ password })
+    if (!token) {
+      setError('Reset password link is invalid or expired. Please request a new one.')
+      setLoading(false)
+      return
+    }
+
+    const { error } = await supabase.auth.resetPassword({ password, token })
 
     if (error) {
       setError(error.message)
@@ -124,10 +101,10 @@ export default function ResetPassword() {
             />
           </div>
           <button
-            disabled={loading || !ready}
+            disabled={loading || !token}
             className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm shadow-blue-200 dark:shadow-blue-900/30 min-h-[44px]"
           >
-            {loading ? 'Updating...' : !ready ? 'Validating link...' : 'Update Password'}
+            {loading ? 'Updating...' : !token ? 'Invalid link' : 'Update Password'}
           </button>
         </form>
       </div>

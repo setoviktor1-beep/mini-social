@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/Navbar'
 import BottomNav from '@/components/BottomNav'
@@ -7,11 +6,9 @@ import { ThemeProvider } from './providers'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import { I18nProvider } from '@/lib/i18n'
 
-const inter = Inter({ subsets: ['latin', 'latin-ext'], weight: ['400', '500', '600'] })
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
-// Prevent static prerender from failing when Supabase env vars are not
-// available at build time. All routes rely on auth/session data anyway.
+// Pages depend on authenticated, request-scoped data.
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
@@ -61,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans">
         <I18nProvider>
         <ThemeProvider>
           <Navbar />

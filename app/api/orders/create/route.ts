@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/server-supabase';
+import { createClient } from '@/lib/backend-server';
 import { NextResponse } from 'next/server';
 import { getPriceEstimate } from '@/lib/ai-estimator';
 import { handleApiError, unauthorized, badRequest, rateLimited } from '@/lib/api-error';

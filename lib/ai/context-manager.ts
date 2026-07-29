@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient } from "@/lib/backend-server";
 
 export const MAX_CONTEXT_MESSAGES = 20;
 export const MAX_CONTEXT_TOKENS = 8000;
