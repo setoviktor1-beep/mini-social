@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { Mail, CheckCircle } from 'lucide-react'
 import { normalizeNextPath } from '@/lib/auth-redirect'
 
+const googleAuthEnabled =
+  process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true'
+
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -203,19 +206,23 @@ export default function Login() {
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading || loading}
-            className="w-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-3 rounded-full font-semibold disabled:opacity-50 min-h-[44px]"
-          >
-            {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
-          </button>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-            <span>or</span>
-            <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-          </div>
+          {googleAuthEnabled && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading || loading}
+                className="w-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-3 rounded-full font-semibold disabled:opacity-50 min-h-[44px]"
+              >
+                {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+              </button>
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+                <span>or</span>
+                <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Email</label>
             <input
