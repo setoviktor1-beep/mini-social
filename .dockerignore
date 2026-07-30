@@ -6,3 +6,8 @@ npm-debug.log*
 !.env.production.example
 coverage
 android
+mini-social-supabase-export*
+mini-social-vps-overlay.env
+import-mini-social-data.mjs
+import-mini-social-storage.sh
+merge-env-overlay.mjs

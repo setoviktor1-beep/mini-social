@@ -94,8 +94,8 @@ Main groups:
 The production target is a VPS running Docker Compose behind Traefik. The
 checked-in configuration routes `mini-social.online` and
 `www.mini-social.online`, provisions TLS through the existing Traefik
-certificate resolver, runs daily PostgreSQL backups, and exposes the app only
-on loopback port `3100`.
+certificate resolver, runs daily PostgreSQL backups and the enterprise-agent
+scheduler, and exposes the app only on loopback port `3100`.
 
 ## Notes
 

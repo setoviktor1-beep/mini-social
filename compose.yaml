@@ -89,6 +89,9 @@ services:
       args:
         NEXT_PUBLIC_SITE_URL: ${APP_URL:-https://mini-social.online}
         NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_URL:-https://mini-social.online/media}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
     image: mini-social-app:local
     command: ["node", "scripts/migrate.mjs"]
     depends_on:
@@ -171,6 +174,33 @@ services:
       - traefik.http.middlewares.mini-social-security.headers.contentTypeNosniff=true
       - traefik.http.middlewares.mini-social-security.headers.referrerPolicy=strict-origin-when-cross-origin
       - traefik.http.services.mini-social.loadbalancer.server.port=3000
+
+  agent-cron:
+    image: mini-social-app:local
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET is required}
+    command:
+      - node
+      - -e
+      - |
+        const run = async () => {
+          const response = await fetch('http://app:3000/api/agent/run', {
+            headers: { authorization: 'Bearer ' + process.env.CRON_SECRET },
+          })
+          if (!response.ok) throw new Error('Agent cron returned HTTP ' + response.status)
+          console.log(new Date().toISOString(), 'agent cron completed')
+        }
+        const next = new Date()
+        next.setUTCHours(24, 0, 0, 0)
+        setTimeout(async function tick() {
+          try { await run() } catch (error) { console.error(error) }
+          setTimeout(tick, 86400000)
+        }, next.getTime() - Date.now())
+    networks: [backend]
 
   backup:
     image: postgis/postgis:17-3.5
