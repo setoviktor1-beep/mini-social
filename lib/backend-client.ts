@@ -316,6 +316,23 @@ function browserAuth() {
           : null,
       }
     },
+    async changePassword(input: {
+      currentPassword: string
+      newPassword: string
+      revokeOtherSessions?: boolean
+    }) {
+      const result = await authClient.changePassword({
+        currentPassword: input.currentPassword,
+        newPassword: input.newPassword,
+        revokeOtherSessions: input.revokeOtherSessions ?? true,
+      })
+      return {
+        data: result.data,
+        error: result.error
+          ? { message: result.error.message || 'PASSWORD_CHANGE_FAILED' }
+          : null,
+      }
+    },
     async updateUser(input: {
       data?: Record<string, unknown>
       name?: string

@@ -1,13 +1,15 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/backend-client'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, CheckCircle } from 'lucide-react'
 import { normalizeNextPath } from '@/lib/auth-redirect'
 
 const googleAuthEnabled =
   process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true'
+const passwordResetEnabled =
+  process.env.NEXT_PUBLIC_PASSWORD_RESET_ENABLED === 'true'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -21,7 +23,6 @@ export default function Login() {
   const [resetError, setResetError] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
   const supabase = useMemo(() => createClient(), [])
-  const router = useRouter()
   const searchParams = useSearchParams()
   const nextPath = normalizeNextPath(searchParams.get('next'))
 
@@ -30,14 +31,13 @@ export default function Login() {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active || !data.session) return
-      router.replace(nextPath)
-      router.refresh()
+      window.location.replace(nextPath)
     })
 
     return () => {
       active = false
     }
-  }, [nextPath, router, supabase])
+  }, [nextPath, supabase])
 
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
 
@@ -59,8 +59,7 @@ export default function Login() {
       }
       setLoading(false)
     } else {
-      router.replace(nextPath)
-      router.refresh()
+      window.location.assign(nextPath)
     }
   }
 
@@ -127,8 +126,8 @@ export default function Login() {
               <div className="w-16 h-16 bg-green-50 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="text-green-500" size={32} />
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Check your email</h1>
-              <p className="text-gray-500 text-slate-400 mb-2 text-sm sm:text-base">We sent a password reset link to:</p>
+              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Patikrinkite el. paštą</h1>
+              <p className="text-gray-500 text-slate-400 mb-2 text-sm sm:text-base">Slaptažodžio atkūrimo nuoroda išsiųsta adresu:</p>
               <p className="font-bold text-gray-900 text-slate-900 mb-6 flex items-center justify-center gap-2 text-sm sm:text-base break-all">
                 <Mail size={18} className="text-blue-500 flex-shrink-0" />
                 {resetEmail}
@@ -138,13 +137,13 @@ export default function Login() {
                 className="w-full text-white py-3 rounded-full font-bold transition-colors min-h-[44px]"
                 style={{ background: 'var(--accent-gradient)' }}
               >
-                Back to Login
+                Grįžti į prisijungimą
               </button>
             </div>
           ) : (
             <>
-              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Reset Password</h1>
-              <p className="text-gray-500 text-slate-400 mb-4 sm:mb-6 text-sm">Enter your email and we&apos;ll send you a reset link.</p>
+              <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Atkurti slaptažodį</h1>
+              <p className="text-gray-500 text-slate-400 mb-4 sm:mb-6 text-sm">Įveskite el. pašto adresą ir atsiųsime atkūrimo nuorodą.</p>
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Email</label>
@@ -167,14 +166,14 @@ export default function Login() {
                   className="w-full text-white py-3 rounded-full font-bold disabled:opacity-50 transition-colors min-h-[44px]"
                   style={{ background: 'var(--accent-gradient)' }}
                 >
-                  {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                  {resetLoading ? 'Siunčiama...' : 'Siųsti atkūrimo nuorodą'}
                 </button>
               </form>
               <button
                 onClick={() => setShowReset(false)}
                 className="mt-4 w-full text-center text-sm text-gray-500 text-slate-400 hover:text-blue-600 hover:text-blue-700 min-h-[44px]"
               >
-                Back to Login
+                Grįžti į prisijungimą
               </button>
             </>
           )}
@@ -186,8 +185,8 @@ export default function Login() {
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0">
       <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]">
-        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Welcome Back</h1>
-        <p className="text-gray-500 text-slate-400 mb-4 sm:mb-6 text-sm">Sign in to your account.</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-gray-900 text-slate-900">Sveiki sugrįžę</h1>
+        <p className="text-gray-500 text-slate-400 mb-4 sm:mb-6 text-sm">Prisijunkite prie savo paskyros.</p>
 
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 space-y-2">
@@ -214,38 +213,40 @@ export default function Login() {
                 disabled={googleLoading || loading}
                 className="w-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-3 rounded-full font-semibold disabled:opacity-50 min-h-[44px]"
               >
-                {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+                {googleLoading ? 'Jungiamasi...' : 'Tęsti su Google'}
               </button>
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-                <span>or</span>
+                <span>arba</span>
                 <div className="h-px flex-1 bg-[var(--border-subtle)]" />
               </div>
             </>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Email</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">El. paštas</label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
             className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
               placeholder="john@example.com"
+              autoComplete="email"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Password</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 text-slate-600">Slaptažodis</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] min-h-[44px]"
               placeholder="••••••••"
+              autoComplete="current-password"
               required
             />
           </div>
-          <div className="flex justify-end">
+          {passwordResetEnabled && <div className="flex justify-end">
             <button
               type="button"
               onClick={() => {
@@ -256,19 +257,19 @@ export default function Login() {
               }}
               className="text-sm text-blue-600 text-blue-600 hover:underline min-h-[44px] flex items-center"
             >
-              Forgot password?
+              Pamiršote slaptažodį?
             </button>
-          </div>
+          </div>}
           <button
             disabled={loading}
             className="w-full text-white py-3 rounded-full font-bold disabled:opacity-50 transition-colors min-h-[44px]"
             style={{ background: 'var(--accent-gradient)' }}
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Jungiamasi...' : 'Prisijungti'}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-500 text-slate-400">
-          Don&apos;t have an account? <Link href={`/auth/register?next=${encodeURIComponent(nextPath)}`} className="text-blue-600 text-blue-600 font-semibold hover:underline">Register</Link>
+          Neturite paskyros? <Link href={`/auth/register?next=${encodeURIComponent(nextPath)}`} className="text-blue-600 text-blue-600 font-semibold hover:underline">Registruotis</Link>
         </p>
       </div>
     </div>

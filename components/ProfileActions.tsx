@@ -102,7 +102,7 @@ export default function ProfileActions({
     let avatarPath = profile.avatar_path
 
     if (avatarFile) {
-      const path = `avatars/${currentUserId}/${Date.now()}_${avatarFile.name}`
+      const path = `${currentUserId}/avatars/${Date.now()}_${avatarFile.name}`
       const { error: uploadError } = await supabase.storage.from('post-images').upload(path, avatarFile)
       if (!uploadError) {
         avatarPath = path
@@ -178,7 +178,7 @@ export default function ProfileActions({
                       <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full shadow-sm">
                         <Camera size={14} />
                       </div>
-                      <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && setAvatarFile(e.target.files[0])} />
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={e => e.target.files?.[0] && setAvatarFile(e.target.files[0])} />
                     </label>
                   </div>
 

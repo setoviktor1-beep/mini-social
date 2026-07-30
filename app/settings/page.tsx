@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/backend-client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, Briefcase, MapPin } from 'lucide-react'
 import Image from 'next/image'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
@@ -85,7 +86,6 @@ export default function SettingsPage() {
   const [travelAddressText, setTravelAddressText] = useState('')
   const [travelLat, setTravelLat] = useState<number | null>(null)
   const [travelLng, setTravelLng] = useState<number | null>(null)
-  const [role, setRole] = useState('user')
   const [businessName, setBusinessName] = useState('')
   const [businessCategory, setBusinessCategory] = useState('')
   const [businessDescription, setBusinessDescription] = useState('')
@@ -98,8 +98,10 @@ export default function SettingsPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
-  const [resetEmailSending, setResetEmailSending] = useState(false)
-  const [resetEmailSent, setResetEmailSent] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordChanging, setPasswordChanging] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
 
   const [blockedUsers, setBlockedUsers] = useState<BlockedUserRow[]>([])
@@ -142,7 +144,6 @@ export default function SettingsPage() {
       setTravelAddressText(profileData.travel_address_text || '')
       setTravelLat(profileData.travel_lat ?? null)
       setTravelLng(profileData.travel_lng ?? null)
-      setRole(profileData.role || 'user')
       setBusinessName(profileData.business_name || '')
       setBusinessCategory(profileData.business_category || '')
       setBusinessDescription(profileData.business_description || '')
@@ -297,7 +298,7 @@ export default function SettingsPage() {
         }
 
         const ext = avatarFile.name.split('.').pop() || 'jpg'
-        const path = `avatars/${profile.id}/${Date.now()}.${ext}`
+        const path = `${profile.id}/avatars/${Date.now()}.${ext}`
         const { error: uploadError } = await supabase.storage
           .from('post-images')
           .upload(path, avatarFile)
@@ -316,9 +317,7 @@ export default function SettingsPage() {
         newAvatarPath = null
       }
 
-      // Never downgrade a paid/admin role via settings UI
-      const protectedRoles = ['pro', 'admin']
-      const safeRole = protectedRoles.includes(profile.role) ? profile.role : role
+      const canManageBusiness = ['pro', 'master', 'admin'].includes(profile.role)
 
       // Update profile in database
       const { error: updateError } = await supabase
@@ -339,10 +338,13 @@ export default function SettingsPage() {
           travel_address_text: travelMode ? (travelAddressText.trim() || null) : null,
           travel_lat: travelMode ? travelLat : null,
           travel_lng: travelMode ? travelLng : null,
-          role: safeRole,
-          business_name: ['pro', 'master', 'admin'].includes(safeRole) ? businessName.trim() : null,
-          business_category: ['pro', 'master', 'admin'].includes(safeRole) ? businessCategory.trim() : null,
-          business_description: ['pro', 'master', 'admin'].includes(safeRole) ? businessDescription.trim() : null,
+          ...(canManageBusiness
+            ? {
+                business_name: businessName.trim() || null,
+                business_category: businessCategory.trim() || null,
+                business_description: businessDescription.trim() || null,
+              }
+            : {}),
           phone: phone.trim() || null,
         })
         .eq('id', profile.id)
@@ -378,7 +380,6 @@ export default function SettingsPage() {
       setAvatarFile(null)
       setAvatarPreview(null)
       setRemoveAvatar(false)
-      setRole(safeRole)
       setProfile(prev => prev ? {
         ...prev,
         display_name: displayName.trim(),
@@ -389,10 +390,13 @@ export default function SettingsPage() {
         country: country.trim() || null,
         postal_code: postalCode.trim() || null,
         address_text: addressText.trim() || null,
-        role: safeRole,
-        business_name: ['pro', 'master', 'admin'].includes(safeRole) ? businessName.trim() : null,
-        business_category: ['pro', 'master', 'admin'].includes(safeRole) ? businessCategory.trim() : null,
-        business_description: ['pro', 'master', 'admin'].includes(safeRole) ? businessDescription.trim() : null,
+        ...(canManageBusiness
+          ? {
+              business_name: businessName.trim() || null,
+              business_category: businessCategory.trim() || null,
+              business_description: businessDescription.trim() || null,
+            }
+          : {}),
         phone: phone.trim() || null,
       } : null)
 
@@ -410,19 +414,35 @@ export default function SettingsPage() {
     }
   }
 
-  const handlePasswordReset = async () => {
-    if (!userEmail) return
-    setResetEmailSending(true)
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-    const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-      redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
+  const handlePasswordChange = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    if (newPassword.length < 8) {
+      setErrorMessage('Naujas slaptažodis turi būti bent 8 simbolių.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMessage('Nauji slaptažodžiai nesutampa.')
+      return
+    }
+
+    setPasswordChanging(true)
+    const { error } = await supabase.auth.changePassword({
+      currentPassword,
+      newPassword,
+      revokeOtherSessions: true,
     })
-    setResetEmailSending(false)
+    setPasswordChanging(false)
+
     if (error) {
-      setErrorMessage('Nepavyko išsiųsti el. laiško: ' + error.message)
+      setErrorMessage('Nepavyko pakeisti slaptažodžio. Patikrinkite dabartinį slaptažodį.')
     } else {
-      setResetEmailSent(true)
-      setSuccessMessage('Slaptažodžio atstatymo el. laiškas išsiųstas! Patikrinkite paštą.')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setSuccessMessage('Slaptažodis sėkmingai pakeistas.')
     }
   }
 
@@ -533,11 +553,11 @@ export default function SettingsPage() {
                       className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 text-sm font-bold rounded-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                     >
                       <Trash2 size={16} />
-                      Remove
+                      Pašalinti
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-gray-400">JPG, PNG, GIF or WebP. Max 5MB.</p>
+                <p className="text-xs text-gray-400">JPG, PNG, GIF arba WebP. Iki 5 MB.</p>
                 {errors.avatar && (
                   <p className="text-xs text-red-500 font-medium">{errors.avatar}</p>
                 )}
@@ -545,7 +565,7 @@ export default function SettingsPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={handleAvatarSelect}
               />
@@ -664,49 +684,36 @@ export default function SettingsPage() {
               <InviteButton />
             </div>
 
-            {/* Role Selection */}
+            {/* Subscription-controlled account role */}
             <div>
-              <label className="text-sm font-bold text-gray-700 block mb-1.5">Vaidmuo sistemoje</label>
-              {['pro', 'admin'].includes(profile?.role || '') ? (
+              <label className="text-sm font-bold text-gray-700 block mb-1.5">Paskyros tipas</label>
+              {['pro', 'master', 'admin'].includes(profile?.role || '') ? (
                 <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
                   <span>💼</span>
                   <span className="font-bold text-sm text-emerald-700">
-                    {profile?.role === 'admin' ? 'Administratorius' : 'Pro planas — Verslas / Paslaugos'}
+                    {profile?.role === 'admin'
+                      ? 'Administratorius'
+                      : profile?.role === 'master'
+                        ? 'Verslo paskyra'
+                        : 'Pro planas'}
                   </span>
-                  <span className="ml-auto text-xs text-emerald-500">Valdoma prenumeratos</span>
+                  <span className="ml-auto text-xs text-emerald-600">Aktyvi</span>
                 </div>
               ) : (
-                <>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setRole('user')}
-                      className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
-                        role === 'user'
-                          ? 'bg-blue-50 border-blue-600 text-blue-700'
-                          : 'border-gray-100 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      🏠 Kaimynas
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole('master')}
-                      className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${
-                        role === 'master'
-                          ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
-                          : 'border-gray-100 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      💼 Verslas / Paslaugos
-                    </button>
+                <div className="flex flex-col gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-bold text-blue-900">Kaimyno paskyra</p>
+                    <p className="mt-1 text-xs text-blue-700">
+                      Verslo funkcijos aktyvuojamos saugiai per prenumeratą.
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {role === 'master'
-                      ? 'Matysi kaimynų užklausas ir galėsi siūlyti savo paslaugas.'
-                      : 'Galėsi bendrauti su kaimynais ir ieškoti paslaugų bei meistrų.'}
-                  </p>
-                </>
+                  <Link
+                    href="/pricing"
+                    className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+                  >
+                    Peržiūrėti planus
+                  </Link>
+                </div>
               )}
             </div>
 
@@ -843,8 +850,8 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {/* Business Details (Only for Masters) */}
-            {role === 'master' && (
+            {/* Business details are available only to managed business roles. */}
+            {['pro', 'master', 'admin'].includes(profile?.role || '') && (
               <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2">
                 <h4 className="font-bold text-emerald-700 text-sm uppercase tracking-wider flex items-center gap-2">
                   <Briefcase size={16} />
@@ -954,38 +961,56 @@ export default function SettingsPage() {
           </div>
 
           {/* Change Password */}
-          <div>
+          <form onSubmit={handlePasswordChange}>
             <label className="text-sm font-bold text-gray-700 block mb-1.5">
               <span className="flex items-center gap-2">
                 <KeyRound size={16} />
-                Slaptažodis
+                Keisti slaptažodį
               </span>
             </label>
-            <p className="text-sm text-gray-500 mb-3">
-              Atsiųsime slaptažodžio atstatymo nuorodą į jūsų el. paštą.
+            <p className="mb-3 text-sm text-gray-500">
+              Pakeitus slaptažodį, kitos aktyvios sesijos bus atjungtos.
             </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={event => setCurrentPassword(event.target.value)}
+                autoComplete="current-password"
+                placeholder="Dabartinis slaptažodis"
+                required
+                className="min-h-[44px] rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-blue-400"
+              />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={event => setNewPassword(event.target.value)}
+                autoComplete="new-password"
+                placeholder="Naujas slaptažodis"
+                minLength={8}
+                required
+                className="min-h-[44px] rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-blue-400"
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={event => setConfirmPassword(event.target.value)}
+                autoComplete="new-password"
+                placeholder="Pakartokite slaptažodį"
+                minLength={8}
+                required
+                className="min-h-[44px] rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-blue-400"
+              />
+            </div>
             <button
-              onClick={handlePasswordReset}
-              disabled={resetEmailSending || resetEmailSent}
-              className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all flex items-center gap-2 ${
-                resetEmailSent
-                  ? 'bg-green-50 text-green-700 border border-green-200'
-                  : 'border-2 border-gray-200 text-gray-700 hover:bg-gray-50'
-              } disabled:opacity-60 disabled:cursor-not-allowed`}
+              type="submit"
+              disabled={passwordChanging}
+              className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border-2 border-gray-200 px-6 py-2.5 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {resetEmailSending && <Loader2 size={16} className="animate-spin" />}
-              {resetEmailSent ? (
-                <>
-                  <Check size={16} />
-                  El. laiškas išsiųstas
-                </>
-              ) : resetEmailSending ? (
-                'Siunčiama...'
-              ) : (
-                'Siųsti slaptažodžio atstatymo el. laišką'
-              )}
+              {passwordChanging && <Loader2 size={16} className="animate-spin" />}
+              {passwordChanging ? 'Keičiama...' : 'Pakeisti slaptažodį'}
             </button>
-          </div>
+          </form>
 
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

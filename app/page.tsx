@@ -49,16 +49,16 @@ function buildTrendingFromPosts(posts: any[]) {
     .slice(0, 4)
     .map(([tag, count]) => ({
       tag,
-      posts: `${count} ${count === 1 ? 'post' : 'posts'}`,
+      posts: `${count} ${count === 1 ? 'įrašas' : 'įrašai'}`,
     }))
 
   if (sorted.length > 0) return sorted
 
   return [
-    { tag: 'minisocial', posts: `${posts.length} posts` },
-    { tag: 'community', posts: 'Live now' },
-    { tag: 'updates', posts: 'Fresh posts' },
-    { tag: 'discover', posts: 'Explore' },
+    { tag: 'minisocial', posts: `${posts.length} įrašų` },
+    { tag: 'bendruomenė', posts: 'Būk pirmas' },
+    { tag: 'naujienos', posts: 'Naujausi įrašai' },
+    { tag: 'atrask', posts: 'Atrask žmones' },
   ]
 }
 
@@ -122,14 +122,14 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
           <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)]">
             <nav className="space-y-1 rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm">
               {[
-                { href: homeHref, icon: HomeIcon, label: 'Home', show: true },
+                { href: homeHref, icon: HomeIcon, label: 'Pagrindinis', show: true },
                 { href: '/services', icon: Store, label: 'Paslaugos', show: true },
-                { href: ['pro', 'master', 'admin'].includes(userRole ?? '') ? '/pro' : '/pricing', icon: Briefcase, label: 'Verslo Darbalaukis', show: true },
-                { href: '/search', icon: Search, label: 'Explore', show: true },
-                { href: '/notifications', icon: Bell, label: 'Notifications', show: true },
-                { href: '/messages', icon: Mail, label: 'Messages', show: true },
-                { href: '/discussions', icon: Users, label: 'Discussions', show: true },
-                { href: '/settings', icon: Settings, label: 'Settings', show: true },
+                { href: ['pro', 'master', 'admin'].includes(userRole ?? '') ? '/pro' : '/pricing', icon: Briefcase, label: 'Verslo darbalaukis', show: true },
+                { href: '/search', icon: Search, label: 'Atrasti', show: true },
+                { href: '/notifications', icon: Bell, label: 'Pranešimai', show: true },
+                { href: '/messages', icon: Mail, label: 'Žinutės', show: true },
+                { href: '/discussions', icon: Users, label: 'Diskusijos', show: true },
+                { href: '/settings', icon: Settings, label: 'Nustatymai', show: true },
               ].filter(item => item.show).map((item) => (
                 <Link
                   key={item.href}
@@ -145,16 +145,16 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                 </Link>
               ))}
               {user && (
-                <button className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1A1A2E] to-[#16213E] text-sm font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5">
+                <a href="#post-composer" className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1A1A2E] to-[#16213E] text-sm font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5">
                   <Plus size={16} />
-                  Post
-                </button>
+                  Naujas įrašas
+                </a>
               )}
             </nav>
             {user && (
               <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                <div className="text-sm font-semibold text-slate-900">{currentProfile?.display_name || 'User'}</div>
-                <div className="text-xs text-slate-500">@{currentProfile?.username || 'profile'}</div>
+                <div className="text-sm font-semibold text-slate-900">{currentProfile?.display_name || 'Vartotojas'}</div>
+                <div className="text-xs text-slate-500">@{currentProfile?.username || 'profilis'}</div>
               </div>
             )}
           </aside>
@@ -163,19 +163,24 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
           <main className="min-w-0">
             <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
               {user ? (
-                <PostComposer userId={user.id} />
+                <div id="post-composer" className="scroll-mt-20">
+                  <PostComposer userId={user.id} />
+                </div>
               ) : (
                 <div className="border-b border-slate-100 p-4 text-sm text-blue-600 bg-blue-50/50">
-                  Sign in to join the conversation.
+                  <Link href="/auth/login" className="font-medium hover:underline">
+                    Prisijunkite
+                  </Link>{' '}
+                  ir prisidėkite prie pokalbio.
                 </div>
               )}
 
               {user && (
                 <div className="flex border-b border-slate-100">
                   {([
-                    { key: 'for_you' as const, label: 'For You' },
-                    { key: 'following' as const, label: 'Following' },
-                    { key: 'latest' as const, label: 'Latest' },
+                    { key: 'for_you' as const, label: 'Tau' },
+                    { key: 'following' as const, label: 'Sekami' },
+                    { key: 'latest' as const, label: 'Naujausi' },
                   ]).map((t) => {
                     const active = activeTab === t.key
                     return (
@@ -209,7 +214,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider">
                 <TrendingUp size={16} className="text-[#E94560]" />
-                Trending
+                Tendencijos
               </h3>
               <div className="space-y-2">
                 {trending.map((item) => (
@@ -230,7 +235,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
 
             {/* Who to follow */}
             <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-bold text-slate-900 uppercase tracking-wider">Who to follow</h3>
+              <h3 className="mb-3 text-sm font-bold text-slate-900 uppercase tracking-wider">Ką sekti</h3>
               <div className="space-y-3">
                 {suggestions.map((s: any) => (
                   <WhoToFollowRow
@@ -240,6 +245,11 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                     initiallyFollowing={followedSuggestionIds.has(s.id)}
                   />
                 ))}
+                {suggestions.length === 0 && (
+                  <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">
+                    Kol kas nėra kitų vartotojų.
+                  </p>
+                )}
               </div>
             </div>
           </aside>

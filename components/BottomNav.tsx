@@ -64,11 +64,11 @@ export default function BottomNav() {
   const homeHref = loggedIn ? '/home' : '/'
 
   const tabs = [
-    { href: homeHref, icon: Home, label: 'Home' },
+    { href: homeHref, icon: Home, label: 'Pradžia' },
     { href: '/services', icon: Store, label: 'Paslaugos' },
-    { href: '/search', icon: Search, label: 'Paieska' },
+    { href: '/search', icon: Search, label: 'Paieška' },
     ...(!isProUser && loggedIn ? [{ href: '/my-orders', icon: ClipboardList, label: 'Mano' }] : []),
-    { href: '/messages', icon: MessagesSquare, label: 'Inbox', badge: unread },
+    { href: '/messages', icon: MessagesSquare, label: 'Žinutės', badge: unread },
     { href: profileHref, icon: User, label: 'Profilis', matchPrefix: '/u/' },
   ]
 

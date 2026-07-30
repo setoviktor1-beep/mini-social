@@ -5,6 +5,62 @@ import { publishChange } from '@/lib/realtime-publisher'
 
 export const dynamic = 'force-dynamic'
 
+const allowedTables = new Set([
+  'agent_config',
+  'agent_messages',
+  'agent_trigger_log',
+  'ai_conversations',
+  'ai_memory',
+  'ai_messages',
+  'ai_usage',
+  'billing_checkout_sessions',
+  'blocks',
+  'calendar_events',
+  'comments',
+  'conversations',
+  'discussion_replies',
+  'discussions',
+  'financial_settings',
+  'follows',
+  'friend_requests',
+  'likes',
+  'maps_cache',
+  'messages',
+  'moderation_actions',
+  'monthly_income',
+  'notifications',
+  'orders',
+  'post_media',
+  'posts',
+  'pro_services',
+  'processed_events',
+  'profiles',
+  'push_subscriptions',
+  'quick_reply_templates',
+  'receipts',
+  'reports',
+  'reposts',
+  'service_requests',
+  'subscriptions',
+  'usage_logs',
+  'wallet_transactions',
+])
+
+const allowedRpc = new Set([
+  'check_and_increment_ai_usage',
+  'credit_wallet_and_complete_transaction',
+  'get_nearby_post_ids',
+  'get_or_create_conversation',
+  'update_profile_location',
+])
+
+function isAllowedTarget(target: string) {
+  if (target.startsWith('rpc/')) {
+    return allowedRpc.has(target.slice(4))
+  }
+  return allowedTables.has(target)
+}
+
 const querySchema = z.object({
   table: z
     .string()
@@ -36,6 +92,13 @@ export async function POST(request: Request) {
     return Response.json(
       { error: { message: 'INVALID_QUERY', details: parsed.error.message } },
       { status: 400 },
+    )
+  }
+
+  if (!isAllowedTarget(parsed.data.table)) {
+    return Response.json(
+      { error: { message: 'QUERY_TARGET_FORBIDDEN' } },
+      { status: 403 },
     )
   }
 

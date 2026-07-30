@@ -137,12 +137,12 @@ export default function FeedListClient(props: {
           </div>
           <p className="text-slate-500 text-sm sm:text-base font-medium mb-1">
             {tab === 'following'
-              ? 'No posts from people you follow yet.'
+              ? 'Sekami žmonės dar nieko nepaskelbė.'
               : tab === 'for_you'
-                ? 'No trending posts in the last 48 hours yet.'
-                : 'No posts yet. Start the trend!'}
+                ? 'Per pastarąsias 48 valandas populiarių įrašų dar nėra.'
+                : 'Įrašų dar nėra. Pradėkite pokalbį!'}
           </p>
-          <p className="text-slate-400 text-xs sm:text-sm">Be the first to share something interesting.</p>
+          <p className="text-slate-400 text-xs sm:text-sm">Pasidalinkite kuo nors įdomiu pirmieji.</p>
         </div>
       )}
 
@@ -152,19 +152,19 @@ export default function FeedListClient(props: {
           {loading ? (
             <div className="flex items-center justify-center gap-2 text-slate-400 py-2">
               <Loader2 size={16} className="animate-spin" />
-              <span className="text-xs sm:text-sm">Loading more...</span>
+              <span className="text-xs sm:text-sm">Kraunama...</span>
             </div>
           ) : hasMore ? (
             <button
               onClick={loadMore}
               className="px-6 py-2.5 rounded-full font-semibold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 min-h-[44px] transition-all hover:shadow-sm"
             >
-              Load more
+              Rodyti daugiau
             </button>
           ) : (
             <div className="py-4">
               <div className="w-12 h-px bg-slate-200 mx-auto mb-3" />
-              <p className="text-xs sm:text-sm text-slate-400">You&apos;re all caught up.</p>
+              <p className="text-xs sm:text-sm text-slate-400">Peržiūrėjote visus įrašus.</p>
             </div>
           )}
         </div>

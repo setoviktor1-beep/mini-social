@@ -139,7 +139,7 @@ export default function ReceiptScanner({ isEnterprise, month }: { isEnterprise: 
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           capture="environment"
           className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }}

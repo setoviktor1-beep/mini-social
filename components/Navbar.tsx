@@ -155,16 +155,16 @@ export default function Navbar() {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1 text-sm font-medium">
           <LanguageSwitcher />
-          <Link href="/search" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/search') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Search">
+          <Link href="/search" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/search') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Paieška" aria-label="Paieška">
             <Search size={20} strokeWidth={isActive('/search') ? 2.5 : 1.5} />
           </Link>
           <ThemeToggle />
           {user ? (
             <>
-              <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Discussions">
+              <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Diskusijos" aria-label="Diskusijos">
                 <MessageSquare size={20} strokeWidth={isActive('/discussions') ? 2.5 : 1.5} />
               </Link>
-              <Link href="/messages" className={`relative p-2.5 rounded-xl transition-all duration-200 ${isActive('/messages') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Messages">
+              <Link href="/messages" className={`relative p-2.5 rounded-xl transition-all duration-200 ${isActive('/messages') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Žinutės" aria-label="Žinutės">
                 <MessagesSquare size={20} strokeWidth={isActive('/messages') ? 2.5 : 1.5} />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-[#E94560] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
@@ -175,7 +175,7 @@ export default function Navbar() {
               <NotificationBell />
               <PushNotificationToggle />
               {!isProUser && (
-                <Link href="/my-orders" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/my-orders') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Mano Uzsakymai">
+                <Link href="/my-orders" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/my-orders') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Mano užsakymai" aria-label="Mano užsakymai">
                   <ClipboardList size={20} />
                 </Link>
               )}
@@ -190,17 +190,18 @@ export default function Navbar() {
                 </Link>
               )}
               {(role === 'admin' || role === 'moderator') && (
-                <Link href="/admin/dashboard" className="p-2.5 hover:bg-red-50 text-red-500 rounded-xl transition-all duration-200" title="Admin Panel">
+                <Link href="/admin/dashboard" className="p-2.5 hover:bg-red-50 text-red-500 rounded-xl transition-all duration-200" title="Administravimas" aria-label="Administravimas">
                   <Shield size={20} />
                 </Link>
               )}
-              <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Settings">
+              <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Nustatymai" aria-label="Nustatymai">
                 <Settings size={20} strokeWidth={isActive('/settings') ? 2.5 : 1.5} />
               </Link>
               <Link
                 href={profileHref}
                 className="ml-1 p-1.5 rounded-xl hover:bg-slate-50 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                title="Profile"
+                title="Profilis"
+                aria-label="Profilis"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm">
                   {avatarUrl ? (
@@ -214,13 +215,13 @@ export default function Navbar() {
                   )}
                 </div>
               </Link>
-              <button onClick={signOut} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-full hover:bg-slate-200 transition-all duration-200 text-sm font-medium ml-1">Logout</button>
+              <button onClick={signOut} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-full hover:bg-slate-200 transition-all duration-200 text-sm font-medium ml-1">Atsijungti</button>
             </>
           ) : (
             <>
-              <Link href="/discussions" className="text-slate-600 hover:text-slate-900 transition-colors px-3">Discussions</Link>
+              <Link href="/discussions" className="text-slate-600 hover:text-slate-900 transition-colors px-3">Diskusijos</Link>
               <Link href="/auth/login" className="bg-[#1A1A2E] text-white px-6 py-2.5 rounded-full hover:bg-[#16213E] transition-all duration-200 shadow-sm text-sm font-semibold ml-1">
-                Login
+                Prisijungti
               </Link>
             </>
           )}
@@ -233,7 +234,7 @@ export default function Navbar() {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2.5 hover:bg-slate-100 rounded-xl transition-all duration-200 text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Toggle menu"
+            aria-label={mobileMenuOpen ? 'Uždaryti meniu' : 'Atverti meniu'}
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -262,13 +263,13 @@ export default function Navbar() {
                 {!isProUser && (
                   <Link href="/my-orders" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
                     <ClipboardList size={20} />
-                    Mano Uzsakymai
+                    Mano užsakymai
                   </Link>
                 )}
                 {isProUser ? (
                   <Link href="/pro" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-600 transition-colors font-medium">
                     <Briefcase size={20} />
-                    Verslo Darbalaukis
+                    Verslo darbalaukis
                   </Link>
                 ) : (
                   <Link href="/pricing" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-600 transition-colors font-medium">
@@ -279,7 +280,7 @@ export default function Navbar() {
                 {(role === 'admin' || role === 'moderator') && (
                   <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-50 text-red-500 transition-colors font-medium">
                     <Shield size={20} />
-                    Admin Panel
+                    Administravimas
                   </Link>
                 )}
                 <Link href={profileHref} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">

@@ -213,7 +213,7 @@ export default function PostComposer({ userId }: { userId: string }) {
         id={fileInputId}
         type="file"
         multiple
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp,image/gif"
         className="hidden"
         onChange={(e) => {
           if (!e.target.files) return

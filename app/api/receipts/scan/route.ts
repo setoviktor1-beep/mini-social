@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/backend-server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { rateLimit } from '@/lib/rate-limit'
+import { sanitizeImageUpload } from '@/lib/image-security'
 
 export const runtime = 'nodejs'
 
@@ -12,6 +13,11 @@ const scanLimiter = rateLimit({
 
 export async function POST(request: Request) {
   try {
+    const contentLength = Number(request.headers.get('content-length') || 0)
+    if (contentLength > 15 * 1024 * 1024) {
+      return NextResponse.json({ error: 'IMAGE_TOO_LARGE' }, { status: 413 })
+    }
+
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
@@ -42,15 +48,27 @@ export async function POST(request: Request) {
     const { imageBase64, mimeType = 'image/jpeg' } = await request.json()
     if (!imageBase64) return NextResponse.json({ error: 'MISSING_IMAGE' }, { status: 400 })
 
-    // Upload to Supabase Storage
+    let sanitized
+    try {
+      const decoded = Buffer.from(imageBase64, 'base64')
+      sanitized = await sanitizeImageUpload(decoded, mimeType)
+    } catch {
+      return NextResponse.json({ error: 'INVALID_IMAGE' }, { status: 400 })
+    }
+
+    const sanitizedBase64 = sanitized.body.toString('base64')
+
+    // Upload to private object storage
     let imagePath: string | null = null
     try {
       const serviceClient = createSupabaseServiceClient()
-      const buffer = Buffer.from(imageBase64, 'base64')
-      const filename = `${user.id}/${Date.now()}.jpg`
+      const filename = `${user.id}/${Date.now()}.${sanitized.extension}`
       const { data: uploadData } = await serviceClient.storage
         .from('receipts')
-        .upload(filename, buffer, { contentType: mimeType, upsert: false })
+        .upload(filename, sanitized.body, {
+          contentType: sanitized.contentType,
+          upsert: false,
+        })
       if (uploadData) {
         imagePath = uploadData.path
       }
@@ -73,7 +91,12 @@ export async function POST(request: Request) {
 
     const result = await model.generateContent([
       prompt,
-      { inlineData: { data: imageBase64, mimeType } },
+      {
+        inlineData: {
+          data: sanitizedBase64,
+          mimeType: sanitized.contentType,
+        },
+      },
     ])
 
     const text = result.response.text().replace(/```json|```/g, '').trim()
