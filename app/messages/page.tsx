@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
+import { lt } from 'date-fns/locale'
 import { MessageCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -34,7 +35,7 @@ interface ConversationItem {
 }
 
 export default function MessagesPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [conversations, setConversations] = useState<ConversationItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,7 +109,7 @@ export default function MessagesPage() {
     }
 
     loadConversations()
-  }, [])
+  }, [router, supabase])
 
   const getOtherUser = (convo: ConversationItem) => {
     return convo.user1_id === currentUserId ? convo.user2 : convo.user1
@@ -122,7 +123,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-gray-400 text-slate-400 text-base sm:text-lg">Loading...</div>
+        <div className="text-slate-400 text-base sm:text-lg">Kraunama...</div>
       </div>
     )
   }
@@ -134,19 +135,19 @@ export default function MessagesPage() {
         <Link href="/home" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
           <ArrowLeft size={22} className="text-gray-600 text-slate-400" />
         </Link>
-        <h1 className="text-xl sm:text-2xl font-black text-gray-900 text-slate-900">Messages</h1>
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900">Žinutės</h1>
       </div>
 
       {/* Conversations list */}
-      <div className="bg-white bg-white rounded-2xl sm:rounded-3xl shadow-sm shadow-sm border border-gray-100 border-slate-200 overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
         {conversations.length === 0 ? (
           <div className="p-10 sm:p-16 text-center">
-            <div className="w-16 h-16 bg-blue-50 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle size={28} className="text-blue-300 text-blue-600" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+              <MessageCircle size={28} className="text-blue-600" />
             </div>
-            <h3 className="font-bold text-gray-900 text-slate-900 text-base sm:text-lg mb-1">No messages yet</h3>
-            <p className="text-gray-500 text-slate-400 text-sm">
-              Start a conversation by visiting someone&apos;s profile and tapping Message.
+            <h3 className="mb-1 text-base font-bold text-slate-900 sm:text-lg">Žinučių dar nėra</h3>
+            <p className="text-sm text-slate-400">
+              Atverkite žmogaus profilį ir pasirinkite „Rašyti žinutę“.
             </p>
           </div>
         ) : (
@@ -163,7 +164,7 @@ export default function MessagesPage() {
                   className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50/80 hover:bg-slate-50 transition-colors text-left min-h-[72px]"
                 >
                   {/* Avatar */}
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 sm:h-12 sm:w-12">
                     {avatarUrl ? (
                       <div className="relative w-full h-full">
                         <Image src={avatarUrl} alt="" fill sizes="48px" className="object-cover" />
@@ -188,15 +189,15 @@ export default function MessagesPage() {
                       </div>
                       {convo.last_message_at && (
                         <span className="text-xs text-gray-400 text-slate-400 flex-shrink-0 ml-2">
-                          {formatDistanceToNow(new Date(convo.last_message_at), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(convo.last_message_at), { addSuffix: true, locale: lt })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
                       <p className={`text-xs sm:text-sm truncate ${hasUnread ? 'text-gray-900 text-slate-900 font-semibold' : 'text-gray-500 text-slate-400'}`}>
                         {convo.lastMessage
-                          ? (convo.lastMessage.sender_id === currentUserId ? 'You: ' : '') + convo.lastMessage.content
-                          : 'No messages yet'}
+                          ? (convo.lastMessage.sender_id === currentUserId ? 'Jūs: ' : '') + convo.lastMessage.content
+                          : 'Žinučių dar nėra'}
                       </p>
                       {hasUnread && (
                         <span className="ml-2 flex-shrink-0 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">

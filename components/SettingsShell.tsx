@@ -1,11 +1,10 @@
 'use client'
 
-import { Palette, Shield, User } from 'lucide-react'
+import { Shield, User } from 'lucide-react'
 
 const tabs = [
   { id: 'profile', label: 'Profilis', icon: User, hash: '' },
   { id: 'account', label: 'Paskyra', icon: Shield, hash: '#account' },
-  { id: 'appearance', label: 'Išvaizda', icon: Palette, hash: '#appearance' },
   { id: 'blocked', label: 'Užblokuoti', icon: Shield, hash: '#blocked' },
 ]
 
@@ -48,4 +47,3 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
     </div>
   )
 }
-

@@ -5,54 +5,13 @@ import Link from 'next/link'
 import { createClient } from '@/lib/backend-client'
 import { Bell, Check } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { lt } from 'date-fns/locale'
 import Image from 'next/image'
-
-type NotificationType = 'like' | 'comment' | 'follow' | 'new_post' | 'mention' | 'share' | 'repost'
-type TargetType = 'post' | 'comment' | 'user' | 'discussion' | null
-
-interface NotificationRow {
-  id: string
-  user_id: string
-  type: NotificationType
-  actor_id: string
-  target_id: string | null
-  target_type: TargetType
-  is_read: boolean
-  created_at: string
-  actor?: {
-    username: string
-    display_name: string
-    avatar_path: string | null
-  } | null
-}
-
-function formatNotificationText(n: NotificationRow) {
-  const name = n.actor?.display_name || 'Someone'
-  switch (n.type) {
-    case 'like':
-      return `${name} liked your post`
-    case 'comment':
-      return `${name} commented on your post`
-    case 'follow':
-      return `${name} started following you`
-    case 'new_post':
-      return `${name} posted something new`
-    case 'mention':
-      return `${name} mentioned you`
-    case 'share':
-      return `${name} shared your post`
-    case 'repost':
-      return `${name} reposted your post`
-    default:
-      return `${name} sent a notification`
-  }
-}
-
-function getNotificationHref(n: NotificationRow) {
-  if (n.target_type === 'discussion' && n.target_id) return `/discussions/${n.target_id}`
-  if (n.actor?.username) return `/u/${n.actor.username}`
-  return '/notifications'
-}
+import {
+  formatNotificationText,
+  getNotificationHref,
+  type NotificationRow,
+} from '@/lib/notification-display'
 
 export default function NotificationsPage() {
   const supabase = useMemo(() => createClient(), [])
@@ -71,7 +30,7 @@ export default function NotificationsPage() {
     return supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
   }
 
-  const fetchPage = async (uid: string, offset: number) => {
+  const fetchPage = useCallback(async (uid: string, offset: number) => {
     const { data } = await supabase
       .from('notifications')
       .select('*, actor:actor_id(username, display_name, avatar_path)')
@@ -79,15 +38,15 @@ export default function NotificationsPage() {
       .order('created_at', { ascending: false })
       .range(offset, offset + pageSize - 1)
     return (data as NotificationRow[]) || []
-  }
+  }, [supabase])
 
-  const refresh = async (uid: string) => {
+  const refresh = useCallback(async (uid: string) => {
     setLoading(true)
     const first = await fetchPage(uid, 0)
     setItems(first)
     setHasMore(first.length === pageSize)
     setLoading(false)
-  }
+  }, [fetchPage])
 
   const loadMore = useCallback(async () => {
     if (!userId || loadingMore || !hasMore) return
@@ -96,7 +55,7 @@ export default function NotificationsPage() {
     setItems(prev => [...prev, ...next])
     setHasMore(next.length === pageSize)
     setLoadingMore(false)
-  }, [userId, loadingMore, hasMore, items.length])
+  }, [userId, loadingMore, hasMore, items.length, fetchPage])
 
   const markAllRead = async () => {
     if (!userId) return
@@ -120,7 +79,7 @@ export default function NotificationsPage() {
       }
       refresh(uid)
     })
-  }, [supabase])
+  }, [supabase, refresh])
 
   useEffect(() => {
     const el = loadMoreRef.current
@@ -135,9 +94,9 @@ export default function NotificationsPage() {
   if (!userId && !loading) {
     return (
       <div className="p-10 sm:p-16 text-center text-gray-500 dark:text-gray-400">
-        <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Sign in to view notifications</p>
+        <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Prisijunkite, kad matytumėte pranešimus</p>
         <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
-          Go to login
+          Prisijungti
         </Link>
       </div>
     )
@@ -148,34 +107,34 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 sm:gap-3">
           <Bell size={22} className="text-blue-600" />
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Notifications</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Pranešimai</h1>
         </div>
         <button
           onClick={markAllRead}
           className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-bold min-h-[44px]"
         >
           <Check size={16} />
-          Mark all read
+          Pažymėti perskaitytais
         </button>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm dark:shadow-gray-900/20 border border-gray-100 dark:border-gray-800 overflow-hidden">
         {loading ? (
           <div className="p-10 sm:p-16 text-center text-gray-400 dark:text-gray-500 text-sm">
-            Loading...
+            Kraunama...
           </div>
         ) : items.length === 0 ? (
           <div className="p-10 sm:p-16 text-center">
             <Bell size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
-            <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">No notifications yet</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Likes, comments, mentions and follows will show up here</p>
+            <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">Pranešimų dar nėra</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Čia matysite patiktukus, komentarus, paminėjimus ir naujus sekėjus</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {items.map((n) => {
               const avatarUrl = getAvatarUrl(n.actor?.avatar_path || null)
               const href = getNotificationHref(n)
-              const timeAgo = formatDistanceToNow(new Date(n.created_at), { addSuffix: true })
+              const timeAgo = formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: lt })
               return (
                 <Link
                   key={n.id}
@@ -209,10 +168,10 @@ export default function NotificationsPage() {
             })}
             <div ref={loadMoreRef} />
             {loadingMore && (
-              <div className="p-4 text-center text-xs text-gray-400 dark:text-gray-500">Loading more...</div>
+              <div className="p-4 text-center text-xs text-gray-400 dark:text-gray-500">Kraunama...</div>
             )}
             {!hasMore && (
-              <div className="p-4 text-center text-xs text-gray-400 dark:text-gray-500">You&apos;re all caught up.</div>
+              <div className="p-4 text-center text-xs text-gray-400 dark:text-gray-500">Peržiūrėjote visus pranešimus.</div>
             )}
           </div>
         )}

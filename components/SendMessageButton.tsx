@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { MessageCircle } from 'lucide-react'
@@ -9,7 +9,7 @@ interface SendMessageButtonProps {
 }
 
 export default function SendMessageButton({ otherUserId }: SendMessageButtonProps) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -57,7 +57,7 @@ export default function SendMessageButton({ otherUserId }: SendMessageButtonProp
       className="flex items-center gap-2 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-6 py-2.5 rounded-full font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-600 transition-all disabled:opacity-50"
     >
       <MessageCircle size={18} />
-      {loading ? 'Opening...' : 'Message'}
+      {loading ? 'Atidaroma...' : 'Rašyti žinutę'}
     </button>
   )
 }

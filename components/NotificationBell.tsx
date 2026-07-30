@@ -1,59 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/backend-client'
 import Image from 'next/image'
-
-type NotificationType = 'like' | 'comment' | 'follow' | 'new_post' | 'mention' | 'share' | 'repost'
-type TargetType = 'post' | 'comment' | 'user' | 'discussion' | null
-
-interface NotificationRow {
-  id: string
-  user_id: string
-  type: NotificationType
-  actor_id: string
-  target_id: string | null
-  target_type: TargetType
-  is_read: boolean
-  created_at: string
-  actor?: {
-    username: string
-    display_name: string
-    avatar_path: string | null
-  } | null
-}
-
-function formatNotificationText(n: NotificationRow) {
-  const name = n.actor?.display_name || 'Someone'
-  switch (n.type) {
-    case 'like':
-      return `${name} liked your post`
-    case 'comment':
-      return `${name} commented on your post`
-    case 'follow':
-      return `${name} started following you`
-    case 'new_post':
-      return `${name} posted something new`
-    case 'mention':
-      return `${name} mentioned you`
-    case 'share':
-      return `${name} shared your post`
-    case 'repost':
-      return `${name} reposted your post`
-    default:
-      return `${name} sent a notification`
-  }
-}
-
-function getNotificationHref(n: NotificationRow) {
-  if (n.target_type === 'discussion' && n.target_id) return `/discussions/${n.target_id}`
-  if (n.target_type === 'post' && n.target_id) return `/posts/${n.target_id}`
-  if (n.actor?.username) return `/u/${n.actor.username}`
-  return '/notifications'
-}
+import {
+  formatNotificationText,
+  getNotificationHref,
+  type NotificationRow,
+} from '@/lib/notification-display'
 
 export default function NotificationBell() {
   const supabase = useMemo(() => createClient(), [])
@@ -71,16 +28,16 @@ export default function NotificationBell() {
     return supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
   }
 
-  const fetchUnreadCount = async (uid: string) => {
+  const fetchUnreadCount = useCallback(async (uid: string) => {
     const { count } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', uid)
       .eq('is_read', false)
     setUnreadCount(count || 0)
-  }
+  }, [supabase])
 
-  const fetchLatest = async (uid: string) => {
+  const fetchLatest = useCallback(async (uid: string) => {
     setLoading(true)
     // MB5: Use explicit profiles table join; fall back to bare notification rows if join fails
     const { data, error } = await supabase
@@ -102,7 +59,7 @@ export default function NotificationBell() {
       setItems((data as NotificationRow[]) || [])
     }
     setLoading(false)
-  }
+  }, [supabase])
 
   const markAllRead = async () => {
     if (!userId) return
@@ -159,7 +116,7 @@ export default function NotificationBell() {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [supabase, fetchLatest, fetchUnreadCount])
 
   useEffect(() => {
     if (!userId) return
@@ -178,7 +135,7 @@ export default function NotificationBell() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [supabase, userId])
+  }, [supabase, userId, fetchLatest, fetchUnreadCount])
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -198,8 +155,8 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen(v => !v)}
         className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-blue-600 rounded-lg transition-colors relative min-w-[44px] min-h-[44px] flex items-center justify-center"
-        title="Notifications"
-        aria-label="Notifications"
+        title="Pranešimai"
+        aria-label="Pranešimai"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -212,20 +169,20 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-            <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">Notifications</p>
+            <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">Pranešimai</p>
             <button
               onClick={markAllRead}
               className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline min-h-[44px] px-2"
             >
-              Mark all as read
+              Pažymėti perskaitytais
             </button>
           </div>
 
           <div className="max-h-[360px] overflow-auto">
             {loading ? (
-              <div className="p-6 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
+              <div className="p-6 text-center text-sm text-gray-400 dark:text-gray-500">Kraunama...</div>
             ) : items.length === 0 ? (
-              <div className="p-6 text-center text-sm text-gray-400 dark:text-gray-500">No notifications yet.</div>
+              <div className="p-6 text-center text-sm text-gray-400 dark:text-gray-500">Pranešimų dar nėra.</div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {items.map((n) => {
@@ -274,7 +231,7 @@ export default function NotificationBell() {
               onClick={() => setOpen(false)}
               className="block text-center text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline min-h-[44px] leading-[44px]"
             >
-              View all
+              Rodyti visus
             </Link>
           </div>
         </div>

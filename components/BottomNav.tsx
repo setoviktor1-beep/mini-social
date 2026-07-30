@@ -2,14 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Store, Search, MessagesSquare, User, ClipboardList } from 'lucide-react'
+import { Home, Store, Search, MessagesSquare, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/backend-client'
 
 export default function BottomNav() {
   const pathname = usePathname()
   const [username, setUsername] = useState<string | null>(null)
-  const [role, setRole] = useState<string | null>(null)
   const [unread, setUnread] = useState(0)
   const [loggedIn, setLoggedIn] = useState(false)
 
@@ -19,7 +18,6 @@ export default function BottomNav() {
       if (!data.user) {
         setLoggedIn(false)
         setUsername(null)
-        setRole(null)
         setUnread(0)
         return
       }
@@ -27,11 +25,10 @@ export default function BottomNav() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, role')
+        .select('username')
         .eq('id', data.user.id)
         .single()
       setUsername(profile?.username || null)
-      setRole(profile?.role || 'user')
 
       // Count unread messages
       const { data: convos } = await supabase
@@ -60,14 +57,12 @@ export default function BottomNav() {
   }
 
   const profileHref = username ? `/u/${username}` : loggedIn ? '/settings' : '/auth/login'
-  const isProUser = role === 'master' || role === 'admin' || role === 'pro'
   const homeHref = loggedIn ? '/home' : '/'
 
   const tabs = [
     { href: homeHref, icon: Home, label: 'Pradžia' },
     { href: '/services', icon: Store, label: 'Paslaugos' },
     { href: '/search', icon: Search, label: 'Paieška' },
-    ...(!isProUser && loggedIn ? [{ href: '/my-orders', icon: ClipboardList, label: 'Mano' }] : []),
     { href: '/messages', icon: MessagesSquare, label: 'Žinutės', badge: unread },
     { href: profileHref, icon: User, label: 'Profilis', matchPrefix: '/u/' },
   ]

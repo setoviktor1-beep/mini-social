@@ -254,7 +254,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   className="flex items-center gap-2 border-2 border-slate-200 text-slate-700 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 hover:border-slate-300 transition-all min-h-[44px] text-sm"
                 >
                   <Settings size={16} />
-                  Edit Profile
+                  Redaguoti profilį
                 </Link>
               )}
               {currentUser && currentUser.id !== profile.id && (
@@ -265,10 +265,10 @@ export default async function ProfilePage(props: ProfilePageProps) {
                         ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         : 'border-2 border-slate-200 text-slate-700 hover:border-red-200 hover:text-red-600 hover:bg-red-50'
                     }`}
-                    title={hasBlocked ? 'Unblock user' : 'Block user'}
+                    title={hasBlocked ? 'Atblokuoti vartotoją' : 'Užblokuoti vartotoją'}
                   >
                     <Ban size={16} />
-                    {hasBlocked ? 'Unblock' : 'Block'}
+                    {hasBlocked ? 'Atblokuoti' : 'Užblokuoti'}
                   </button>
                 </form>
               )}
@@ -277,11 +277,10 @@ export default async function ProfilePage(props: ProfilePageProps) {
                 <>
                   <ProfileActions
                     profileId={profile.id}
-                    currentUserId={currentUser?.id}
-                    isFollowing={isFollowing}
-                    initialFollowersCount={followersCount || 0}
-                    profile={profile}
-                  />
+                  currentUserId={currentUser?.id}
+                  isFollowing={isFollowing}
+                  initialFollowersCount={followersCount || 0}
+                />
                   <FriendButton profileId={profile.id} currentUserId={currentUser?.id} />
                   {currentUser && currentUser.id !== profile.id && (
                     <SendMessageButton otherUserId={profile.id} />
@@ -293,12 +292,12 @@ export default async function ProfilePage(props: ProfilePageProps) {
           
           {blockedBy && (
             <div className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
-              You can&apos;t interact with this user right now.
+              Šiuo metu su šiuo vartotoju bendrauti negalite.
             </div>
           )}
           {hasBlocked && (
             <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-3 text-sm text-slate-600">
-              You blocked this user. Unblock to follow, add friends or send messages.
+              Užblokavote šį vartotoją. Atblokuokite, jei norite sekti, pridėti prie draugų ar rašyti žinutes.
             </div>
           )}
         </div>
@@ -309,7 +308,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
         <div className="p-4 sm:p-5 border-b border-slate-50">
           <h2 className="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
             <span className="w-1 h-5 bg-blue-500 rounded-full" />
-            Posts
+            Įrašai
           </h2>
         </div>
         {postsWithLikeStatus.map((post) => (
@@ -322,34 +321,23 @@ export default async function ProfilePage(props: ProfilePageProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </div>
-            <p className="text-slate-500 font-medium">This user hasn&apos;t posted anything yet.</p>
-            <p className="text-slate-400 text-sm mt-1">Posts will appear here once they start sharing.</p>
+            <p className="text-slate-500 font-medium">Šis vartotojas dar nieko nepaskelbė.</p>
+            <p className="text-slate-400 text-sm mt-1">Nauji įrašai bus rodomi čia.</p>
           </div>
         )}
       </div>
 
-      <div className="divide-y divide-slate-100 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+      {repostedPosts.length > 0 && <div className="divide-y divide-slate-100 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-slate-50">
           <h2 className="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
             <span className="w-1 h-5 bg-emerald-500 rounded-full" />
-            Reposts
+            Pakartotiniai įrašai
           </h2>
         </div>
         {repostedPosts.map((post: any) => (
           <PostCard key={post.feed_key || post.id} post={post} currentUserId={currentUser?.id} currentUserRole={currentUserRole} />
         ))}
-        {repostedPosts.length === 0 && (
-          <div className="p-10 sm:p-20 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </div>
-            <p className="text-slate-500 font-medium">No reposts yet.</p>
-            <p className="text-slate-400 text-sm mt-1">Reposted content will appear here.</p>
-          </div>
-        )}
-      </div>
+      </div>}
     </div>
   )
 }

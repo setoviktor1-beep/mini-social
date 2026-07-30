@@ -12,7 +12,6 @@ import {
   Mail,
   Users,
   Settings,
-  Plus,
   TrendingUp,
   Briefcase,
   Store,
@@ -52,14 +51,7 @@ function buildTrendingFromPosts(posts: any[]) {
       posts: `${count} ${count === 1 ? 'įrašas' : 'įrašai'}`,
     }))
 
-  if (sorted.length > 0) return sorted
-
-  return [
-    { tag: 'minisocial', posts: `${posts.length} įrašų` },
-    { tag: 'bendruomenė', posts: 'Būk pirmas' },
-    { tag: 'naujienos', posts: 'Naujausi įrašai' },
-    { tag: 'atrask', posts: 'Atrask žmones' },
-  ]
+  return sorted
 }
 
 export default async function Home(props: { searchParams?: Promise<{ tab?: string }> }) {
@@ -80,7 +72,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
     user
       ? supabase
           .from('profiles')
-          .select('role, username, display_name, avatar_path')
+          .select('role')
           .eq('id', user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -88,8 +80,6 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
 
   const postsWithLikeStatus = await attachUserInteractionFlags(supabase, user?.id, rawPosts)
   const userRole = profile?.role
-  const currentProfile = profile || null
-
   let suggestionsQuery = supabase
     .from('profiles')
     .select('id, username, display_name, avatar_path')
@@ -113,11 +103,16 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
     : new Set<string>()
 
   const trending = buildTrendingFromPosts(postsWithLikeStatus)
+  const showRightSidebar = trending.length > 0 || suggestions.length > 0
 
   return (
-    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen min-h-screen bg-[#F8F9FA] text-slate-800">
+    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[calc(100dvh-6rem)] w-screen bg-[#F8F9FA] text-slate-800">
       <div className="mx-auto max-w-7xl px-3 sm:px-4 pb-24 md:pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_300px] gap-4">
+        <div className={`grid grid-cols-1 gap-4 ${
+          showRightSidebar
+            ? 'lg:grid-cols-[240px_minmax(0,1fr)_300px]'
+            : 'lg:grid-cols-[240px_minmax(0,1fr)]'
+        }`}>
           {/* LEFT SIDEBAR */}
           <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)]">
             <nav className="space-y-1 rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm">
@@ -144,19 +139,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                   {item.label}
                 </Link>
               ))}
-              {user && (
-                <a href="#post-composer" className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1A1A2E] to-[#16213E] text-sm font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5">
-                  <Plus size={16} />
-                  Naujas įrašas
-                </a>
-              )}
             </nav>
-            {user && (
-              <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-                <div className="text-sm font-semibold text-slate-900">{currentProfile?.display_name || 'Vartotojas'}</div>
-                <div className="text-xs text-slate-500">@{currentProfile?.username || 'profilis'}</div>
-              </div>
-            )}
           </aside>
 
           {/* MAIN FEED */}
@@ -209,7 +192,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
           </main>
 
           {/* RIGHT SIDEBAR */}
-          <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)] overflow-y-auto">
+          {showRightSidebar && <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)] overflow-y-auto">
             {/* Trending */}
             <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider">
@@ -245,14 +228,9 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                     initiallyFollowing={followedSuggestionIds.has(s.id)}
                   />
                 ))}
-                {suggestions.length === 0 && (
-                  <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">
-                    Kol kas nėra kitų vartotojų.
-                  </p>
-                )}
               </div>
             </div>
-          </aside>
+          </aside>}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MapPin, Store, Utensils, Scissors, Car, Heart, Camera, Loader2, Star, BadgeCheck, CheckCircle2, Send, X } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { MapPin, Store, Utensils, Scissors, Car, Heart, Camera, Loader2, BadgeCheck, CheckCircle2, Send, X } from "lucide-react";
 import ServiceCard from "@/components/services/ServiceCard";
 import { createClient } from "@/lib/backend-client";
 import { useRouter } from "next/navigation";
@@ -50,14 +50,13 @@ function getActiveProfileLocation(profile: any) {
 
 export default function ServicesPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [activeCategory, setActiveCategory] = useState("Visi");
   const [localServices, setLocalServices] = useState<any[]>([]);
   const [homeLocalServices, setHomeLocalServices] = useState<any[]>([]);
   const [googleServices, setGoogleServices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [error, setError] = useState("");
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [homeLat, setHomeLat] = useState<number | null>(null);
@@ -111,7 +110,6 @@ export default function ServicesPage() {
 
   const fetchAll = async (lat: number, lng: number, radiusKm: number, category: string, hLat?: number | null, hLng?: number | null) => {
     setIsLoading(true);
-    setError("");
     try {
       await Promise.all([
         fetchLocalServices(lat, lng, radiusKm, category),
@@ -317,11 +315,11 @@ export default function ServicesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-          Tikros paslaugos šalia tavęs
+        <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          Paslaugos šalia jūsų
         </h1>
-        <p className="text-gray-400 max-w-xl mx-auto italic">
-          Vietiniai verslai ir Google Maps rezultatai pagal tavo lokaciją.
+        <p className="mx-auto max-w-xl text-slate-500">
+          Vietiniai paslaugų teikėjai ir „Google Maps“ rezultatai pagal jūsų vietovę.
         </p>
         {profile?.travel_mode && profile?.travel_address_text && (
           <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 px-4 py-2 rounded-full text-sm font-medium">
@@ -334,8 +332,8 @@ export default function ServicesPage() {
       {!getActiveProfileLocation(profile).addressText ? (
         <div className="text-center py-20 bg-amber-500/5 rounded-3xl border border-dashed border-amber-500/20">
           <MapPin className="mx-auto text-amber-500 mb-4" size={48} />
-          <h2 className="text-xl font-bold text-white mb-2">Lokacija nenustatyta</h2>
-          <p className="text-gray-400 mb-6 px-4">Kad matytumėte paslaugas savo spinduliu, turite nurodyti savo adresą.</p>
+          <h2 className="mb-2 text-xl font-bold text-slate-900">Vietovė nenustatyta</h2>
+          <p className="mb-6 px-4 text-slate-500">Kad matytumėte paslaugas netoliese, nurodykite savo adresą.</p>
           <button
             onClick={() => router.push("/settings")}
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg"
@@ -346,12 +344,12 @@ export default function ServicesPage() {
       ) : getActiveProfileLocation(profile).lat == null || getActiveProfileLocation(profile).lng == null ? (
         <div className="text-center py-20 bg-amber-500/5 rounded-3xl border border-dashed border-amber-500/20">
           <MapPin className="mx-auto text-amber-500 mb-4" size={48} />
-          <h2 className="text-xl font-bold text-white mb-2">Adreso koordinatės nerasta</h2>
-          <p className="text-gray-400 mb-2 px-4">
-            Adresas: <strong className="text-white">{getActiveProfileLocation(profile).addressText}</strong>
+          <h2 className="mb-2 text-xl font-bold text-slate-900">Adreso koordinatės nerastos</h2>
+          <p className="mb-2 px-4 text-slate-500">
+            Adresas: <strong className="text-slate-800">{getActiveProfileLocation(profile).addressText}</strong>
           </p>
-          <p className="text-gray-400 mb-6 px-4 text-sm">
-            Koordinatės nerasta — atnaujink aktyvią vietą Nustatymuose naudodamas automatinę paiešką.
+          <p className="mb-6 px-4 text-sm text-slate-500">
+            Atnaujinkite vietovę nustatymuose naudodami automatinę adresų paiešką.
           </p>
           <button
             onClick={() => router.push("/settings")}
@@ -362,7 +360,7 @@ export default function ServicesPage() {
         </div>
       ) : (
         <>
-          <div className="sticky top-20 z-30 bg-[#0a0a0f]/80 backdrop-blur-md py-4">
+          <div className="sticky top-16 z-30 border-b border-slate-200/80 bg-[#F8F9FA]/90 py-4 backdrop-blur-md">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide justify-center">
               {categories.map(cat => (
                 <button
@@ -371,7 +369,7 @@ export default function ServicesPage() {
                   className={`px-6 py-2 rounded-full text-sm font-bold transition-all border-2 ${
                     activeCategory === cat
                       ? "bg-blue-600 border-blue-600 text-white"
-                      : "bg-gray-900 border-gray-800 text-gray-400"
+                      : "bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:text-blue-600"
                   }`}
                 >
                   {cat}
@@ -394,7 +392,7 @@ export default function ServicesPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <BadgeCheck className="text-emerald-400" size={20} />
-                    <h2 className="text-lg font-bold text-white">Vietiniai verslai</h2>
+                    <h2 className="text-lg font-bold text-slate-900">Vietiniai paslaugų teikėjai</h2>
                     <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                       {localServices.length} rastas(-i)
                     </span>
@@ -412,7 +410,7 @@ export default function ServicesPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <BadgeCheck className="text-amber-400" size={20} />
-                    <h2 className="text-lg font-bold text-white">Tavo kaimynystės verslai</h2>
+                    <h2 className="text-lg font-bold text-slate-900">Paslaugos prie namų</h2>
                     <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
                       🏠 Namai
                     </span>
@@ -430,7 +428,7 @@ export default function ServicesPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <MapPin className="text-blue-400" size={20} />
-                    <h2 className="text-lg font-bold text-white">Iš Google Maps</h2>
+                    <h2 className="text-lg font-bold text-slate-900">„Google Maps“ rezultatai</h2>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {googleServices.map((service: any) => (
@@ -442,7 +440,7 @@ export default function ServicesPage() {
 
               {localServices.length === 0 && googleServices.length === 0 && (
                 <div className="text-center py-16 text-gray-500">
-                  Nerasta paslaugų šioje kategorijoje tavo spinduliu.
+                  Šioje kategorijoje netoliese paslaugų nerasta.
                 </div>
               )}
             </div>
@@ -454,7 +452,7 @@ export default function ServicesPage() {
 }
 
 function LocalServiceCard({ service, currentUserId }: { service: any; currentUserId?: string }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [showModal, setShowModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -515,38 +513,38 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
 
   return (
     <>
-      <div className="group bg-gray-900/40 border border-emerald-500/20 rounded-3xl p-6 hover:border-emerald-500/50 transition-all hover:shadow-2xl hover:shadow-emerald-500/5 relative overflow-hidden">
+      <div className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-emerald-300 hover:shadow-lg">
         <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all" />
 
         <div className="flex justify-between items-start gap-4 mb-4 relative z-10">
-          <div className="p-3 bg-gray-950 rounded-2xl border border-emerald-500/20">
-            <service.icon className="text-emerald-400" size={24} />
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+            <service.icon className="text-emerald-600" size={24} />
           </div>
-          <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">
+          <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
             <BadgeCheck size={12} /> Vietinis
           </span>
         </div>
 
         <div className="space-y-1 mb-4 relative z-10">
-          <h3 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+          <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
             {service.name}
           </h3>
-          <p className="text-sm text-gray-400 font-medium">{service.providerName}</p>
+          <p className="text-sm font-medium text-slate-600">{service.providerName}</p>
           {service.description && (
-            <p className="text-sm text-gray-500 line-clamp-2">{service.description}</p>
+            <p className="line-clamp-2 text-sm text-slate-500">{service.description}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
-          <MapPin size={13} className="text-gray-600" />
-          {service.address} · <span className="text-emerald-400/80">{service.distance}</span>
+        <div className="mb-4 flex items-center gap-2 text-xs text-slate-500">
+          <MapPin size={13} className="text-slate-400" />
+          {service.address} · <span className="text-emerald-600">{service.distance}</span>
         </div>
 
-        <div className="pt-4 border-t border-gray-800/50 space-y-3">
+        <div className="space-y-3 border-t border-slate-100 pt-4">
           {service.price && (
-            <span className="text-lg font-black text-white block">
+            <span className="block text-lg font-black text-slate-900">
               {service.price}
-              {service.priceType === "hourly" && <span className="text-sm text-gray-400 font-normal">/val.</span>}
+              {service.priceType === "hourly" && <span className="text-sm font-normal text-slate-500">/val.</span>}
             </span>
           )}
           {notLoggedIn && (
@@ -558,6 +556,10 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
             <div className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-2xl font-bold animate-in zoom-in-95 duration-300">
               <CheckCircle2 size={18} />
               Žinutė išsiųsta! Patikrinkite savo žinutes.
+            </div>
+          ) : isOwnService ? (
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 py-3 text-sm font-bold text-slate-500">
+              Jūsų paslauga
             </div>
           ) : (
             <button
@@ -572,18 +574,18 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-gray-900 border border-gray-700 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md animate-in rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl duration-200 zoom-in-95">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Susisiekti su teikėju</h3>
+              <h3 className="text-lg font-bold text-slate-900">Susisiekti su teikėju</h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="mb-4 text-sm text-slate-500">
               Jūsų žinutė paslaugos teikėjui
             </p>
 
@@ -591,7 +593,7 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
-              className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 resize-none mb-4"
+              className="mb-4 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none"
             />
 
             {sendError && (
@@ -609,7 +611,7 @@ function LocalServiceCard({ service, currentUserId }: { service: any; currentUse
             <div className="flex gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-3 rounded-2xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 font-semibold transition-all text-sm"
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50"
               >
                 Atšaukti
               </button>

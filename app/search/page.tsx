@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/backend-client'
 import { Search, Users, FileText, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { lt } from 'date-fns/locale'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -129,8 +130,8 @@ export default function SearchPage() {
   }
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'users', label: 'Users', icon: <Users size={16} /> },
-    { key: 'posts', label: 'Posts', icon: <FileText size={16} /> },
+    { key: 'users', label: 'Žmonės', icon: <Users size={16} /> },
+    { key: 'posts', label: 'Įrašai', icon: <FileText size={16} /> },
   ]
 
   return (
@@ -138,7 +139,7 @@ export default function SearchPage() {
       {/* Search Header */}
       <div className="flex items-center gap-2 sm:gap-3 mb-2">
         <Search size={24} className="text-blue-600 sm:w-7 sm:h-7" />
-        <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Search</h1>
+        <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-gray-100">Paieška</h1>
       </div>
 
       {/* Search Input */}
@@ -151,7 +152,7 @@ export default function SearchPage() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search users or posts..."
+          placeholder="Ieškokite žmonių arba įrašų..."
           className="w-full pl-11 sm:pl-14 pr-4 sm:pr-5 py-3 sm:py-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500 transition-all dark:text-gray-200"
         />
         {loading && (
@@ -185,8 +186,8 @@ export default function SearchPage() {
         {!debouncedQuery && !hasSearched && (
           <div className="p-10 sm:p-16 text-center">
             <Search size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
-            <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">Search for users or posts</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Type something above to get started</p>
+            <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">Raskite žmones arba įrašus</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Pradėkite rašyti paieškos laukelyje</p>
           </div>
         )}
 
@@ -194,7 +195,7 @@ export default function SearchPage() {
         {loading && debouncedQuery && (
           <div className="p-10 sm:p-16 text-center">
             <Loader2 size={32} className="mx-auto mb-3 text-blue-600 animate-spin" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Searching...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Ieškoma...</p>
           </div>
         )}
 
@@ -237,8 +238,8 @@ export default function SearchPage() {
             ) : (
               <div className="p-10 sm:p-16 text-center">
                 <Users size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
-                <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">No results found</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
+                <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">Nieko nerasta</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Pabandykite kitą paieškos frazę</p>
               </div>
             )}
           </>
@@ -284,7 +285,7 @@ export default function SearchPage() {
                             : post.content}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: lt })}
                         </p>
                       </div>
                     </div>
@@ -294,8 +295,8 @@ export default function SearchPage() {
             ) : (
               <div className="p-10 sm:p-16 text-center">
                 <FileText size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
-                <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">No results found</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
+                <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400">Nieko nerasta</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Pabandykite kitą paieškos frazę</p>
               </div>
             )}
           </>

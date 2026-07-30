@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { UserPlus, UserCheck, UserX, Clock } from 'lucide-react'
@@ -12,7 +12,7 @@ interface FriendButtonProps {
 type FriendStatus = 'none' | 'sent' | 'received' | 'friends'
 
 export default function FriendButton({ profileId, currentUserId }: FriendButtonProps) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [status, setStatus] = useState<FriendStatus>('none')
   const [loading, setLoading] = useState(false)
@@ -25,21 +25,7 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
     setTimeout(() => setToast(null), 2500)
   }
 
-  useEffect(() => {
-    if (!currentUserId || currentUserId === profileId) return
-    const init = async () => {
-      const [{ data: blocksByMe }, { data: blocksMe }] = await Promise.all([
-        supabase.from('blocks').select('id').eq('blocker_id', currentUserId).eq('blocked_id', profileId),
-        supabase.from('blocks').select('id').eq('blocker_id', profileId).eq('blocked_id', currentUserId),
-      ])
-      const isBlocked = !!(blocksByMe && blocksByMe.length) || !!(blocksMe && blocksMe.length)
-      setBlocked(isBlocked)
-      if (!isBlocked) checkStatus()
-    }
-    init()
-  }, [currentUserId, profileId])
-
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     if (!currentUserId) return
 
     const { data: sent } = await supabase
@@ -69,7 +55,21 @@ export default function FriendButton({ profileId, currentUserId }: FriendButtonP
     }
 
     setStatus('none')
-  }
+  }, [currentUserId, profileId, supabase])
+
+  useEffect(() => {
+    if (!currentUserId || currentUserId === profileId) return
+    const init = async () => {
+      const [{ data: blocksByMe }, { data: blocksMe }] = await Promise.all([
+        supabase.from('blocks').select('id').eq('blocker_id', currentUserId).eq('blocked_id', profileId),
+        supabase.from('blocks').select('id').eq('blocker_id', profileId).eq('blocked_id', currentUserId),
+      ])
+      const isBlocked = !!(blocksByMe && blocksByMe.length) || !!(blocksMe && blocksMe.length)
+      setBlocked(isBlocked)
+      if (!isBlocked) checkStatus()
+    }
+    init()
+  }, [currentUserId, profileId, supabase, checkStatus])
 
   const sendRequest = async () => {
     if (!currentUserId || blocked) return

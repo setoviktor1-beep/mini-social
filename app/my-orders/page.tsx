@@ -6,23 +6,23 @@ export const dynamic = 'force-dynamic'
 
 const STATUS_META: Record<string, { label: string; className: string; icon: typeof Clock3 }> = {
   open: {
-    label: 'Open',
-    className: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
+    label: 'Atvira',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
     icon: Clock3,
   },
   assigned: {
-    label: 'In Progress',
-    className: 'border-blue-500/20 bg-blue-500/10 text-blue-300',
+    label: 'Vykdoma',
+    className: 'border-blue-200 bg-blue-50 text-blue-700',
     icon: Loader2,
   },
   in_progress: {
-    label: 'In Progress',
-    className: 'border-blue-500/20 bg-blue-500/10 text-blue-300',
+    label: 'Vykdoma',
+    className: 'border-blue-200 bg-blue-50 text-blue-700',
     icon: Loader2,
   },
   completed: {
-    label: 'Completed',
-    className: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
+    label: 'Baigta',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     icon: CheckCircle2,
   },
 }
@@ -59,15 +59,15 @@ export default async function MyOrdersPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-24">
-      <div className="rounded-3xl border border-gray-800 bg-gradient-to-br from-[#111827] to-[#0a0a0f] p-6 shadow-lg">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="rounded-2xl bg-blue-500/10 p-3 text-blue-400">
+          <div className="rounded-2xl bg-blue-50 p-3 text-blue-600">
             <ClipboardList size={28} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">Mano Užsakymai</h1>
-            <p className="mt-2 max-w-2xl text-sm text-gray-400">
-              Čia matysi visas savo paslaugų užklausas ir jų eigą.
+            <h1 className="text-2xl font-black text-slate-900">Mano užsakymai</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-500">
+              Čia matysite visas savo paslaugų užklausas ir jų eigą.
             </p>
           </div>
         </div>
@@ -88,33 +88,27 @@ export default async function MyOrdersPage() {
             return (
               <article
                 key={request.id}
-                className="rounded-3xl border border-gray-800 bg-[#0f1117] p-5 shadow-sm"
+                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${meta.className}`}
-                      >
-                        <StatusIcon size={14} />
-                        {meta.label}
-                      </span>
-                      <span className="text-xs text-gray-500">{formatDate(request.created_at)}</span>
-                    </div>
-
-                    <p className="text-sm leading-6 text-gray-200">{request.description}</p>
-
-                    <div className="flex flex-col gap-2 text-sm text-gray-400">
-                      <span>Adresas: {request.address_text || 'Nenurodytas'}</span>
-                      <span>Paslaugos teikėjas: {masterName || 'Dar nepriskirtas'}</span>
-                      {request.estimated_price != null && (
-                        <span>Numatoma kaina: €{request.estimated_price}</span>
-                      )}
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${meta.className}`}
+                    >
+                      <StatusIcon size={14} />
+                      {meta.label}
+                    </span>
+                    <span className="text-xs text-slate-500">{formatDate(request.created_at)}</span>
                   </div>
 
-                  <div className="text-xs text-gray-600 sm:text-right">
-                    ID: {request.id.slice(0, 8)}
+                  <p className="text-sm leading-6 text-slate-800">{request.description}</p>
+
+                  <div className="flex flex-col gap-2 text-sm text-slate-500">
+                    <span>Adresas: {request.address_text || 'Nenurodytas'}</span>
+                    <span>Paslaugos teikėjas: {masterName || 'Dar nepriskirtas'}</span>
+                    {request.estimated_price != null && (
+                      <span>Numatoma kaina: €{request.estimated_price}</span>
+                    )}
                   </div>
                 </div>
               </article>
@@ -122,13 +116,13 @@ export default async function MyOrdersPage() {
           })}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-gray-800 bg-[#0f1117] p-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-800/70 text-gray-400">
+        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
             <ClipboardList size={24} />
           </div>
-          <h2 className="text-lg font-bold text-white">Užsakymų dar nėra</h2>
-          <p className="mt-2 text-sm text-gray-400">
-            Kai pateiksi paslaugos užklausą, ji atsiras šiame puslapyje.
+          <h2 className="text-lg font-bold text-slate-900">Užsakymų dar nėra</h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Kai pateiksite paslaugos užklausą, ji atsiras šiame puslapyje.
           </p>
         </div>
       )}

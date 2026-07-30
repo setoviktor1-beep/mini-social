@@ -1,9 +1,9 @@
 'use client'
 import { createClient } from '@/lib/backend-client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Palette, Ban, Briefcase, MapPin } from 'lucide-react'
+import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Ban, Briefcase, MapPin } from 'lucide-react'
 import Image from 'next/image'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import InviteButton from '@/components/InviteButton'
@@ -55,7 +55,7 @@ interface BlockedUserRow {
 }
 
 export default function SettingsPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -151,7 +151,7 @@ export default function SettingsPage() {
       setLoading(false)
     }
     loadProfile()
-  }, [])
+  }, [router, supabase])
 
   useEffect(() => {
     if (!profile) return
@@ -166,7 +166,7 @@ export default function SettingsPage() {
       setLoadingBlockedUsers(false)
     }
     loadBlocked()
-  }, [profile?.id])
+  }, [profile, supabase])
 
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null
@@ -203,7 +203,7 @@ export default function SettingsPage() {
       setCheckingUsername(false)
     }, 500)
     return () => clearTimeout(timeout)
-  }, [username, profile])
+  }, [username, profile, supabase])
 
   // Auto-clear messages
   useEffect(() => {
@@ -582,7 +582,7 @@ export default function SettingsPage() {
                 setDisplayName(e.target.value)
                 if (errors.displayName) setErrors(prev => ({ ...prev, displayName: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors text-gray-900 text-slate-900 bg-white bg-white ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors text-slate-900 bg-white ${
                 errors.displayName
                   ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -613,7 +613,7 @@ export default function SettingsPage() {
                   setUsername(val)
                   if (errors.username) setErrors(prev => ({ ...prev, username: undefined }))
                 }}
-                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors text-gray-900 text-slate-900 bg-white bg-white ${
+                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors text-slate-900 bg-white ${
                   errors.username
                     ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                     : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -654,7 +654,7 @@ export default function SettingsPage() {
                 setBio(e.target.value)
                 if (errors.bio) setErrors(prev => ({ ...prev, bio: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors text-gray-900 text-slate-900 bg-white bg-white ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors text-slate-900 bg-white ${
                 errors.bio
                   ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
                   : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
@@ -678,8 +678,8 @@ export default function SettingsPage() {
           <div className="pt-4 border-t border-gray-50 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                <Palette size={18} className="text-blue-500" />
-                Vietovės ir Verslo Nustatymai
+                <MapPin size={18} className="text-blue-500" />
+                Vietovė ir paskyros tipas
               </h3>
               <InviteButton />
             </div>
@@ -1033,25 +1033,11 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* ==================== APPEARANCE SECTION ==================== */}
-      <div id="appearance" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-50">
-          <h2 className="font-bold text-xl text-gray-900">Išvaizda</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Tinkinkite, kaip atrodo Mini Social jums</p>
-        </div>
-        <div className="p-6">
-          <div className="flex items-center gap-3 text-gray-400 py-8 justify-center">
-            <Palette size={24} />
-            <p className="text-sm font-medium">Temos nustatymai – jau greitai</p>
-          </div>
-        </div>
-      </div>
-
       {/* ==================== BLOCKED USERS SECTION ==================== */}
-      <div id="blocked" className="bg-white bg-white rounded-2xl shadow-sm shadow-sm border border-gray-100 border-slate-200 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-50 border-slate-200">
-          <h2 className="font-bold text-xl text-gray-900 text-slate-900">Užblokuoti vartotojai</h2>
-          <p className="text-sm text-gray-500 text-slate-500 mt-0.5">Jūsų užblokuoti vartotojai nerodomi naujienlaištyje ir žinutėse</p>
+      <div id="blocked" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <h2 className="text-xl font-bold text-slate-900">Užblokuoti vartotojai</h2>
+          <p className="mt-0.5 text-sm text-slate-500">Jūsų užblokuoti vartotojai nerodomi sraute ir žinutėse</p>
         </div>
         <div className="p-6">
           {loadingBlockedUsers ? (
@@ -1063,7 +1049,7 @@ export default function SettingsPage() {
               <div className="w-14 h-14 bg-gray-100 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Ban size={22} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-sm font-semibold text-gray-500 text-slate-500">Nėra užblokuotų vartotojų</p>
+              <p className="text-sm font-semibold text-slate-500">Nėra užblokuotų vartotojų</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Galite blokuoti vartotoją iš jo profilio puslapio</p>
             </div>
           ) : (
@@ -1074,7 +1060,7 @@ export default function SettingsPage() {
                 return (
                   <div
                     key={b.id}
-                    className="flex items-center gap-3 sm:gap-4 p-3 rounded-2xl border border-gray-100 border-slate-200 bg-white bg-white"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:gap-4"
                   >
                     <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                       {avatarUrl ? (
@@ -1086,16 +1072,16 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-gray-900 text-slate-900 truncate text-sm sm:text-base">
+                      <p className="truncate text-sm font-bold text-slate-900 sm:text-base">
                         {u?.display_name || 'Unknown user'}
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-500 text-slate-500 truncate">
+                      <p className="truncate text-xs text-slate-500 sm:text-sm">
                         @{u?.username || 'unknown'}
                       </p>
                     </div>
                     <button
                       onClick={() => handleUnblock(b.id)}
-                      className="px-5 py-2.5 rounded-full font-bold text-sm border-2 border-gray-200 border-slate-200 text-gray-700 text-slate-600 hover:bg-gray-50 hover:bg-slate-50 transition-colors min-h-[44px]"
+                      className="min-h-[44px] rounded-full border-2 border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
                     >
                       Atblokuoti
                     </button>

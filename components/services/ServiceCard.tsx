@@ -60,23 +60,23 @@ export default function ServiceCard({ service, currentUserId }: ServiceCardProps
 
   return (
     <>
-      <div className="group bg-gray-900/40 border border-gray-800 rounded-3xl p-6 hover:border-blue-500/50 transition-all hover:shadow-2xl hover:shadow-blue-500/5 overflow-hidden relative">
+      <div className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-lg">
         {/* Background Decor */}
         <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-all" />
 
         <div className="flex justify-between items-start gap-4 mb-4 relative z-10">
-          <div className="p-3 bg-gray-950 rounded-2xl border border-gray-800 group-hover:border-blue-500/30 transition-colors">
-            <service.icon className="text-blue-400" size={24} />
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 transition-colors group-hover:border-blue-200">
+            <service.icon className="text-blue-600" size={24} />
           </div>
-          <div className="flex items-center gap-1 bg-gray-950 px-3 py-1 rounded-full border border-gray-800">
+          <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
             <Star className="text-yellow-500 fill-yellow-500" size={14} />
-            <span className="text-xs font-bold text-gray-300">{service.rating}</span>
+            <span className="text-xs font-bold text-slate-700">{service.rating}</span>
           </div>
         </div>
 
         <div className="space-y-2 mb-6">
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
+            <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
               {service.name}
             </h3>
             {!service.isOpen && (
@@ -85,15 +85,15 @@ export default function ServiceCard({ service, currentUserId }: ServiceCardProps
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+          <p className="line-clamp-2 text-sm leading-relaxed text-slate-500">
             {service.description}
           </p>
         </div>
 
         <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-            <MapPin size={14} className="text-gray-600" />
-            {service.address} · <span className="text-blue-400/80">{service.distance}</span>
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <MapPin size={14} className="text-slate-400" />
+            {service.address} · <span className="text-blue-600">{service.distance}</span>
           </div>
 
           {service.promo && (
@@ -104,7 +104,7 @@ export default function ServiceCard({ service, currentUserId }: ServiceCardProps
           )}
         </div>
 
-        <div className="pt-4 border-t border-gray-800/50 space-y-3">
+        <div className="space-y-3 border-t border-slate-100 pt-4">
           {notLoggedIn && (
             <p className="text-xs text-amber-400 text-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
               Prisijunkite norėdami užsisakyti
@@ -115,6 +115,16 @@ export default function ServiceCard({ service, currentUserId }: ServiceCardProps
               <CheckCircle2 size={18} />
               Žinutė išsiųsta! Patikrinkite savo žinutes.
             </div>
+          ) : !service.providerId ? (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${service.name} ${service.address || ''}`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 font-bold text-white transition-all hover:bg-blue-700"
+            >
+              <MapPin size={18} />
+              Atverti žemėlapyje
+            </a>
           ) : (
             <button
               onClick={handleOrder}
@@ -131,18 +141,18 @@ export default function ServiceCard({ service, currentUserId }: ServiceCardProps
       {/* Inline Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-gray-900 border border-gray-700 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md animate-in rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl duration-200 zoom-in-95">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Susisiekti su teikėju</h3>
+              <h3 className="text-lg font-bold text-slate-900">Susisiekti su teikėju</h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="mb-4 text-sm text-slate-500">
               Jūsų žinutė paslaugos teikėjui
             </p>
 
@@ -150,13 +160,13 @@ export default function ServiceCard({ service, currentUserId }: ServiceCardProps
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
-              className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none mb-4"
+              className="mb-4 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none"
             />
 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-3 rounded-2xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 font-semibold transition-all text-sm"
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50"
               >
                 Atšaukti
               </button>
