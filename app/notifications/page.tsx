@@ -22,6 +22,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   const pageSize = 20
 
@@ -31,30 +32,43 @@ export default function NotificationsPage() {
   }
 
   const fetchPage = useCallback(async (uid: string, offset: number) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('notifications')
       .select('*, actor:actor_id(username, display_name, avatar_path)')
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
       .range(offset, offset + pageSize - 1)
+    if (error) throw error
     return (data as NotificationRow[]) || []
   }, [supabase])
 
   const refresh = useCallback(async (uid: string) => {
     setLoading(true)
-    const first = await fetchPage(uid, 0)
-    setItems(first)
-    setHasMore(first.length === pageSize)
-    setLoading(false)
+    setLoadError(false)
+    try {
+      const first = await fetchPage(uid, 0)
+      setItems(first)
+      setHasMore(first.length === pageSize)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [fetchPage])
 
   const loadMore = useCallback(async () => {
     if (!userId || loadingMore || !hasMore) return
     setLoadingMore(true)
-    const next = await fetchPage(userId, items.length)
-    setItems(prev => [...prev, ...next])
-    setHasMore(next.length === pageSize)
-    setLoadingMore(false)
+    setLoadError(false)
+    try {
+      const next = await fetchPage(userId, items.length)
+      setItems(prev => [...prev, ...next])
+      setHasMore(next.length === pageSize)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoadingMore(false)
+    }
   }, [userId, loadingMore, hasMore, items.length, fetchPage])
 
   const markAllRead = async () => {
@@ -123,6 +137,16 @@ export default function NotificationsPage() {
           <div className="p-10 sm:p-16 text-center text-gray-400 dark:text-gray-500 text-sm">
             Kraunama...
           </div>
+        ) : loadError && items.length === 0 ? (
+          <div role="alert" className="p-10 sm:p-16 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Nepavyko įkelti pranešimų.</p>
+            <button
+              onClick={() => userId && refresh(userId)}
+              className="px-5 py-2.5 rounded-full font-semibold text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 min-h-[44px] transition-all"
+            >
+              Bandyti dar kartą
+            </button>
+          </div>
         ) : items.length === 0 ? (
           <div className="p-10 sm:p-16 text-center">
             <Bell size={40} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
@@ -170,7 +194,18 @@ export default function NotificationsPage() {
             {loadingMore && (
               <div className="p-4 text-center text-xs text-gray-400 dark:text-gray-500">Kraunama...</div>
             )}
-            {!hasMore && (
+            {loadError && items.length > 0 && (
+              <div role="alert" className="p-4 text-center">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Nepavyko įkelti daugiau pranešimų.</p>
+                <button
+                  onClick={loadMore}
+                  className="px-4 py-2 rounded-full font-semibold text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 min-h-[36px] transition-all"
+                >
+                  Bandyti dar kartą
+                </button>
+              </div>
+            )}
+            {!hasMore && !loadError && (
               <div className="p-4 text-center text-xs text-gray-400 dark:text-gray-500">Peržiūrėjote visus pranešimus.</div>
             )}
           </div>
