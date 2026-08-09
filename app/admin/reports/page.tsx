@@ -19,6 +19,9 @@ export default function AdminReportsPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [targetContent, setTargetContent] = useState<any>(null)
   const [confirm, setConfirm] = useState<{ title: string; message: string; action: () => void; variant?: 'danger' | 'warning' } | null>(null)
+  const [aiModerating, setAiModerating] = useState<string | null>(null)
+  const [aiDecisions, setAiDecisions] = useState<Record<string, any>>({})
+  const [aiModerateError, setAiModerateError] = useState<Record<string, string>>({})
 
   useEffect(() => {
     supabase.from('profiles').select('id, username').in('role', ['admin', 'moderator']).then(({ data }) => {
@@ -141,6 +144,67 @@ export default function AdminReportsPage() {
     })
   }
 
+  // AI moderation assist: asks the model for an opinion on a reported
+  // post/comment and stores it (via app/api/ai/moderate) for the audit
+  // trail. This never takes action by itself — Hide/Delete/Resolve/Close
+  // above remain the only things that actually change content, and a
+  // human moderator decides whether to act on what the AI says.
+  const askAiForReport = async (report: any) => {
+    if (report.target_type === 'user' || aiModerating) return
+    setAiModerating(report.id)
+    setAiModerateError((prev) => ({ ...prev, [report.id]: '' }))
+    try {
+      const res = await fetch('/api/ai/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentType: report.target_type, contentId: report.target_id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setAiModerateError((prev) => ({
+          ...prev,
+          [report.id]: res.status === 503 ? 'AI nepasiekiama.' : 'Nepavyko gauti AI vertinimo.',
+        }))
+        return
+      }
+      setAiDecisions((prev) => ({ ...prev, [report.id]: data.decision }))
+    } catch {
+      setAiModerateError((prev) => ({ ...prev, [report.id]: 'Nepavyko prisijungti prie AI paslaugos.' }))
+    } finally {
+      setAiModerating(null)
+    }
+  }
+
+  const renderAiAssist = (report: any) => {
+    if (report.target_type === 'user') return null
+    const decision = aiDecisions[report.id]
+    const error = aiModerateError[report.id]
+    return (
+      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+        {!decision && (
+          <button
+            onClick={() => askAiForReport(report)}
+            disabled={aiModerating === report.id}
+            className="px-3 py-1.5 text-xs font-medium bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/50 disabled:opacity-50 min-h-[36px]"
+          >
+            {aiModerating === report.id ? 'Klausiama AI...' : '✨ Paklausti AI'}
+          </button>
+        )}
+        {error && <p role="alert" className="text-xs text-red-600 mt-1">{error}</p>}
+        {decision && (
+          <div className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+            <p>
+              <span className="font-bold">AI vertinimas:</span> {decision.decision} / {decision.category}
+              {typeof decision.confidence === 'number' ? ` (${Math.round(decision.confidence * 100)}%)` : ''}
+            </p>
+            {decision.rationale && <p className="italic">&quot;{decision.rationale}&quot;</p>}
+            <p className="text-gray-400 dark:text-gray-500">Tik rekomendacija — sprendimą priima moderatorius.</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const totalPages = Math.ceil(total / PER_PAGE)
 
   return (
@@ -246,6 +310,7 @@ export default function AdminReportsPage() {
                           {targetContent.status && (
                             <p className="mt-1"><StatusBadge status={targetContent.status} /></p>
                           )}
+                          {renderAiAssist(report)}
                         </div>
                       </td>
                     </tr>
@@ -303,6 +368,7 @@ export default function AdminReportsPage() {
                 {targetContent.status && (
                   <p className="mt-1"><StatusBadge status={targetContent.status} /></p>
                 )}
+                {renderAiAssist(report)}
               </div>
             )}
 

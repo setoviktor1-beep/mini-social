@@ -18,7 +18,7 @@ const POST_SELECT = `
     profiles:user_id(username, display_name, avatar_path),
     post_media(storage_path)
   ),
-  likes(count),
+  reactions(count),
   comments(count),
   reposts(count)
 `

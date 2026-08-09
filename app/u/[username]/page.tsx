@@ -7,7 +7,7 @@ import SendMessageButton from '@/components/SendMessageButton'
 import FriendButton from '@/components/FriendButton'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Settings, Ban } from 'lucide-react'
+import { Settings, Ban, BellOff } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import type { Metadata } from 'next'
@@ -18,10 +18,14 @@ interface ProfilePageProps {
   params: Promise<{
     username: string
   }>
+  searchParams: Promise<{
+    muteError?: string
+  }>
 }
 
 export default async function ProfilePage(props: ProfilePageProps) {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const supabase = createClient()
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
@@ -52,7 +56,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
         profiles:user_id(username, display_name, avatar_path),
         post_media(storage_path)
       ),
-      likes(count),
+      reactions(count),
       comments(count),
       reposts(count)
     `)
@@ -77,7 +81,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
           profiles:user_id(username, display_name, avatar_path),
           post_media(storage_path)
         ),
-        likes(count),
+        reactions(count),
         comments(count),
         reposts(count)
       )
@@ -119,6 +123,19 @@ export default async function ProfilePage(props: ProfilePageProps) {
     blockedBy = !!blockedByRow
   }
 
+  // 3c. Check mute status (one direction only — muting is private and does
+  // not restrict the muted user's ability to interact with you)
+  let hasMuted = false
+  if (currentUser && currentUser.id !== profile.id) {
+    const { data: muteRow } = await supabase
+      .from('mutes')
+      .select('muter_id')
+      .eq('muter_id', currentUser.id)
+      .eq('muted_id', profile.id)
+      .maybeSingle()
+    hasMuted = !!muteRow
+  }
+
   const { count: followersCount } = await supabase
     .from('follows')
     .select('*', { count: 'exact', head: true })
@@ -129,18 +146,23 @@ export default async function ProfilePage(props: ProfilePageProps) {
     .select('*', { count: 'exact', head: true })
     .eq('follower_id', profile.id)
 
-  // 4. Check liked posts and user role
-  let likedPostIds: Set<string> = new Set()
+  // 4. Check reactions, bookmarks, and user role
+  let reactionByPostId: Map<string, string> = new Map()
   let repostedPostIds: Set<string> = new Set()
+  let bookmarkedPostIds: Set<string> = new Set()
   let currentUserRole: string | undefined
   if (currentUser) {
-    const [{ data: userLikes }, { data: userReposts }, { data: curProfile }] = await Promise.all([
+    const [{ data: userReactions }, { data: userReposts }, { data: userBookmarks }, { data: curProfile }] = await Promise.all([
       supabase
-        .from('likes')
-        .select('post_id')
+        .from('reactions')
+        .select('post_id, type')
         .eq('user_id', currentUser.id),
       supabase
         .from('reposts')
+        .select('post_id')
+        .eq('user_id', currentUser.id),
+      supabase
+        .from('bookmarks')
         .select('post_id')
         .eq('user_id', currentUser.id),
       supabase
@@ -149,16 +171,19 @@ export default async function ProfilePage(props: ProfilePageProps) {
         .eq('id', currentUser.id)
         .single(),
     ])
-    if (userLikes) likedPostIds = new Set(userLikes.map(l => l.post_id))
+    if (userReactions) reactionByPostId = new Map(userReactions.map((r: any) => [r.post_id, r.type]))
     if (userReposts) repostedPostIds = new Set(userReposts.map((r: any) => r.post_id))
+    if (userBookmarks) bookmarkedPostIds = new Set(userBookmarks.map((b: any) => b.post_id))
     currentUserRole = curProfile?.role
   }
 
   const postsWithLikeStatus = posts?.map(post => ({
     ...post,
     feed_key: `post-${post.id}`,
-    user_liked: likedPostIds.has(post.id),
+    user_liked: reactionByPostId.get(post.id) === 'like',
+    user_reaction: reactionByPostId.get(post.id) ?? null,
     user_reposted: repostedPostIds.has(post.id),
+    user_bookmarked: bookmarkedPostIds.has(post.id),
   })) || []
 
   const repostedPosts = (repostRows || [])
@@ -175,8 +200,10 @@ export default async function ProfilePage(props: ProfilePageProps) {
           display_name: profile.display_name,
           avatar_path: profile.avatar_path,
         },
-        user_liked: likedPostIds.has(p.id),
+        user_liked: reactionByPostId.get(p.id) === 'like',
+        user_reaction: reactionByPostId.get(p.id) ?? null,
         user_reposted: repostedPostIds.has(p.id),
+        user_bookmarked: bookmarkedPostIds.has(p.id),
       }
     })
     .filter(Boolean)
@@ -200,6 +227,34 @@ export default async function ProfilePage(props: ProfilePageProps) {
       await s.from('blocks').delete().eq('blocker_id', user.id).eq('blocked_id', profile.id)
     } else {
       await s.from('blocks').insert({ blocker_id: user.id, blocked_id: profile.id })
+    }
+
+    redirect(`/u/${profile.username}`)
+  }
+
+  const toggleMute = async () => {
+    'use server'
+    const s = createClient()
+    const { data: { user } } = await s.auth.getUser()
+    if (!user || user.id === profile.id) return
+
+    const { data: existing } = await s
+      .from('mutes')
+      .select('muter_id')
+      .eq('muter_id', user.id)
+      .eq('muted_id', profile.id)
+      .maybeSingle()
+
+    // Only redirect to the plain (success) URL if the mutation actually
+    // succeeded — a failed insert/delete must not be presented as if the
+    // mute state changed, since the page would then render a mute/unmute
+    // button reflecting a state the database never reached.
+    const { error } = existing
+      ? await s.from('mutes').delete().eq('muter_id', user.id).eq('muted_id', profile.id)
+      : await s.from('mutes').insert({ muter_id: user.id, muted_id: profile.id })
+
+    if (error) {
+      redirect(`/u/${profile.username}?muteError=1`)
     }
 
     redirect(`/u/${profile.username}`)
@@ -257,6 +312,21 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   Redaguoti profilį
                 </Link>
               )}
+              {currentUser && currentUser.id !== profile.id && !isBlockedEitherWay && (
+                <form action={toggleMute} className="contents">
+                  <button
+                    className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 rounded-full font-bold transition-all min-h-[44px] text-sm ${
+                      hasMuted
+                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'border-2 border-slate-200 text-slate-700 hover:border-amber-200 hover:text-amber-600 hover:bg-amber-50'
+                    }`}
+                    title={hasMuted ? 'Nebenutildyti vartotojo' : 'Nutildyti vartotoją'}
+                  >
+                    <BellOff size={16} />
+                    {hasMuted ? 'Nebenutildyti' : 'Nutildyti'}
+                  </button>
+                </form>
+              )}
               {currentUser && currentUser.id !== profile.id && (
                 <form action={toggleBlock} className="contents">
                   <button
@@ -290,6 +360,11 @@ export default async function ProfilePage(props: ProfilePageProps) {
             </div>
           </div>
           
+          {searchParams.muteError && (
+            <div role="alert" className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
+              Nepavyko pakeisti nutildymo būsenos. Bandykite dar kartą.
+            </div>
+          )}
           {blockedBy && (
             <div className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
               Šiuo metu su šiuo vartotoju bendrauti negalite.

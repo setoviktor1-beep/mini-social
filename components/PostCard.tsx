@@ -4,13 +4,24 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil } from 'lucide-react'
+import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil, Bookmark } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
 import { notifyMentions } from '@/lib/mentions'
 import { sendPushNotification } from '@/lib/pushNotify'
 import { extractYoutubeId, getYoutubeEmbedUrl, isOnlyYoutubeUrl, resolveSupabaseStorageUrl } from '@/lib/media'
+
+export type ReactionType = 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry'
+
+const REACTIONS: Record<ReactionType, { emoji: string; label: string }> = {
+  like: { emoji: '👍', label: 'Patinka' },
+  love: { emoji: '❤️', label: 'Super' },
+  laugh: { emoji: '😂', label: 'Juokinga' },
+  wow: { emoji: '😮', label: 'Įspūdinga' },
+  sad: { emoji: '😢', label: 'Liūdna' },
+  angry: { emoji: '😠', label: 'Piktina' },
+}
 
 function PostMediaImage({ src }: { src: string }) {
   const [failed, setFailed] = useState(false)
@@ -62,11 +73,13 @@ interface PostCardProps {
       profiles?: { username: string; display_name: string; avatar_path?: string }
       post_media?: { storage_path: string }[]
     } | null
-    likes?: { count: number }[]
+    reactions?: { count: number }[]
     comments?: { count: number }[]
     reposts?: { count: number }[]
     user_liked?: boolean
+    user_reaction?: ReactionType | null
     user_reposted?: boolean
+    user_bookmarked?: boolean
   }
   currentUserId?: string
   currentUserRole?: string
@@ -75,20 +88,23 @@ interface PostCardProps {
 export default function PostCard({ post, currentUserId, currentUserRole }: PostCardProps) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
-  const [liked, setLiked] = useState(post.user_liked || false)
-  const [likeCount, setLikeCount] = useState(Number(post.likes?.[0]?.count || 0))
+  const [userReaction, setUserReaction] = useState<ReactionType | null>(post.user_reaction ?? (post.user_liked ? 'like' : null))
+  const [reactionCount, setReactionCount] = useState(Number(post.reactions?.[0]?.count || 0))
+  const [showReactionPicker, setShowReactionPicker] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState('')
   const [commentCount, setCommentCount] = useState(post.comments?.[0]?.count || 0)
   const [reposted, setReposted] = useState(post.user_reposted || false)
   const [repostCount, setRepostCount] = useState(post.reposts?.[0]?.count || 0)
+  const [bookmarked, setBookmarked] = useState(post.user_bookmarked || false)
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [showRepostMenu, setShowRepostMenu] = useState(false)
   const [showQuoteModal, setShowQuoteModal] = useState(false)
   const [quoteText, setQuoteText] = useState('')
   const [quoteLoading, setQuoteLoading] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
-  const [likeLoading, setLikeLoading] = useState(false)
+  const [reactionLoading, setReactionLoading] = useState(false)
   const [commentLoading, setCommentLoading] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
@@ -105,6 +121,22 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const commentSubmitLockRef = useRef(false)
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTriggeredRef = useRef(false)
+
+  const startLongPress = () => {
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true
+      setShowReactionPicker(true)
+    }, 450)
+  }
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
   const mediaUrls = (post.post_media || [])
     .map((media) => resolveSupabaseStorageUrl(
       (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
@@ -128,21 +160,24 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     : ''
 
   useEffect(() => {
-    setLiked(Boolean(post.user_liked))
-    setLikeCount(Number(post.likes?.[0]?.count || 0))
+    setUserReaction(post.user_reaction ?? (post.user_liked ? 'like' : null))
+    setReactionCount(Number(post.reactions?.[0]?.count || 0))
     setCommentCount(Number(post.comments?.[0]?.count || 0))
     setReposted(Boolean(post.user_reposted))
     setRepostCount(Number(post.reposts?.[0]?.count || 0))
+    setBookmarked(Boolean(post.user_bookmarked))
     setEditedContent(post.content)
     setLocalContent(post.content)
     setLocalEditedAt(post.edited_at ?? null)
   }, [
     post.id,
     post.user_liked,
+    post.user_reaction,
     post.user_reposted,
+    post.user_bookmarked,
     post.content,
     post.edited_at,
-    post.likes,
+    post.reactions,
     post.comments,
     post.reposts,
   ])
@@ -172,48 +207,71 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     }
   }, [post.id, supabase])
 
-  const handleLike = async () => {
-    if (!currentUserId || likeLoading) return
-    const nextLiked = !liked
-    const previousLiked = liked
-    const previousLikeCount = likeCount
+  // A plain tap on the main reaction button always targets 'like'
+  // specifically (see handleReact) — it does not toggle off whatever
+  // reaction is currently active. Screen-reader text must describe that
+  // real outcome: removing the reaction only when it's already 'like',
+  // switching to 'like' otherwise. (Long-press opens the picker, which is
+  // the only way to remove or set a non-'like' reaction.)
+  const mainButtonLabel = !userReaction
+    ? 'Reaguoti į įrašą (patinka)'
+    : userReaction === 'like'
+      ? 'Reakcija: Patinka. Paspauskite, kad pašalintumėte.'
+      : `Reakcija: ${REACTIONS[userReaction].label}. Paspauskite, kad pakeistumėte į „Patinka“.`
 
-    setLikeLoading(true)
-    setLiked(nextLiked)
-    setLikeCount((prev) => Math.max(0, prev + (nextLiked ? 1 : -1)))
+  const handleReact = async (type: ReactionType) => {
+    if (!currentUserId || reactionLoading) return
+    const previousReaction = userReaction
+    const previousCount = reactionCount
+    const nextReaction: ReactionType | null = previousReaction === type ? null : type
 
-    if (liked) {
-      const { error } = await supabase.from('likes').delete().eq('user_id', currentUserId).eq('post_id', post.id)
-      if (error) {
-        setLiked(previousLiked)
-        setLikeCount(previousLikeCount)
-      }
-    } else {
-      const { error } = await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
-      if (error) {
-        setLiked(previousLiked)
-        setLikeCount(previousLikeCount)
-        setLikeLoading(false)
-        return
-      }
+    setReactionLoading(true)
+    setShowReactionPicker(false)
+    setUserReaction(nextReaction)
+    setReactionCount((prev) => {
+      if (previousReaction === null && nextReaction !== null) return prev + 1
+      if (previousReaction !== null && nextReaction === null) return Math.max(0, prev - 1)
+      return prev
+    })
 
-      if (post.user_id && post.user_id !== currentUserId) {
-        await supabase.from('notifications').insert({
-          user_id: post.user_id,
-          actor_id: currentUserId,
-          type: 'like',
-          target_id: post.id,
-          target_type: 'post',
-        })
-        await sendPushNotification(
-          post.user_id,
-          'Patiko tavo įrašas',
-          post.content.slice(0, 80),
-          `/u/${post.profiles?.username}`
-        )
-      }
+    const rollback = () => {
+      setUserReaction(previousReaction)
+      setReactionCount(previousCount)
     }
-    setLikeLoading(false)
+
+    if (nextReaction === null) {
+      const { error } = await supabase.from('reactions').delete().eq('user_id', currentUserId).eq('post_id', post.id)
+      if (error) rollback()
+      setReactionLoading(false)
+      return
+    }
+
+    const { error } = await supabase
+      .from('reactions')
+      .upsert({ user_id: currentUserId, post_id: post.id, type: nextReaction }, { onConflict: 'user_id,post_id' })
+
+    if (error) {
+      rollback()
+      setReactionLoading(false)
+      return
+    }
+
+    if (previousReaction === null && post.user_id && post.user_id !== currentUserId) {
+      await supabase.from('notifications').insert({
+        user_id: post.user_id,
+        actor_id: currentUserId,
+        type: nextReaction === 'like' ? 'like' : 'reaction',
+        target_id: post.id,
+        target_type: 'post',
+      })
+      await sendPushNotification(
+        post.user_id,
+        `${REACTIONS[nextReaction].emoji} Sureagavo į tavo įrašą`,
+        post.content.slice(0, 80),
+        `/u/${post.profiles?.username}`
+      )
+    }
+    setReactionLoading(false)
   }
 
   const loadComments = async () => {
@@ -422,6 +480,24 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     router.refresh()
   }
 
+  const handleBookmark = async () => {
+    if (!currentUserId || bookmarkLoading) return
+    const nextBookmarked = !bookmarked
+    const previousBookmarked = bookmarked
+
+    setBookmarkLoading(true)
+    setBookmarked(nextBookmarked)
+
+    const { error } = nextBookmarked
+      ? await supabase.from('bookmarks').insert({ user_id: currentUserId, post_id: post.id })
+      : await supabase.from('bookmarks').delete().eq('user_id', currentUserId).eq('post_id', post.id)
+
+    if (error) {
+      setBookmarked(previousBookmarked)
+    }
+    setBookmarkLoading(false)
+  }
+
   const handleCreateQuote = async () => {
     if (!currentUserId || !quoteText.trim()) return
     setQuoteLoading(true)
@@ -469,7 +545,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const repostTimeAgo = post.reposted_at ? formatDistanceToNow(new Date(post.reposted_at), { addSuffix: true }) : null
 
   return (
-    <div className="group p-4 sm:p-5 hover:bg-slate-50/80 transition-all duration-200 animate-fade-in-up">
+    <div data-testid="post-card" data-post-id={post.id} className="group p-4 sm:p-5 hover:bg-slate-50/80 transition-all duration-200 animate-fade-in-up">
       <div className="flex gap-3 sm:gap-4">
         <Link href={`/u/${post.profiles?.username}`} className="flex-shrink-0">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden relative ring-2 ring-white shadow-sm">
@@ -595,22 +671,69 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Action buttons */}
           <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-slate-400">
-            <button
-              type="button"
-              onClick={handleLike}
-              disabled={likeLoading}
-              className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${liked ? 'text-[#E94560]' : 'hover:text-[#E94560]'}`}
-            >
-              <Heart size={20} fill={liked ? 'currentColor' : 'none'} className={liked ? 'animate-like' : ''} />
-              <span className="text-sm font-medium">{Number.isFinite(likeCount) ? likeCount : 0}</span>
-            </button>
-            <button type="button" onClick={toggleComments} className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${showComments ? 'text-blue-500' : 'hover:text-blue-500'}`}>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (longPressTriggeredRef.current) {
+                    longPressTriggeredRef.current = false
+                    return
+                  }
+                  void handleReact('like')
+                }}
+                onMouseDown={startLongPress}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
+                onTouchStart={startLongPress}
+                onTouchEnd={cancelLongPress}
+                disabled={reactionLoading}
+                aria-label={mainButtonLabel}
+                aria-pressed={Boolean(userReaction)}
+                title={userReaction ? REACTIONS[userReaction].label : 'Reaguoti (laikykite, kad pasirinktumėte kitą reakciją)'}
+                className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${userReaction ? 'text-[#E94560]' : 'hover:text-[#E94560]'}`}
+              >
+                {userReaction && userReaction !== 'like' ? (
+                  <span className="text-lg leading-none" aria-hidden="true">{REACTIONS[userReaction].emoji}</span>
+                ) : (
+                  <Heart size={20} fill={userReaction === 'like' ? 'currentColor' : 'none'} className={userReaction === 'like' ? 'animate-like' : ''} />
+                )}
+                <span className="text-sm font-medium">{Number.isFinite(reactionCount) ? reactionCount : 0}</span>
+              </button>
+              {showReactionPicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowReactionPicker(false)} />
+                  <div
+                    role="menu"
+                    aria-label="Pasirinkite reakciją"
+                    className="absolute bottom-11 left-0 flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
+                  >
+                    {(Object.keys(REACTIONS) as ReactionType[]).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => void handleReact(type)}
+                        title={REACTIONS[type].label}
+                        aria-label={REACTIONS[type].label}
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 ${userReaction === type ? 'bg-slate-100' : ''}`}
+                      >
+                        {REACTIONS[type].emoji}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <button type="button" onClick={toggleComments} aria-expanded={showComments} aria-label={showComments ? 'Slėpti komentarus' : 'Rodyti komentarus'} className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${showComments ? 'text-blue-500' : 'hover:text-blue-500'}`}>
               <MessageCircle size={20} />
               <span className="text-sm font-medium">{commentCount}</span>
             </button>
             <div className="relative">
               <button
                 onClick={() => setShowRepostMenu(!showRepostMenu)}
+                aria-haspopup="menu"
+                aria-expanded={showRepostMenu}
+                aria-label={reposted ? 'Pakartotinio paskelbimo parinktys (jau pakartota)' : 'Pakartotinai paskelbti arba cituoti'}
                 className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${reposted ? 'text-emerald-600' : 'hover:text-emerald-600'}`}
               >
                 <Repeat2 size={20} />
@@ -646,6 +769,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="relative">
               <button
                 onClick={() => setShowShareMenu(!showShareMenu)}
+                aria-haspopup="menu"
+                aria-expanded={showShareMenu}
+                aria-label="Dalintis įrašu"
                 className="flex items-center gap-2 hover:text-emerald-600 transition-all duration-200 min-h-[44px] hover:scale-110"
               >
                 <Share2 size={20} />
@@ -688,10 +814,25 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 </>
               )}
             </div>
+            {/* Bookmark */}
+            {currentUserId && (
+              <button
+                type="button"
+                onClick={handleBookmark}
+                disabled={bookmarkLoading}
+                title={bookmarked ? 'Pašalinti iš išsaugotų' : 'Išsaugoti įrašą'}
+                aria-label={bookmarked ? 'Pašalinti iš išsaugotų' : 'Išsaugoti įrašą'}
+                aria-pressed={bookmarked}
+                className={`flex items-center gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${bookmarked ? 'text-amber-500' : 'hover:text-amber-500'}`}
+              >
+                <Bookmark size={20} fill={bookmarked ? 'currentColor' : 'none'} />
+              </button>
+            )}
             {/* Report */}
             {currentUserId && !isOwner && (
               <button
                 onClick={() => setShowReportModal(true)}
+                aria-label="Pranešti apie įrašą"
                 className="flex items-center gap-2 text-slate-400 hover:text-amber-500 transition-all duration-200 ml-auto min-h-[44px] hover:scale-110"
               >
                 <AlertCircle size={18} />
@@ -796,7 +937,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Quote Modal */}
           {showQuoteModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowQuoteModal(false)}>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowQuoteModal(false)}>
               <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg text-slate-900">Quote Post</h3>
@@ -840,7 +981,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Edit Modal */}
           {showEditModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowEditModal(false)}>
               <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg text-slate-900">Redaguoti įrašą</h3>
@@ -880,7 +1021,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Delete Confirmation Modal */}
           {showDeleteConfirm && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowDeleteConfirm(false)}>
               <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <h3 className="font-bold text-lg mb-2 text-slate-900">Ištrinti įrašą?</h3>
                 <p className="text-slate-500 text-sm mb-4 sm:mb-6">Šio veiksmo negalima atšaukti. Įrašas bus pašalintas.</p>
@@ -904,7 +1045,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Report Modal */}
           {showReportModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowReportModal(false)}>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowReportModal(false)}>
               <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg text-slate-900">Report Post</h3>

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/backend-client'
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Ban, Briefcase, MapPin } from 'lucide-react'
+import { Camera, Trash2, Loader2, Check, AlertCircle, Mail, KeyRound, Ban, Briefcase, MapPin, BellOff } from 'lucide-react'
 import Image from 'next/image'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import InviteButton from '@/components/InviteButton'
@@ -39,6 +39,25 @@ interface BlockedUserRow {
   blocked_id: string
   created_at: string
   blocked:
+    | {
+        id: string
+        username: string
+        display_name: string | null
+        avatar_path: string | null
+      }
+    | {
+        id: string
+        username: string
+        display_name: string | null
+        avatar_path: string | null
+      }[]
+    | null
+}
+
+interface MutedUserRow {
+  muted_id: string
+  created_at: string
+  muted:
     | {
         id: string
         username: string
@@ -106,6 +125,8 @@ export default function SettingsPage() {
 
   const [blockedUsers, setBlockedUsers] = useState<BlockedUserRow[]>([])
   const [loadingBlockedUsers, setLoadingBlockedUsers] = useState(false)
+  const [mutedUsers, setMutedUsers] = useState<MutedUserRow[]>([])
+  const [loadingMutedUsers, setLoadingMutedUsers] = useState(false)
 
   // Load user and profile on mount
   useEffect(() => {
@@ -168,6 +189,21 @@ export default function SettingsPage() {
     loadBlocked()
   }, [profile, supabase])
 
+  useEffect(() => {
+    if (!profile) return
+    const loadMuted = async () => {
+      setLoadingMutedUsers(true)
+      const { data } = await supabase
+        .from('mutes')
+        .select('muted_id, created_at, muted:muted_id(id, username, display_name, avatar_path)')
+        .eq('muter_id', profile.id)
+        .order('created_at', { ascending: false })
+      setMutedUsers(((data || []) as unknown as MutedUserRow[]))
+      setLoadingMutedUsers(false)
+    }
+    loadMuted()
+  }, [profile, supabase])
+
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null
     return supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
@@ -177,6 +213,17 @@ export default function SettingsPage() {
     if (!profile) return
     await supabase.from('blocks').delete().eq('id', blockId).eq('blocker_id', profile.id)
     setBlockedUsers(prev => prev.filter(b => b.id !== blockId))
+    router.refresh()
+  }
+
+  const handleUnmute = async (mutedId: string) => {
+    if (!profile) return
+    const { error } = await supabase.from('mutes').delete().eq('muter_id', profile.id).eq('muted_id', mutedId)
+    if (error) {
+      setErrorMessage('Nepavyko nebenutildyti vartotojo. Bandykite dar kartą.')
+      return
+    }
+    setMutedUsers(prev => prev.filter(m => m.muted_id !== mutedId))
     router.refresh()
   }
 
@@ -507,7 +554,7 @@ export default function SettingsPage() {
         </div>
       )}
       {errorMessage && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-2">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-2">
           <AlertCircle size={18} className="text-red-600 shrink-0" />
           <span className="text-sm font-medium">{errorMessage}</span>
         </div>
@@ -1084,6 +1131,66 @@ export default function SettingsPage() {
                       className="min-h-[44px] rounded-full border-2 border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
                     >
                       Atblokuoti
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ==================== MUTED USERS SECTION ==================== */}
+      <div id="muted" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <h2 className="text-xl font-bold text-slate-900">Nutildyti vartotojai</h2>
+          <p className="mt-0.5 text-sm text-slate-500">Nutildytų vartotojų įrašai nerodomi jūsų sraute, bet jie gali toliau jus sekti ir rašyti žinutes</p>
+        </div>
+        <div className="p-6">
+          {loadingMutedUsers ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            </div>
+          ) : mutedUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-14 h-14 bg-gray-100 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <BellOff size={22} className="text-gray-400 dark:text-gray-500" />
+              </div>
+              <p className="text-sm font-semibold text-slate-500">Nėra nutildytų vartotojų</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Galite nutildyti vartotoją iš jo profilio puslapio</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {mutedUsers.map((m) => {
+                const u = Array.isArray(m.muted) ? m.muted[0] : m.muted
+                const avatarUrl = getAvatarUrl(u?.avatar_path || null)
+                return (
+                  <div
+                    key={m.muted_id}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:gap-4"
+                  >
+                    <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      {avatarUrl ? (
+                        <Image src={avatarUrl} alt="" fill sizes="44px" className="object-cover" />
+                      ) : (
+                        <span className="text-base font-bold text-blue-200 dark:text-blue-500">
+                          {(u?.display_name || u?.username || '?')?.charAt(0)?.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-slate-900 sm:text-base">
+                        {u?.display_name || 'Unknown user'}
+                      </p>
+                      <p className="truncate text-xs text-slate-500 sm:text-sm">
+                        @{u?.username || 'unknown'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleUnmute(m.muted_id)}
+                      className="min-h-[44px] rounded-full border-2 border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
+                    >
+                      Nebenutildyti
                     </button>
                   </div>
                 )

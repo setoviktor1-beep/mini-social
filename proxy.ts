@@ -23,6 +23,7 @@ export async function proxy(request: NextRequest) {
     '/my-orders',
     '/pro',
     '/wallet',
+    '/bookmarks',
   ]
   const protectedRoute =
     protectedPrefixes.some((prefix) => pathname.startsWith(prefix)) ||

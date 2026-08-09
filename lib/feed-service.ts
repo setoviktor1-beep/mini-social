@@ -24,7 +24,7 @@ const BASE_SELECT = `
     profiles:user_id(username, display_name, avatar_path),
     post_media(storage_path)
   ),
-  likes(count),
+  reactions(count),
   comments(count),
   reposts(count)
 `
@@ -45,7 +45,7 @@ const REPOST_SELECT = `
       profiles:user_id(username, display_name, avatar_path),
       post_media(storage_path)
     ),
-    likes(count),
+    reactions(count),
     comments(count),
     reposts(count)
   )
@@ -114,6 +114,16 @@ function applyBlockedFilter(query: any, blockedUserIds: string[]) {
   return query.not('user_id', 'in', `(${inList})`)
 }
 
+async function getMutedUserIds(supabase: any, userId?: string) {
+  if (!userId) return [] as string[]
+  const rows = await safeQuery<any[]>(
+    'getMutedUserIds',
+    supabase.from('mutes').select('muted_id').eq('muter_id', userId),
+    []
+  )
+  return rows.map((r: any) => r.muted_id).filter(Boolean)
+}
+
 async function getFollowedIds(supabase: any, userId?: string) {
   if (!userId) return [] as string[]
   const rows = await safeQuery<any[]>(
@@ -129,8 +139,8 @@ async function getFollowedIds(supabase: any, userId?: string) {
 
 function rankForYou(rows: any[]) {
   rows.sort((a: any, b: any) => {
-    const ap = (a.likes?.[0]?.count || 0) + (a.comments?.[0]?.count || 0)
-    const bp = (b.likes?.[0]?.count || 0) + (b.comments?.[0]?.count || 0)
+    const ap = (a.reactions?.[0]?.count || 0) + (a.comments?.[0]?.count || 0)
+    const bp = (b.reactions?.[0]?.count || 0) + (b.comments?.[0]?.count || 0)
     if (bp !== ap) return bp - ap
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
@@ -150,8 +160,12 @@ export async function getFeedItems(options: FeedQueryOptions) {
     const postPoolSize = mode === 'paged' ? (page + 1) * pageSize * 3 : pageSize
     const repostPoolSize = mode === 'paged' ? (page + 1) * pageSize * 3 : pageSize * 2
 
-    const blockedUserIds = await getBlockedUserIds(supabase, user?.id)
-    const blockedSet = new Set(blockedUserIds)
+    const [blockedUserIds, mutedUserIds] = await Promise.all([
+      getBlockedUserIds(supabase, user?.id),
+      getMutedUserIds(supabase, user?.id),
+    ])
+    const hiddenUserIds = Array.from(new Set([...blockedUserIds, ...mutedUserIds]))
+    const blockedSet = new Set(hiddenUserIds)
     const followedIds = tab === 'following' ? await getFollowedIds(supabase, user?.id) : []
 
     // Location-based filtering: fetch user's radius + nearby post IDs
@@ -182,7 +196,7 @@ export async function getFeedItems(options: FeedQueryOptions) {
           .select(BASE_SELECT)
           .eq('status', 'active')
           .in('user_id', followedIds)
-        q = applyBlockedFilter(q, blockedUserIds)
+        q = applyBlockedFilter(q, hiddenUserIds)
         q = applyLocationFilter(q, nearbyPostIds)
         posts = await safeQuery<any[]>(
           'getFeedItems:followingPosts',
@@ -197,7 +211,7 @@ export async function getFeedItems(options: FeedQueryOptions) {
         .select(BASE_SELECT)
         .eq('status', 'active')
         .gte('created_at', since)
-      q = applyBlockedFilter(q, blockedUserIds)
+      q = applyBlockedFilter(q, hiddenUserIds)
       q = applyLocationFilter(q, nearbyPostIds)
       const data = await safeQuery<any[]>(
         'getFeedItems:forYouPosts',
@@ -213,7 +227,7 @@ export async function getFeedItems(options: FeedQueryOptions) {
       }
     } else {
       let q = supabase.from('posts').select(BASE_SELECT).eq('status', 'active')
-      q = applyBlockedFilter(q, blockedUserIds)
+      q = applyBlockedFilter(q, hiddenUserIds)
       q = applyLocationFilter(q, nearbyPostIds)
       posts = await safeQuery<any[]>(
         'getFeedItems:latestPosts',
@@ -300,16 +314,18 @@ export async function attachUserInteractionFlags(
     return posts.map((post) => ({
       ...post,
       user_liked: false,
+      user_reaction: null,
       user_reposted: false,
+      user_bookmarked: false,
     }))
   }
 
   try {
     const candidateIds = Array.from(new Set(posts.map((p: any) => p.id).filter(Boolean)))
-    const [likes, reposts] = await Promise.all([
+    const [reactions, reposts, bookmarks] = await Promise.all([
       safeQuery<any[]>(
-        'attachUserInteractionFlags:likes',
-        supabase.from('likes').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
+        'attachUserInteractionFlags:reactions',
+        supabase.from('reactions').select('post_id, type').eq('user_id', userId).in('post_id', candidateIds),
         []
       ),
       safeQuery<any[]>(
@@ -317,22 +333,32 @@ export async function attachUserInteractionFlags(
         supabase.from('reposts').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
         []
       ),
+      safeQuery<any[]>(
+        'attachUserInteractionFlags:bookmarks',
+        supabase.from('bookmarks').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
+        []
+      ),
     ])
 
-    const likedPostIds = new Set((likes || []).map((l: any) => l.post_id))
+    const reactionByPostId = new Map((reactions || []).map((r: any) => [r.post_id, r.type]))
     const repostedPostIds = new Set((reposts || []).map((r: any) => r.post_id))
+    const bookmarkedPostIds = new Set((bookmarks || []).map((b: any) => b.post_id))
 
     return posts.map((post: any) => ({
       ...post,
-      user_liked: likedPostIds.has(post.id),
+      user_liked: reactionByPostId.get(post.id) === 'like',
+      user_reaction: reactionByPostId.get(post.id) ?? null,
       user_reposted: repostedPostIds.has(post.id),
+      user_bookmarked: bookmarkedPostIds.has(post.id),
     }))
   } catch (error) {
     logFeedError('attachUserInteractionFlags:unhandled', error)
     return posts.map((post: any) => ({
       ...post,
       user_liked: false,
+      user_reaction: null,
       user_reposted: false,
+      user_bookmarked: false,
     }))
   }
 }

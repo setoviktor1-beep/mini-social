@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/backend-client'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase, ClipboardList } from 'lucide-react'
+import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase, ClipboardList, Bookmark } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
 import PushNotificationToggle from './PushNotificationToggle'
@@ -193,6 +193,9 @@ export default function Navbar() {
                       <span className="hidden xl:inline">Pro</span>
                     </Link>
                   )}
+                  <Link href="/bookmarks" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/bookmarks') ? 'bg-amber-50 text-amber-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Išsaugoti įrašai" aria-label="Išsaugoti įrašai">
+                    <Bookmark size={20} strokeWidth={isActive('/bookmarks') ? 2.5 : 1.5} />
+                  </Link>
                   <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Nustatymai" aria-label="Nustatymai">
                     <Settings size={20} strokeWidth={isActive('/settings') ? 2.5 : 1.5} />
                   </Link>
@@ -302,6 +305,10 @@ export default function Navbar() {
                     )}
                   </div>
                   {t('nav.profile')}
+                </Link>
+                <Link href="/bookmarks" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-amber-50 text-slate-700 hover:text-amber-600 transition-colors font-medium">
+                  <Bookmark size={20} />
+                  Išsaugoti įrašai
                 </Link>
                 <Link href="/settings" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
                   <Settings size={20} />

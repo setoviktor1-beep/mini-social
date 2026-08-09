@@ -40,6 +40,22 @@ async function createAccessToken(context: AccessContext) {
   return token.sign(getJwtSecret())
 }
 
+// PostgREST's select-parameter grammar rejects whitespace next to `(`
+// (e.g. "fkey( *," fails, "fkey(*," is fine) and outright fails to parse
+// literal newlines/indentation — which multi-line template literals for
+// `select` produce all over this codebase. Field/embed/alias names never
+// contain whitespace in this app's queries, so it's always safe to strip
+// it entirely rather than just collapsing it.
+//
+// Known limitation: this does not special-case PostgREST's double-quoted
+// identifier syntax (`select=id,"Column With Spaces"`), which legitimately
+// contains whitespace that must be preserved. This app never uses quoted
+// identifiers in a select string, so unconditional stripping is safe here
+// — but it would corrupt a select that did use one.
+export function normalizeSelect(select: string): string {
+  return select.replace(/\s+/g, '')
+}
+
 function makeUrl(spec: QuerySpec) {
   const baseURL = process.env.POSTGREST_URL
   if (!baseURL) throw new Error('POSTGREST_URL is required')
@@ -50,7 +66,7 @@ function makeUrl(spec: QuerySpec) {
     .join('/')
   const url = new URL(`${baseURL.replace(/\/$/, '')}/${safePath}`)
 
-  if (spec.select) url.searchParams.set('select', spec.select)
+  if (spec.select) url.searchParams.set('select', normalizeSelect(spec.select))
   for (const [key, value] of spec.filters) {
     url.searchParams.append(key, value)
   }
