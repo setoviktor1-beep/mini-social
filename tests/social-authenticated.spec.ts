@@ -1,4 +1,7 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 // Authenticated coverage for the social-redesign feature branch. Requires
 // two pre-seeded accounts (created via /api/auth/sign-up/email against a
@@ -409,6 +412,111 @@ test.describe('Social features (authenticated)', () => {
 
     // Verify the comment appears
     await expect(card.getByText(commentText)).toBeVisible();
+  });
+
+  test.describe('video posts (db/migrations/0011_video_posts.sql)', () => {
+    function buildMp4Buffer(durationSeconds: number): Buffer {
+      const u32 = (n: number) => [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+      const ascii = (s: string) => Array.from(s).map((c) => c.charCodeAt(0));
+      const ftyp = [...u32(16), ...ascii('ftyp'), ...ascii('isom'), 0, 0, 0, 0];
+      const timescale = 1000;
+      const mvhdPayload = [0, 0, 0, 0, ...u32(0), ...u32(0), ...u32(timescale), ...u32(durationSeconds * timescale)];
+      const mvhd = [...u32(8 + mvhdPayload.length), ...ascii('mvhd'), ...mvhdPayload];
+      const moov = [...u32(8 + mvhd.length), ...ascii('moov'), ...mvhd];
+      return Buffer.from([...ftyp, ...moov, ...new Array(2000).fill(0)]);
+    }
+
+    test('valid video post: upload, render with accessible controls, no autoplay', async ({ page }) => {
+      await login(page, USER_A);
+
+      const unique = `Video post ${Date.now()}`;
+      const composer = page.getByPlaceholder('Ką galvojate?').first();
+      await composer.fill(unique);
+
+      const videoInput = page.locator('input[accept="video/mp4,video/webm"]').first();
+      await videoInput.setInputFiles({
+        name: 'clip.mp4',
+        mimeType: 'video/mp4',
+        buffer: buildMp4Buffer(5),
+      });
+
+      // Client-side preview appears before posting.
+      await expect(page.getByLabel('Pasirinkto vaizdo įrašo peržiūra')).toBeVisible();
+      // Selecting a video disables the image picker (mutually exclusive).
+      await expect(page.locator(`#${await page.locator('label:has-text("Nuotraukos")').first().getAttribute('for')}`)).toBeDisabled();
+
+      await page.getByRole('button', { name: 'Skelbti', exact: true }).first().click();
+
+      const card = page.getByTestId('post-card').filter({ hasText: unique }).first();
+      await expect(card).toBeVisible({ timeout: 30000 });
+
+      const video = card.getByLabel('Įrašo vaizdo įrašas');
+      await expect(video).toBeVisible();
+      await expect(video).toHaveAttribute('controls', '');
+      await expect(video).not.toHaveAttribute('autoplay');
+      // React sets `muted` as a DOM property, not a reflected HTML
+      // attribute (a well-known React quirk for this specific element) —
+      // toHaveAttribute would never see it even when correctly applied, so
+      // check the real property instead.
+      await expect.poll(() => video.evaluate((el) => (el as HTMLVideoElement).muted)).toBe(true);
+      await expect.poll(() => video.evaluate((el) => (el as HTMLVideoElement).autoplay)).toBe(false);
+    });
+
+    test('oversized video is rejected client-side before any upload', async ({ page }) => {
+      await login(page, USER_A);
+
+      const videoInput = page.locator('input[accept="video/mp4,video/webm"]').first();
+      // A 51MB file with a valid MP4 signature — rejected purely on size,
+      // never reaches the network. setInputFiles' inline `buffer` option
+      // caps out at 50MB, so this has to go through an actual file on disk.
+      const oversized = Buffer.concat([buildMp4Buffer(5), Buffer.alloc(51 * 1024 * 1024)]);
+      const tmpPath = path.join(os.tmpdir(), `oversized-${Date.now()}.mp4`);
+      fs.writeFileSync(tmpPath, oversized);
+      try {
+        await videoInput.setInputFiles(tmpPath);
+      } finally {
+        fs.unlinkSync(tmpPath);
+      }
+
+      await expect(page.getByText('Vaizdo įrašas per didelis (maks. 50MB).')).toBeVisible();
+      await expect(page.getByLabel('Pasirinkto vaizdo įrašo peržiūra')).toBeHidden();
+    });
+
+    test('invalid video MIME type is rejected client-side', async ({ page }) => {
+      await login(page, USER_A);
+
+      const videoInput = page.locator('input[accept="video/mp4,video/webm"]').first();
+      await videoInput.setInputFiles({ name: 'clip.mov', mimeType: 'video/quicktime', buffer: buildMp4Buffer(5) });
+
+      await expect(page.getByText('Palaikomi tik MP4 ir WebM vaizdo įrašai.')).toBeVisible();
+    });
+
+    test('a spoofed file (PNG bytes, video/mp4 label) is rejected server-side even if it slips past client checks', async ({ page, request }) => {
+      await login(page, USER_A);
+      const cookies = await page.context().cookies();
+      const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+      const sessionResponse = await request.get('/api/auth/get-session', { headers: { cookie: cookieHeader } });
+      const session = await sessionResponse.json();
+      const userId = session?.user?.id;
+      expect(userId).toBeTruthy();
+
+      const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new Array(20).fill(0)]);
+      const response = await request.put(`/api/storage/upload?bucket=post-images&path=${userId}/spoofed-${Date.now()}.mp4`, {
+        headers: { cookie: cookieHeader, 'Content-Type': 'video/mp4' },
+        data: pngSignature,
+      });
+      expect(response.status()).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('INVALID_VIDEO');
+    });
+
+    test('unauthorized video upload is rejected (401)', async ({ request }) => {
+      const response = await request.put('/api/storage/upload?bucket=post-images&path=someone/clip.mp4', {
+        headers: { 'Content-Type': 'video/mp4' },
+        data: buildMp4Buffer(5),
+      });
+      expect(response.status()).toBe(401);
+    });
   });
 
   test('follow and unfollow', async ({ browser }) => {

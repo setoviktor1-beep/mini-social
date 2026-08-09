@@ -5,16 +5,31 @@ import {
   allowedImageContentTypes,
   sanitizeImageUpload,
 } from '@/lib/image-security'
+import {
+  allowedVideoContentTypes,
+  sanitizeVideoUpload,
+  MAX_VIDEO_BYTES,
+} from '@/lib/video-security'
 import { rateLimit } from '@/lib/rate-limit'
 
 const querySchema = z.object({
+  // Video posts reuse the existing 'post-images' bucket (see
+  // db/migrations/0011_video_posts.sql) rather than requiring a new bucket
+  // to be provisioned in MinIO before this can ship.
   bucket: z.literal('post-images'),
   path: z.string().min(1).max(500),
 })
 
-const maxBytes = 10 * 1024 * 1024
+const maxImageBytes = 10 * 1024 * 1024
+// Videos get their own, stricter rate limit — fewer, larger uploads than
+// images, on the same per-user key namespace as the image limiter so the
+// two don't share (and can't be used to double a single budget).
 const uploadLimiter = rateLimit({
   limit: 30,
+  windowMs: 10 * 60 * 1000,
+})
+const videoUploadLimiter = rateLimit({
+  limit: 10,
   windowMs: 10 * 60 * 1000,
 })
 
@@ -28,14 +43,16 @@ export async function PUT(request: Request) {
     })
     const contentType = request.headers.get('content-type') || ''
     const contentLength = Number(request.headers.get('content-length') || 0)
+    const isVideo = allowedVideoContentTypes.has(contentType as 'video/mp4' | 'video/webm')
+    const isImage = allowedImageContentTypes.has(
+      contentType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+    )
 
     if (
       !parsed.success ||
-      !allowedImageContentTypes.has(
-        contentType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
-      ) ||
+      (!isImage && !isVideo) ||
       contentLength <= 0 ||
-      contentLength > maxBytes
+      contentLength > (isVideo ? MAX_VIDEO_BYTES : maxImageBytes)
     ) {
       return Response.json({ error: 'INVALID_UPLOAD' }, { status: 400 })
     }
@@ -43,7 +60,9 @@ export async function PUT(request: Request) {
       return Response.json({ error: 'FORBIDDEN_PATH' }, { status: 403 })
     }
 
-    const limitResult = await uploadLimiter.check(`image-upload:${session.user.id}`)
+    const limitResult = isVideo
+      ? await videoUploadLimiter.check(`video-upload:${session.user.id}`)
+      : await uploadLimiter.check(`image-upload:${session.user.id}`)
     if (!limitResult.success) {
       return Response.json(
         { error: 'RATE_LIMITED' },
@@ -57,9 +76,11 @@ export async function PUT(request: Request) {
     const body = new Uint8Array(await request.arrayBuffer())
     let sanitized
     try {
-      sanitized = await sanitizeImageUpload(body, contentType)
+      sanitized = isVideo
+        ? await sanitizeVideoUpload(body, contentType)
+        : await sanitizeImageUpload(body, contentType)
     } catch {
-      return Response.json({ error: 'INVALID_IMAGE' }, { status: 400 })
+      return Response.json({ error: isVideo ? 'INVALID_VIDEO' : 'INVALID_IMAGE' }, { status: 400 })
     }
     await uploadObject(
       parsed.data.bucket,
@@ -67,7 +88,7 @@ export async function PUT(request: Request) {
       sanitized.body,
       sanitized.contentType,
     )
-    return Response.json({ path: parsed.data.path })
+    return Response.json({ path: parsed.data.path, mediaType: isVideo ? 'video' : 'image' })
   } catch (error) {
     const message = error instanceof Error ? error.message : ''
     const unauthorized = message === 'UNAUTHORIZED'

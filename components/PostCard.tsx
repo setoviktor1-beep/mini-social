@@ -64,14 +64,14 @@ interface PostCardProps {
     reposted_at?: string
     reposted_by_profile?: { id?: string; username: string; display_name: string; avatar_path?: string | null }
     profiles?: { username: string; display_name: string; avatar_path?: string }
-    post_media?: { storage_path: string }[]
+    post_media?: { storage_path: string; media_type?: 'image' | 'video' }[]
     quoted_post?: {
       id: string
       content: string
       youtube_video_id?: string
       status?: string
       profiles?: { username: string; display_name: string; avatar_path?: string }
-      post_media?: { storage_path: string }[]
+      post_media?: { storage_path: string; media_type?: 'image' | 'video' }[]
     } | null
     reactions?: { count: number }[]
     comments?: { count: number }[]
@@ -242,12 +242,17 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       }
     }
   }
-  const mediaUrls = (post.post_media || [])
-    .map((media) => resolveSupabaseStorageUrl(
-      (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
-      media.storage_path
-    ))
-    .filter((value): value is string => Boolean(value))
+  const mediaItems = (post.post_media || [])
+    .map((media) => ({
+      url: resolveSupabaseStorageUrl(
+        (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+        media.storage_path
+      ),
+      type: media.media_type === 'video' ? 'video' as const : 'image' as const,
+    }))
+    .filter((item): item is { url: string; type: 'image' | 'video' } => Boolean(item.url))
+  const mediaUrls = mediaItems.filter((item) => item.type === 'image').map((item) => item.url)
+  const videoMediaUrl = mediaItems.find((item) => item.type === 'video')?.url ?? null
   const youtubeVideoId = post.youtube_video_id || extractYoutubeId(post.youtube_url) || extractYoutubeId(post.content)
   const youtubeEmbedUrl = getYoutubeEmbedUrl(post.youtube_url || post.content)
   const hidesPlainYoutubeText = !!youtubeVideoId && isOnlyYoutubeUrl(localContent)
@@ -1165,6 +1170,26 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               initialIndex={lightboxIndex}
               onClose={() => setLightboxIndex(null)}
             />
+          )}
+
+          {videoMediaUrl && (
+            // aspect-video fixes the box's height before the video's own
+            // metadata loads, preventing layout shift — same technique as
+            // the YouTube embed just below. No autoPlay (with or without
+            // sound) and no loop; native `controls` gives accessible
+            // keyboard/screen-reader-operable playback controls for free.
+            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black">
+              <video
+                src={videoMediaUrl}
+                className="h-full w-full"
+                controls
+                muted
+                preload="metadata"
+                aria-label="Įrašo vaizdo įrašas"
+              >
+                Jūsų naršyklė nepalaiko vaizdo įrašų atkūrimo.
+              </video>
+            </div>
           )}
 
           {youtubeEmbedUrl && (

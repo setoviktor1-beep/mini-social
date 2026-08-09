@@ -2,13 +2,38 @@
 import { useState, useEffect, useMemo, useId, useCallback } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
-import { Image as ImageIcon, Video, Send, X, Sparkles, Loader2, Check } from 'lucide-react'
+import { Image as ImageIcon, Video, Film, Send, X, Sparkles, Loader2, Check } from 'lucide-react'
 import Image from 'next/image'
 import { notifyMentions } from '@/lib/mentions'
 import { extractYoutubeId, normalizeYoutubeUrl, resolveSupabaseStorageUrl } from '@/lib/media'
 
 const MAX_ATTACHMENTS = 5
 const MAX_CONTENT_LENGTH = 2000
+const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/webm'])
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024 // 50MB — kept in sync with lib/video-security.ts's MAX_VIDEO_BYTES
+const MAX_VIDEO_DURATION_SECONDS = 120 // kept in sync with lib/video-security.ts's MAX_VIDEO_DURATION_SECONDS
+
+// Client-side check only — a UX safeguard so obviously-wrong files never
+// reach the network, not the security boundary. lib/video-security.ts
+// enforces this again server-side from the real file bytes regardless of
+// what this reports.
+async function readVideoDurationSeconds(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const videoEl = document.createElement('video')
+    const objectUrl = URL.createObjectURL(file)
+    const cleanup = () => URL.revokeObjectURL(objectUrl)
+    videoEl.preload = 'metadata'
+    videoEl.onloadedmetadata = () => {
+      cleanup()
+      resolve(Number.isFinite(videoEl.duration) ? videoEl.duration : null)
+    }
+    videoEl.onerror = () => {
+      cleanup()
+      resolve(null)
+    }
+    videoEl.src = objectUrl
+  })
+}
 
 async function compressImage(file: File): Promise<File> {
   const MAX_SIZE = 1200
@@ -70,6 +95,8 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
   const [youtube, setYoutube] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoError, setVideoError] = useState('')
   const [loading, setLoading] = useState(false)
   const [postError, setPostError] = useState('')
   const [uploadStep, setUploadStep] = useState('')
@@ -84,6 +111,7 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [aiLanguage, setAiLanguage] = useState('anglų')
   const [aiAssistedApplied, setAiAssistedApplied] = useState(false)
   const fileInputId = useId()
+  const videoInputId = useId()
   // UX5: Memoize supabase client to prevent recreation causing re-render loops
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -93,6 +121,8 @@ export default function PostComposer({ userId }: { userId: string }) {
     setContent('')
     setYoutube('')
     setFiles([])
+    setVideoFile(null)
+    setVideoError('')
     setPostError('')
     setLoading(false)
     setAiAssistedApplied(false)
@@ -123,11 +153,47 @@ export default function PostComposer({ userId }: { userId: string }) {
     () => files.map((file) => ({ file, url: URL.createObjectURL(file) })),
     [files]
   )
+  const videoPreviewUrl = useMemo(
+    () => (videoFile ? URL.createObjectURL(videoFile) : null),
+    [videoFile]
+  )
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
+    }
+  }, [videoPreviewUrl])
 
+  // A post is either images (up to MAX_ATTACHMENTS) or a single video, not
+  // both — matches the post_media schema query in PostCard (a post's media
+  // is rendered as either an image grid or a single video player) and
+  // keeps the upload/cleanup logic below from having to reason about mixed
+  // failure states across two attachment kinds in the same post.
   const addFiles = useCallback((incoming: File[]) => {
     const images = incoming.filter((file) => file.type.startsWith('image/'))
     if (images.length === 0) return
+    setVideoFile(null)
+    setVideoError('')
     setFiles((prev) => [...prev, ...images].slice(0, MAX_ATTACHMENTS))
+  }, [])
+
+  const addVideo = useCallback(async (incoming: File | undefined) => {
+    if (!incoming) return
+    setVideoError('')
+    if (!ALLOWED_VIDEO_TYPES.has(incoming.type)) {
+      setVideoError('Palaikomi tik MP4 ir WebM vaizdo įrašai.')
+      return
+    }
+    if (incoming.size > MAX_VIDEO_BYTES) {
+      setVideoError('Vaizdo įrašas per didelis (maks. 50MB).')
+      return
+    }
+    const duration = await readVideoDurationSeconds(incoming)
+    if (duration !== null && duration > MAX_VIDEO_DURATION_SECONDS) {
+      setVideoError('Vaizdo įrašas per ilgas (maks. 2 min.).')
+      return
+    }
+    setFiles([])
+    setVideoFile(incoming)
   }, [])
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -208,7 +274,7 @@ export default function PostComposer({ userId }: { userId: string }) {
     const contentIsOnlyYoutubeUrl = !!contentYoutubeId && trimmedContent.length > 0
     const finalContent = contentIsOnlyYoutubeUrl ? '' : trimmedContent
 
-    if (!finalContent && files.length === 0 && !youtubeId) {
+    if (!finalContent && files.length === 0 && !videoFile && !youtubeId) {
       setPostError('Parašykite ką nors arba pridėkite nuotrauką.')
       return
     }
@@ -311,8 +377,46 @@ export default function PostComposer({ userId }: { userId: string }) {
       }
     }
 
+    if (videoFile) {
+      setUploadStep('Įkeliamas vaizdo įrašas...')
+      const path = `${userId}/${Date.now()}_${videoFile.name}`
+      // No client-side re-encoding for video (see lib/video-security.ts) —
+      // the raw file goes up as-is; the server validates its real
+      // signature/size/duration from the bytes regardless of what this
+      // client believes about it.
+      const { error: uploadError } = await supabase.storage.from('post-images').upload(path, videoFile, {
+        contentType: videoFile.type,
+      })
+
+      if (uploadError) {
+        await supabase.from('posts').delete().eq('id', post.id).eq('user_id', userId)
+        setPostError('Nepavyko įkelti vaizdo įrašo. Bandykite dar kartą.')
+        setLoading(false)
+        setUploadStep('')
+        return
+      }
+
+      const { error: mediaError } = await supabase.from('post_media').insert({
+        post_id: post.id,
+        user_id: userId,
+        storage_path: path,
+        media_type: 'video',
+      })
+
+      if (mediaError) {
+        await supabase.storage.from('post-images').remove([path])
+        await supabase.from('posts').delete().eq('id', post.id).eq('user_id', userId)
+        setPostError('Nepavyko susieti vaizdo įrašo su įrašu. Bandykite dar kartą.')
+        setLoading(false)
+        setUploadStep('')
+        return
+      }
+    }
+
     setContent('')
     setYoutube('')
+    setVideoFile(null)
+    setVideoError('')
     setFiles([])
     setUploadStep('')
     setLoading(false)
@@ -335,10 +439,21 @@ export default function PostComposer({ userId }: { userId: string }) {
         multiple
         accept="image/jpeg,image/png,image/webp,image/gif"
         className="hidden"
-        disabled={!canAddMore}
+        disabled={!canAddMore || Boolean(videoFile)}
         onChange={(e) => {
           if (!e.target.files) return
           addFiles(Array.from(e.target.files))
+          e.target.value = ''
+        }}
+      />
+      <input
+        id={videoInputId}
+        type="file"
+        accept="video/mp4,video/webm"
+        className="hidden"
+        disabled={files.length > 0 || Boolean(videoFile)}
+        onChange={(e) => {
+          void addVideo(e.target.files?.[0])
           e.target.value = ''
         }}
       />
@@ -386,12 +501,38 @@ export default function PostComposer({ userId }: { userId: string }) {
               ))}
             </div>
           )}
+
+          {videoFile && videoPreviewUrl && (
+            <div className="mb-3 sm:mb-4">
+              <div className="group relative w-full max-w-xs aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-black">
+                <video
+                  src={videoPreviewUrl}
+                  className="h-full w-full object-contain"
+                  controls
+                  muted
+                  preload="metadata"
+                  aria-label="Pasirinkto vaizdo įrašo peržiūra"
+                />
+                <button
+                  type="button"
+                  onClick={() => setVideoFile(null)}
+                  aria-label="Pašalinti vaizdo įrašą"
+                  className="absolute top-1 right-1 z-10 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-black/70 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex flex-col gap-3 border-t border-slate-100 pt-3">
         {postError && (
         <p className="text-sm text-red-500 mb-2 bg-red-50 px-3 py-2 rounded-lg" role="alert">{postError}</p>
+        )}
+        {videoError && (
+        <p className="text-sm text-red-500 mb-2 bg-red-50 px-3 py-2 rounded-lg" role="alert">{videoError}</p>
         )}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <label
@@ -404,6 +545,17 @@ export default function PostComposer({ userId }: { userId: string }) {
           >
             <ImageIcon size={18} />
             <span>Nuotraukos{files.length > 0 ? ` (${files.length}/${MAX_ATTACHMENTS})` : ''}</span>
+          </label>
+          <label
+            htmlFor={videoInputId}
+            className={`flex w-fit min-h-[44px] items-center gap-2 text-sm px-2 rounded-lg transition-colors ${
+              files.length === 0 && !videoFile
+                ? 'cursor-pointer text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                : 'cursor-not-allowed text-slate-300'
+            }`}
+          >
+            <Film size={18} />
+            <span>Vaizdo įrašas</span>
           </label>
           <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-600 focus-within:text-purple-700 hover:bg-purple-50 px-2 rounded-lg transition-colors">
             <Video size={18} className="flex-shrink-0" />
