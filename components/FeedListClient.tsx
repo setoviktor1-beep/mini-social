@@ -105,7 +105,10 @@ export default function FeedListClient(props: {
       if (!res.ok) throw new Error('Failed to fetch feed')
       const json = await res.json()
       const newPosts = json.posts || []
-      setPosts((prev) => [...prev, ...newPosts])
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.feed_key || p.id))
+        return [...prev, ...newPosts.filter((p: any) => !existingIds.has(p.feed_key || p.id))]
+      })
       setPage(nextPage)
       setHasMore(Boolean(json.hasMore))
     } catch (e) {
@@ -131,14 +134,14 @@ export default function FeedListClient(props: {
   return (
     <div className="divide-y divide-slate-100 bg-transparent" role="feed" aria-busy={loading}>
       {isOffline && (
-        <div className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2.5 text-xs sm:text-sm font-medium text-amber-700">
+        <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2.5 text-xs sm:text-sm font-medium text-amber-700">
           <WifiOff size={14} />
           Nėra interneto ryšio. Rodomi anksčiau įkelti įrašai.
         </div>
       )}
 
       {newPostAvailable && (
-        <div className="sticky top-20 z-40 flex justify-center py-3">
+        <div role="status" className="sticky top-20 z-40 flex justify-center py-3">
           <button
             onClick={reloadFeed}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm bg-[#1A1A2E] hover:bg-[#16213E] text-white shadow-lg transition-all active:scale-95 animate-in slide-in-from-top-2 duration-300"
@@ -178,7 +181,7 @@ export default function FeedListClient(props: {
       )}
 
       {!loading && loadError && (
-        <div className="flex flex-col items-center gap-3 p-6 sm:p-8 text-center">
+        <div role="alert" className="flex flex-col items-center gap-3 p-6 sm:p-8 text-center">
           <p className="text-sm text-slate-500">Nepavyko įkelti įrašų. Patikrinkite ryšį ir bandykite dar kartą.</p>
           <button
             onClick={posts.length === 0 ? reloadFeed : loadMore}
