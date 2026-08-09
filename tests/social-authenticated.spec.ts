@@ -102,7 +102,7 @@ test.describe.serial('Social features (authenticated)', () => {
     await longPress(page, card.getByRole('button', { name: /Reakcija: Patinka/ }));
     const picker = card.getByRole('menu', { name: 'Pasirinkite reakciją' });
     await expect(picker).toBeVisible();
-    await picker.getByRole('menuitem', { name: 'Super' }).click();
+    await picker.getByRole('menuitemradio', { name: 'Super' }).click();
     const reactedButton = card.getByRole('button', { name: /Reakcija: Super/ });
     await expect(reactedButton).toBeVisible();
     // switching type does not change the total count (still one reaction)
@@ -119,7 +119,58 @@ test.describe.serial('Social features (authenticated)', () => {
     // toggles it off (a plain tap on the main button always targets 'like'
     // specifically, matching the Facebook-style default-reaction pattern).
     await longPress(page, reactedButton);
-    await card.getByRole('menu', { name: 'Pasirinkite reakciją' }).getByRole('menuitem', { name: 'Super' }).click();
+    await card.getByRole('menu', { name: 'Pasirinkite reakciją' }).getByRole('menuitemradio', { name: 'Super' }).click();
+    await expect(card.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' })).toContainText('0');
+  });
+
+  test('reaction picker is fully keyboard-operable (open, navigate, select, remove)', async ({ page }) => {
+    await login(page, USER_A);
+    const unique = `Keyboard reaction target ${Date.now()}`;
+    const card = await createPost(page, unique);
+
+    const trigger = card.getByTestId('reaction-picker-trigger');
+    await expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    // Open with keyboard only.
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const menu = card.getByRole('menu', { name: 'Pasirinkite reakciją' });
+    await expect(menu).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(trigger).toHaveAttribute('aria-controls', await menu.getAttribute('id') ?? '');
+
+    // Focus must move into the menu, landing on the 'like' item (no active reaction yet).
+    await expect(card.getByTestId('reaction-option-like')).toBeFocused();
+
+    // Arrow-key navigation between reaction options.
+    await page.keyboard.press('ArrowRight');
+    await expect(card.getByTestId('reaction-option-love')).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await expect(card.getByTestId('reaction-option-laugh')).toBeFocused();
+    await page.keyboard.press('ArrowLeft');
+    await expect(card.getByTestId('reaction-option-love')).toBeFocused();
+
+    // Select 'love' with the keyboard.
+    await page.keyboard.press('Enter');
+    const lovedButton = card.getByRole('button', { name: /Reakcija: Super/ });
+    await expect(lovedButton).toBeVisible();
+    await expect(menu).toBeHidden();
+
+    // Escape closes the picker and returns focus to the trigger.
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    // Re-open: focus lands on the currently active reaction (love), and
+    // selecting it again removes it (no accidental double activation).
+    await page.keyboard.press('Enter');
+    await expect(card.getByTestId('reaction-option-love')).toBeFocused();
+    await expect(card.getByTestId('reaction-option-love')).toHaveAttribute('aria-checked', 'true');
+    await page.keyboard.press('Enter');
     await expect(card.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' })).toContainText('0');
   });
 

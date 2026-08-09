@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil, Bookmark } from 'lucide-react'
+import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil, Bookmark, ChevronDown } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
@@ -123,11 +123,16 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const commentSubmitLockRef = useRef(false)
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressTriggeredRef = useRef(false)
+  const reactionTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const reactionMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const [focusedReactionIndex, setFocusedReactionIndex] = useState(0)
+  const reactionMenuId = `reaction-menu-${post.id}`
+  const reactionTypes = Object.keys(REACTIONS) as ReactionType[]
 
   const startLongPress = () => {
     longPressTimerRef.current = setTimeout(() => {
       longPressTriggeredRef.current = true
-      setShowReactionPicker(true)
+      openReactionPicker()
     }, 450)
   }
 
@@ -135,6 +140,76 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current)
       longPressTimerRef.current = null
+    }
+  }
+
+  const openReactionPicker = () => {
+    setShowReactionPicker(true)
+  }
+
+  const closeReactionPicker = (returnFocus = true) => {
+    setShowReactionPicker(false)
+    if (returnFocus) reactionTriggerRef.current?.focus()
+  }
+
+  // Move focus into the picker whenever it opens (mouse long-press, touch,
+  // or keyboard) so keyboard/screen-reader users land on the active
+  // reaction without having to tab through every emoji.
+  useEffect(() => {
+    if (!showReactionPicker) return
+    const activeIndex = Math.max(0, reactionTypes.indexOf(userReaction ?? 'like'))
+    setFocusedReactionIndex(activeIndex)
+    const frame = requestAnimationFrame(() => {
+      reactionMenuItemRefs.current[activeIndex]?.focus()
+    })
+    return () => cancelAnimationFrame(frame)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showReactionPicker])
+
+  const handleReactionTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      openReactionPicker()
+    } else if (event.key === 'Escape' && showReactionPicker) {
+      event.preventDefault()
+      closeReactionPicker()
+    }
+  }
+
+  const handleReactionMenuKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    switch (event.key) {
+      case 'ArrowRight': {
+        event.preventDefault()
+        const next = (index + 1) % reactionTypes.length
+        setFocusedReactionIndex(next)
+        reactionMenuItemRefs.current[next]?.focus()
+        break
+      }
+      case 'ArrowLeft': {
+        event.preventDefault()
+        const prev = (index - 1 + reactionTypes.length) % reactionTypes.length
+        setFocusedReactionIndex(prev)
+        reactionMenuItemRefs.current[prev]?.focus()
+        break
+      }
+      case 'Home': {
+        event.preventDefault()
+        setFocusedReactionIndex(0)
+        reactionMenuItemRefs.current[0]?.focus()
+        break
+      }
+      case 'End': {
+        event.preventDefault()
+        const last = reactionTypes.length - 1
+        setFocusedReactionIndex(last)
+        reactionMenuItemRefs.current[last]?.focus()
+        break
+      }
+      case 'Escape': {
+        event.preventDefault()
+        closeReactionPicker()
+        break
+      }
     }
   }
   const mediaUrls = (post.post_media || [])
@@ -671,7 +746,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Action buttons */}
           <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-slate-400">
-            <div className="relative">
+            <div className="relative flex items-center">
               <button
                 type="button"
                 onClick={() => {
@@ -689,7 +764,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 disabled={reactionLoading}
                 aria-label={mainButtonLabel}
                 aria-pressed={Boolean(userReaction)}
-                title={userReaction ? REACTIONS[userReaction].label : 'Reaguoti (laikykite, kad pasirinktumėte kitą reakciją)'}
+                title={userReaction ? REACTIONS[userReaction].label : 'Reaguoti (paspauskite „Patinka“ arba atverkite visas reakcijas)'}
                 className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${userReaction ? 'text-[#E94560]' : 'hover:text-[#E94560]'}`}
               >
                 {userReaction && userReaction !== 'like' ? (
@@ -699,23 +774,52 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 )}
                 <span className="text-sm font-medium">{Number.isFinite(reactionCount) ? reactionCount : 0}</span>
               </button>
+              <button
+                ref={reactionTriggerRef}
+                type="button"
+                data-testid="reaction-picker-trigger"
+                onClick={() => (showReactionPicker ? closeReactionPicker(false) : openReactionPicker())}
+                onKeyDown={handleReactionTriggerKeyDown}
+                disabled={reactionLoading}
+                aria-haspopup="menu"
+                aria-expanded={showReactionPicker}
+                aria-controls={reactionMenuId}
+                aria-label="Visos reakcijos"
+                title="Visos reakcijos"
+                className="flex items-center justify-center min-w-[28px] min-h-[44px] text-slate-300 hover:text-[#E94560] disabled:opacity-60 transition-colors"
+              >
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
               {showReactionPicker && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowReactionPicker(false)} />
+                  <div className="fixed inset-0 z-40" onClick={() => closeReactionPicker(false)} />
                   <div
+                    id={reactionMenuId}
+                    data-testid="reaction-picker-menu"
                     role="menu"
                     aria-label="Pasirinkite reakciją"
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                        setShowReactionPicker(false)
+                      }
+                    }}
                     className="absolute bottom-11 left-0 flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    {(Object.keys(REACTIONS) as ReactionType[]).map((type) => (
+                    {reactionTypes.map((type, index) => (
                       <button
                         key={type}
+                        ref={(el) => { reactionMenuItemRefs.current[index] = el }}
                         type="button"
-                        role="menuitem"
+                        data-testid={`reaction-option-${type}`}
+                        role="menuitemradio"
+                        aria-checked={userReaction === type}
+                        tabIndex={index === focusedReactionIndex ? 0 : -1}
+                        onFocus={() => setFocusedReactionIndex(index)}
                         onClick={() => void handleReact(type)}
+                        onKeyDown={(event) => handleReactionMenuKeyDown(event, index)}
                         title={REACTIONS[type].label}
-                        aria-label={REACTIONS[type].label}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 ${userReaction === type ? 'bg-slate-100' : ''}`}
+                        aria-label={userReaction === type ? `${REACTIONS[type].label} (pasirinkta). Paspauskite, kad pašalintumėte.` : REACTIONS[type].label}
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${userReaction === type ? 'bg-slate-100' : ''}`}
                       >
                         {REACTIONS[type].emoji}
                       </button>
