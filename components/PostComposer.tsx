@@ -312,7 +312,7 @@ export default function PostComposer({ userId }: { userId: string }) {
   const canAddMore = files.length < MAX_ATTACHMENTS
 
   return (
-    <div className="border-b border-slate-100 bg-white p-4">
+    <div className="border-b border-slate-100 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4">
       <input
         id={fileInputId}
         type="file"
