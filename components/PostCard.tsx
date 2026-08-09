@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/backend-client'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil, Bookmark, ChevronDown } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -166,20 +166,25 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
   // Move focus into the picker whenever it opens (mouse long-press, touch,
   // or keyboard) so keyboard/screen-reader users land on the active
-  // reaction without having to tab through every emoji.
-  useEffect(() => {
+  // reaction without having to tab through every emoji. useLayoutEffect
+  // (not useEffect+rAF) so focus lands synchronously in the same paint —
+  // an extra animation frame of delay here was enough for fast
+  // (Playwright-speed) keyboard input to race ahead of it.
+  useLayoutEffect(() => {
     if (!showReactionPicker) return
     const activeIndex = Math.max(0, reactionTypes.indexOf(userReaction ?? 'like'))
     setFocusedReactionIndex(activeIndex)
-    const frame = requestAnimationFrame(() => {
-      reactionMenuItemRefs.current[activeIndex]?.focus()
-    })
-    return () => cancelAnimationFrame(frame)
+    reactionMenuItemRefs.current[activeIndex]?.focus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showReactionPicker])
 
+  // Enter/Space on a native <button> already trigger the button's onClick
+  // (which toggles open/closed) via the browser's own activation behavior —
+  // handling them here too would race the same toggle through two code
+  // paths. Only ArrowDown/ArrowUp (open — no native button semantics) and
+  // Escape (close) are handled here.
   const handleReactionTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
       openReactionPicker()
     } else if (event.key === 'Escape' && showReactionPicker) {

@@ -156,6 +156,10 @@ test.describe.serial('Social features (authenticated)', () => {
     const lovedButton = card.getByRole('button', { name: /Reakcija: Super/ });
     await expect(lovedButton).toBeVisible();
     await expect(menu).toBeHidden();
+    // The trigger is briefly disabled while the reaction request is
+    // in-flight (reactionLoading) — wait for it before interacting again,
+    // or focus()/keyboard input on a disabled button silently no-ops.
+    await expect(trigger).toBeEnabled();
 
     // Escape closes the picker and returns focus to the trigger.
     await trigger.focus();
