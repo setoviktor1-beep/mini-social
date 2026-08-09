@@ -17,6 +17,9 @@ ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY bookmarks_owner ON bookmarks FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.bookmarks TO authenticated;
+GRANT ALL ON public.bookmarks TO service_role;
+
 -- Mutes: hide a user's posts/reposts from the muter's feed without the
 -- mutual restrictions of a block (still followable, still able to DM).
 -- Only the muter can see who they've muted.
@@ -34,6 +37,9 @@ ALTER TABLE mutes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY mutes_owner ON mutes FOR ALL TO authenticated
   USING (muter_id = auth.uid()) WITH CHECK (muter_id = auth.uid());
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.mutes TO authenticated;
+GRANT ALL ON public.mutes TO service_role;
 
 NOTIFY pgrst, 'reload schema';
 

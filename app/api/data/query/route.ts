@@ -39,6 +39,7 @@ const allowedTables = new Set([
   'profiles',
   'push_subscriptions',
   'quick_reply_templates',
+  'reactions',
   'receipts',
   'reports',
   'reposts',

@@ -52,7 +52,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
         profiles:user_id(username, display_name, avatar_path),
         post_media(storage_path)
       ),
-      likes(count),
+      reactions(count),
       comments(count),
       reposts(count)
     `)
@@ -77,7 +77,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
           profiles:user_id(username, display_name, avatar_path),
           post_media(storage_path)
         ),
-        likes(count),
+        reactions(count),
         comments(count),
         reposts(count)
       )
@@ -142,15 +142,15 @@ export default async function ProfilePage(props: ProfilePageProps) {
     .select('*', { count: 'exact', head: true })
     .eq('follower_id', profile.id)
 
-  // 4. Check liked posts and user role
-  let likedPostIds: Set<string> = new Set()
+  // 4. Check reactions and user role
+  let reactionByPostId: Map<string, string> = new Map()
   let repostedPostIds: Set<string> = new Set()
   let currentUserRole: string | undefined
   if (currentUser) {
-    const [{ data: userLikes }, { data: userReposts }, { data: curProfile }] = await Promise.all([
+    const [{ data: userReactions }, { data: userReposts }, { data: curProfile }] = await Promise.all([
       supabase
-        .from('likes')
-        .select('post_id')
+        .from('reactions')
+        .select('post_id, type')
         .eq('user_id', currentUser.id),
       supabase
         .from('reposts')
@@ -162,7 +162,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
         .eq('id', currentUser.id)
         .single(),
     ])
-    if (userLikes) likedPostIds = new Set(userLikes.map(l => l.post_id))
+    if (userReactions) reactionByPostId = new Map(userReactions.map((r: any) => [r.post_id, r.type]))
     if (userReposts) repostedPostIds = new Set(userReposts.map((r: any) => r.post_id))
     currentUserRole = curProfile?.role
   }
@@ -170,7 +170,8 @@ export default async function ProfilePage(props: ProfilePageProps) {
   const postsWithLikeStatus = posts?.map(post => ({
     ...post,
     feed_key: `post-${post.id}`,
-    user_liked: likedPostIds.has(post.id),
+    user_liked: reactionByPostId.get(post.id) === 'like',
+    user_reaction: reactionByPostId.get(post.id) ?? null,
     user_reposted: repostedPostIds.has(post.id),
   })) || []
 
@@ -188,7 +189,8 @@ export default async function ProfilePage(props: ProfilePageProps) {
           display_name: profile.display_name,
           avatar_path: profile.avatar_path,
         },
-        user_liked: likedPostIds.has(p.id),
+        user_liked: reactionByPostId.get(p.id) === 'like',
+        user_reaction: reactionByPostId.get(p.id) ?? null,
         user_reposted: repostedPostIds.has(p.id),
       }
     })

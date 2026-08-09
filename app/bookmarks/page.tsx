@@ -3,6 +3,7 @@ import { createClient } from '@/lib/backend-server'
 import PostCard from '@/components/PostCard'
 import { redirect } from 'next/navigation'
 import { Bookmark } from 'lucide-react'
+import { attachUserInteractionFlags } from '@/lib/feed-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,7 @@ export default async function BookmarksPage() {
           profiles:user_id(username, display_name, avatar_path),
           post_media(storage_path)
         ),
-        likes(count),
+        reactions(count),
         comments(count),
         reposts(count)
       )
@@ -45,16 +46,16 @@ export default async function BookmarksPage() {
     .eq('id', user.id)
     .single()
 
-  const posts = (bookmarkRows || [])
+  const rawPosts = (bookmarkRows || [])
     .map((row: any) => row.post)
     .filter((post: any) => post && post.status === 'active')
     .map((post: any) => ({
       ...post,
       feed_key: `bookmark-${post.id}`,
-      user_liked: false,
-      user_reposted: false,
-      user_bookmarked: true,
     }))
+
+  const posts = (await attachUserInteractionFlags(supabase, user.id, rawPosts))
+    .map((post: any) => ({ ...post, user_bookmarked: true }))
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

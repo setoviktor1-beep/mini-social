@@ -24,7 +24,7 @@ const BASE_SELECT = `
     profiles:user_id(username, display_name, avatar_path),
     post_media(storage_path)
   ),
-  likes(count),
+  reactions(count),
   comments(count),
   reposts(count)
 `
@@ -45,7 +45,7 @@ const REPOST_SELECT = `
       profiles:user_id(username, display_name, avatar_path),
       post_media(storage_path)
     ),
-    likes(count),
+    reactions(count),
     comments(count),
     reposts(count)
   )
@@ -139,8 +139,8 @@ async function getFollowedIds(supabase: any, userId?: string) {
 
 function rankForYou(rows: any[]) {
   rows.sort((a: any, b: any) => {
-    const ap = (a.likes?.[0]?.count || 0) + (a.comments?.[0]?.count || 0)
-    const bp = (b.likes?.[0]?.count || 0) + (b.comments?.[0]?.count || 0)
+    const ap = (a.reactions?.[0]?.count || 0) + (a.comments?.[0]?.count || 0)
+    const bp = (b.reactions?.[0]?.count || 0) + (b.comments?.[0]?.count || 0)
     if (bp !== ap) return bp - ap
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
@@ -314,6 +314,7 @@ export async function attachUserInteractionFlags(
     return posts.map((post) => ({
       ...post,
       user_liked: false,
+      user_reaction: null,
       user_reposted: false,
       user_bookmarked: false,
     }))
@@ -321,10 +322,10 @@ export async function attachUserInteractionFlags(
 
   try {
     const candidateIds = Array.from(new Set(posts.map((p: any) => p.id).filter(Boolean)))
-    const [likes, reposts, bookmarks] = await Promise.all([
+    const [reactions, reposts, bookmarks] = await Promise.all([
       safeQuery<any[]>(
-        'attachUserInteractionFlags:likes',
-        supabase.from('likes').select('post_id').eq('user_id', userId).in('post_id', candidateIds),
+        'attachUserInteractionFlags:reactions',
+        supabase.from('reactions').select('post_id, type').eq('user_id', userId).in('post_id', candidateIds),
         []
       ),
       safeQuery<any[]>(
@@ -339,13 +340,14 @@ export async function attachUserInteractionFlags(
       ),
     ])
 
-    const likedPostIds = new Set((likes || []).map((l: any) => l.post_id))
+    const reactionByPostId = new Map((reactions || []).map((r: any) => [r.post_id, r.type]))
     const repostedPostIds = new Set((reposts || []).map((r: any) => r.post_id))
     const bookmarkedPostIds = new Set((bookmarks || []).map((b: any) => b.post_id))
 
     return posts.map((post: any) => ({
       ...post,
-      user_liked: likedPostIds.has(post.id),
+      user_liked: reactionByPostId.get(post.id) === 'like',
+      user_reaction: reactionByPostId.get(post.id) ?? null,
       user_reposted: repostedPostIds.has(post.id),
       user_bookmarked: bookmarkedPostIds.has(post.id),
     }))
@@ -354,6 +356,7 @@ export async function attachUserInteractionFlags(
     return posts.map((post: any) => ({
       ...post,
       user_liked: false,
+      user_reaction: null,
       user_reposted: false,
       user_bookmarked: false,
     }))

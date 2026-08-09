@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import PostCard from '@/components/PostCard'
 import { createClient } from '@/lib/backend-client'
-import { Loader2 } from 'lucide-react'
+import { WifiOff, RotateCw } from 'lucide-react'
+import { SkeletonCard } from '@/components/Skeleton'
 
 type TabKey = 'for_you' | 'following' | 'latest'
 
@@ -19,6 +20,8 @@ export default function FeedListClient(props: {
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState((initialPosts || []).length === 20)
   const [newPostAvailable, setNewPostAvailable] = useState(false)
+  const [loadError, setLoadError] = useState(false)
+  const [isOffline, setIsOffline] = useState(false)
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
@@ -30,6 +33,18 @@ export default function FeedListClient(props: {
     setLoading(false)
     setNewPostAvailable(false)
   }, [tab, initialPosts])
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined') setIsOffline(!navigator.onLine)
+    const handleOnline = () => setIsOffline(false)
+    const handleOffline = () => setIsOffline(true)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -51,6 +66,7 @@ export default function FeedListClient(props: {
 
   const reloadFeed = async () => {
     setNewPostAvailable(false)
+    setLoadError(false)
     setLoading(true)
     controllerRef.current?.abort()
     const controller = new AbortController()
@@ -67,7 +83,7 @@ export default function FeedListClient(props: {
       setPage(0)
       setHasMore(Boolean(json.hasMore))
     } catch (e) {
-      // ignore aborts
+      if ((e as Error)?.name !== 'AbortError') setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -75,6 +91,7 @@ export default function FeedListClient(props: {
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return
+    setLoadError(false)
     setLoading(true)
     controllerRef.current?.abort()
     const controller = new AbortController()
@@ -92,7 +109,7 @@ export default function FeedListClient(props: {
       setPage(nextPage)
       setHasMore(Boolean(json.hasMore))
     } catch (e) {
-      // ignore aborts
+      if ((e as Error)?.name !== 'AbortError') setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -112,7 +129,14 @@ export default function FeedListClient(props: {
   }, [loadMore])
 
   return (
-    <div className="divide-y divide-slate-100 bg-transparent">
+    <div className="divide-y divide-slate-100 bg-transparent" role="feed" aria-busy={loading}>
+      {isOffline && (
+        <div className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2.5 text-xs sm:text-sm font-medium text-amber-700">
+          <WifiOff size={14} />
+          Nėra interneto ryšio. Rodomi anksčiau įkelti įrašai.
+        </div>
+      )}
+
       {newPostAvailable && (
         <div className="sticky top-20 z-40 flex justify-center py-3">
           <button
@@ -146,15 +170,30 @@ export default function FeedListClient(props: {
         </div>
       )}
 
-      {posts.length > 0 && (
+      {loading && (
+        <div className="space-y-3 p-4 sm:p-5" aria-hidden="true">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      )}
+
+      {!loading && loadError && (
+        <div className="flex flex-col items-center gap-3 p-6 sm:p-8 text-center">
+          <p className="text-sm text-slate-500">Nepavyko įkelti įrašų. Patikrinkite ryšį ir bandykite dar kartą.</p>
+          <button
+            onClick={posts.length === 0 ? reloadFeed : loadMore}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 min-h-[44px] transition-all"
+          >
+            <RotateCw size={16} />
+            Bandyti dar kartą
+          </button>
+        </div>
+      )}
+
+      {posts.length > 0 && !loading && (
         <div className="p-4 sm:p-5 text-center">
           <div ref={loadMoreRef} />
-          {loading ? (
-            <div className="flex items-center justify-center gap-2 text-slate-400 py-2">
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-xs sm:text-sm">Kraunama...</span>
-            </div>
-          ) : hasMore ? (
+          {!loadError && (hasMore ? (
             <button
               onClick={loadMore}
               className="px-6 py-2.5 rounded-full font-semibold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 min-h-[44px] transition-all hover:shadow-sm"
@@ -166,7 +205,7 @@ export default function FeedListClient(props: {
               <div className="w-12 h-px bg-slate-200 mx-auto mb-3" />
               <p className="text-xs sm:text-sm text-slate-400">Peržiūrėjote visus įrašus.</p>
             </div>
-          )}
+          ))}
         </div>
       )}
     </div>

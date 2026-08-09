@@ -1,5 +1,6 @@
 export type NotificationType =
   | 'like'
+  | 'reaction'
   | 'comment'
   | 'follow'
   | 'new_post'
@@ -36,6 +37,8 @@ export function formatNotificationText(notification: NotificationRow) {
   switch (notification.type) {
     case 'like':
       return `${name} pamėgo jūsų įrašą`
+    case 'reaction':
+      return `${name} sureagavo į jūsų įrašą`
     case 'comment':
       return `${name} pakomentavo jūsų įrašą`
     case 'follow':
