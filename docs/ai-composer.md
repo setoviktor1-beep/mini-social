@@ -9,14 +9,26 @@ untouched by this work.
 ## Provider
 
 `lib/ai/openrouter.ts` — a thin OpenRouter client. Model:
-`nvidia/nemotron-3-ultra-550b-a50b:free` by default (override with
-`OPENROUTER_MODEL`), per the project owner's instruction. **This slug has
-not been verified against a live OpenRouter API key** — no key has been
-provided to this environment yet. Confirm the model resolves (a simple
-`curl` to `/api/v1/chat/completions` with a real key) before treating this
-as production-ready; if the slug is wrong you'll get a clean 4xx from
-OpenRouter, not a silent failure, since `chatCompletion()` surfaces
-non-2xx responses as `AiRequestError`.
+`nvidia/nemotron-3-ultra-550b-a55b:free` by default (override with
+`OPENROUTER_MODEL`), per the project owner's instruction. **Verified live**
+against a real OpenRouter API key: confirmed via `/api/v1/models`, and
+`/api/ai/compose` (all six actions) and `/api/ai/moderate` were both
+exercised end-to-end through the actual Next.js routes (not just a raw
+`curl` to OpenRouter) against an isolated local Postgres/PostgREST stack,
+producing correct Lithuanian output and a correctly stored
+`moderation_decisions` row.
+
+**This is a reasoning model.** Its responses include internal `reasoning`
+tokens that consume the `max_tokens` budget before/alongside the real
+`content` — a naive budget sized for "just the answer" can silently
+truncate to nothing (`finish_reason: "length"`, empty `content`). Observed
+in testing: a simple rewrite task spent 193 of 235 completion tokens on
+reasoning; a moderation classification spent 140 of a 150-token budget on
+reasoning and left the JSON output truncated mid-object. Both call sites
+now budget accordingly (`/api/ai/compose`: 700, `/api/ai/moderate`: 600),
+verified sufficient by live testing. `chatCompletion()` also now detects
+this failure mode explicitly (`finish_reason === 'length'` with empty
+content) and throws a distinct `AiRequestError` rather than a generic one.
 
 ## What's implemented
 
@@ -99,7 +111,7 @@ non-2xx responses as `AiRequestError`.
 
 ```
 OPENROUTER_API_KEY=          # unset = AI tools cleanly disabled everywhere
-OPENROUTER_MODEL=            # optional, defaults to nvidia/nemotron-3-ultra-550b-a50b:free
+OPENROUTER_MODEL=            # optional, defaults to nvidia/nemotron-3-ultra-550b-a55b:free
 ```
 
 No other infrastructure is required — no new external service beyond the

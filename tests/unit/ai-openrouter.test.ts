@@ -24,7 +24,7 @@ test('chatCompletion() throws AiUnavailableError (not a raw network error) when 
 test('getModelName() defaults to the configured Nemotron slug when OPENROUTER_MODEL is unset', async () => {
   delete process.env.OPENROUTER_MODEL
   const { getModelName } = await import('../../lib/ai/openrouter')
-  assert.equal(getModelName(), 'nvidia/nemotron-3-ultra-550b-a50b:free')
+  assert.equal(getModelName(), 'nvidia/nemotron-3-ultra-550b-a55b:free')
 })
 
 test('getModelName() respects an OPENROUTER_MODEL override', async () => {

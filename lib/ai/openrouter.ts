@@ -24,12 +24,18 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 // NVIDIA's Nemotron Ultra MoE model on OpenRouter's free tier, per the
-// project owner's instruction. OpenRouter model slugs occasionally change;
-// this default has not been verified against a live API key (none is
-// configured in this environment yet) — confirm it resolves before
-// relying on it in production, and override via OPENROUTER_MODEL if not.
-const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra-550b-a50b:free'
+// project owner's instruction. Verified live against OpenRouter's
+// /api/v1/models catalog and a real chat-completion round trip — this is
+// the correct slug (the initially-assumed "a50b" suffix does not exist;
+// the real one is "a55b"). Override via OPENROUTER_MODEL if it changes.
+const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free'
 
+// This is a reasoning model: its responses consume `max_tokens` on an
+// internal `reasoning` field before/alongside the real `content`. Verified
+// live: a simple rewrite task spent 193 of 235 completion tokens purely on
+// reasoning. Callers must budget generously (see chatCompletion's default
+// and callers' explicit maxTokens) or risk `finish_reason: "length"`
+// truncating the actual answer to nothing.
 const MAX_INPUT_CHARS = 6000
 const DEFAULT_TIMEOUT_MS = 20_000
 
@@ -73,7 +79,7 @@ type ChatCompletionResult = {
 export async function chatCompletion({
   system,
   user,
-  maxTokens = 400,
+  maxTokens = 800,
   temperature = 0.4,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: ChatCompletionOptions): Promise<ChatCompletionResult> {
@@ -120,8 +126,16 @@ export async function chatCompletion({
     }
 
     const json = await response.json()
-    const text = json?.choices?.[0]?.message?.content
+    const choice = json?.choices?.[0]
+    const text = choice?.message?.content
     if (typeof text !== 'string' || !text.trim()) {
+      // A reasoning model can burn the entire max_tokens budget on its
+      // internal `reasoning` field and finish with empty `content`
+      // (finish_reason: "length") — surface this distinctly so callers
+      // don't confuse it with a generic provider failure.
+      if (choice?.finish_reason === 'length') {
+        throw new AiRequestError('OpenRouter response truncated before any content was produced (reasoning consumed the token budget)')
+      }
       throw new AiRequestError('OpenRouter returned an empty response')
     }
 

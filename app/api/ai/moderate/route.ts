@@ -83,7 +83,11 @@ export async function POST(request: Request) {
     const { text: raw, model } = await chatCompletion({
       system: SYSTEM_PROMPT,
       user: (content.content || '').slice(0, 2000),
-      maxTokens: 150,
+      // Nemotron is a reasoning model: it spends max_tokens on an internal
+      // reasoning trace before emitting the JSON classification. 150 was
+      // observed to truncate mid-JSON (140 of 150 tokens went to
+      // reasoning). See lib/ai/openrouter.ts.
+      maxTokens: 600,
       temperature: 0.1,
     })
 

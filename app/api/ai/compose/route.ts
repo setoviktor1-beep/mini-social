@@ -96,7 +96,10 @@ export async function POST(request: Request) {
       targetLanguage: typeof body?.targetLanguage === 'string' ? body.targetLanguage.slice(0, 30) : undefined,
     })
 
-    const { text: suggestion, model } = await chatCompletion({ system, user: text, maxTokens: 300 })
+    // Nemotron is a reasoning model: it spends max_tokens on an internal
+    // reasoning trace before emitting the real suggestion, so the budget
+    // must be generous even for short outputs. See lib/ai/openrouter.ts.
+    const { text: suggestion, model } = await chatCompletion({ system, user: text, maxTokens: 700 })
 
     return NextResponse.json({
       suggestion,
