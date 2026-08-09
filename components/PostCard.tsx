@@ -139,6 +139,21 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [focusedReactionIndex, setFocusedReactionIndex] = useState(0)
   const reactionMenuId = `reaction-menu-${post.id}`
   const reactionTypes = Object.keys(REACTIONS) as ReactionType[]
+  // Synchronous re-entry lock for handleReact. reactionLoading (state) is
+  // not enough on its own: two calls fired close enough together both read
+  // reactionLoading from a render that predates either setReactionLoading(true)
+  // committing, so the state-only guard can't prevent a genuine double-submit.
+  // A ref is mutated and read synchronously, so it closes that window.
+  const reactionRequestLockRef = useRef(false)
+  // Set right before a handleReact() call resolves; consumed by the effect
+  // below once reactionLoading actually flips to false and the trigger's
+  // `disabled` attribute is genuinely cleared in the DOM. Calling
+  // ref.focus() directly at the end of handleReact was the actual bug: it
+  // ran immediately after setReactionLoading(false), which is an async
+  // state update — the DOM node was still disabled={true} from the
+  // previous commit at that exact moment, so the focus call silently
+  // no-op'd (disabled elements can't receive focus).
+  const pendingReactionFocusReturnRef = useRef(false)
 
   const openReactionPicker = () => {
     setShowReactionPicker(true)
@@ -162,6 +177,16 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     reactionMenuItemRefs.current[activeIndex]?.focus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showReactionPicker])
+
+  // Return focus to the trigger only once it is genuinely enabled again —
+  // i.e. after the render where reactionLoading actually committed to
+  // false, so the DOM node's disabled attribute is already cleared.
+  useLayoutEffect(() => {
+    if (reactionLoading) return
+    if (!pendingReactionFocusReturnRef.current) return
+    pendingReactionFocusReturnRef.current = false
+    reactionTriggerRef.current?.focus()
+  }, [reactionLoading])
 
   // Enter/Space on a native <button> already trigger the button's onClick
   // (which toggles open/closed) via the browser's own activation behavior —
@@ -236,12 +261,24 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     ? `${window.location.origin}/posts/${post.id}`
     : ''
 
+  // Primitive snapshots of the array-shaped prop fields, computed here so
+  // the effect below can depend on VALUES rather than the array/object
+  // references themselves. post.reactions/comments/reposts are new array
+  // literals on every parent re-render (e.g. FeedListClient reconstructing
+  // its posts array) even when the underlying count hasn't changed — using
+  // the raw arrays as deps made this effect refire on unrelated re-renders
+  // and clobber locally-set optimistic state (userReaction, reactionCount,
+  // etc.) back to the original SSR snapshot.
+  const postReactionCountValue = Number(post.reactions?.[0]?.count || 0)
+  const postCommentCountValue = Number(post.comments?.[0]?.count || 0)
+  const postRepostCountValue = Number(post.reposts?.[0]?.count || 0)
+
   useEffect(() => {
     setUserReaction(post.user_reaction ?? (post.user_liked ? 'like' : null))
-    setReactionCount(Number(post.reactions?.[0]?.count || 0))
-    setCommentCount(Number(post.comments?.[0]?.count || 0))
+    setReactionCount(postReactionCountValue)
+    setCommentCount(postCommentCountValue)
     setReposted(Boolean(post.user_reposted))
-    setRepostCount(Number(post.reposts?.[0]?.count || 0))
+    setRepostCount(postRepostCountValue)
     setBookmarked(Boolean(post.user_bookmarked))
     setEditedContent(post.content)
     setLocalContent(post.content)
@@ -254,9 +291,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     post.user_bookmarked,
     post.content,
     post.edited_at,
-    post.reactions,
-    post.comments,
-    post.reposts,
+    postReactionCountValue,
+    postCommentCountValue,
+    postRepostCountValue,
   ])
 
   // Load the first page of comments on mount since the section is visible
@@ -304,7 +341,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       : `Reakcija: ${REACTIONS[userReaction].label}. Paspauskite, kad pakeistumėte į „Patinka“.`
 
   const handleReact = async (type: ReactionType) => {
-    if (!currentUserId || reactionLoading) return
+    if (!currentUserId || reactionRequestLockRef.current) return
+    reactionRequestLockRef.current = true
     const previousReaction = userReaction
     const previousCount = reactionCount
     const nextReaction: ReactionType | null = previousReaction === type ? null : type
@@ -326,9 +364,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     if (nextReaction === null) {
       const { error } = await supabase.from('reactions').delete().eq('user_id', currentUserId).eq('post_id', post.id)
       if (error) rollback()
+      pendingReactionFocusReturnRef.current = true
+      reactionRequestLockRef.current = false
       setReactionLoading(false)
-      // Return focus to trigger after removing reaction
-      reactionTriggerRef.current?.focus()
       return
     }
 
@@ -338,8 +376,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
     if (error) {
       rollback()
+      pendingReactionFocusReturnRef.current = true
+      reactionRequestLockRef.current = false
       setReactionLoading(false)
-      reactionTriggerRef.current?.focus()
       return
     }
 
@@ -358,9 +397,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         `/u/${post.profiles?.username}`
       )
     }
+    pendingReactionFocusReturnRef.current = true
+    reactionRequestLockRef.current = false
     setReactionLoading(false)
-    // Return focus to trigger after selecting a reaction
-    reactionTriggerRef.current?.focus()
   }
 
   const loadComments = async () => {

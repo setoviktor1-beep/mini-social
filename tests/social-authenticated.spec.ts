@@ -180,8 +180,59 @@ test.describe('Social features (authenticated)', () => {
     await expect(card.getByTestId('reaction-option-love')).toBeFocused();
     await expect(card.getByTestId('reaction-option-love')).toHaveAttribute('aria-checked', 'true');
     await page.keyboard.press('Enter');
+    // Regression: focus must return to the trigger only once it is
+    // genuinely re-enabled (reactionLoading cleared) — calling .focus() on
+    // a still-disabled button silently no-ops, which is what caused the
+    // original flake in this exact reopen-and-remove sequence.
     await expect(trigger).toBeEnabled();
+    await expect(trigger).toBeFocused();
     await expect(card.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' })).toContainText('0');
+  });
+
+  test('reaction picker cannot double-submit on rapid repeated activation', async ({ page }) => {
+    await login(page, USER_A);
+    const unique = `Rapid reaction target ${Date.now()}`;
+    const card = await createPost(page, unique);
+
+    const reactButton = card.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' });
+    // Dispatch three real DOM clicks synchronously in a single JS turn via
+    // evaluate(), rather than three separate Playwright .click() calls.
+    // Playwright's .click() does its own actionability polling per call
+    // (including waiting out a disabled state), which doesn't reproduce
+    // the actual race: multiple handleReact() invocations landing before
+    // React has re-rendered with reactionLoading=true, all reading the
+    // same stale (not-yet-loading) closure. This does reproduce it.
+    await reactButton.evaluate((el: HTMLButtonElement) => {
+      el.click();
+      el.click();
+      el.click();
+    });
+
+    // Exactly one of those three synchronous clicks may result in a
+    // mutation; the rest must be rejected by the synchronous ref lock, not
+    // silently queued to fire later once the button re-enables (that would
+    // still be a "double submit" in effect, just delayed).
+    const likeButton = card.getByRole('button', { name: /Reakcija: Patinka/ });
+    await expect(likeButton).toBeVisible();
+    await expect(likeButton).toContainText('1');
+    // The ref lock rejects extra clicks synchronously (not by queuing them
+    // for later) — so once the one legitimate request has settled (trigger
+    // re-enabled) there is nothing left in flight that could still drift
+    // the count. Re-check after that deterministic signal, not a sleep.
+    const trigger = card.getByTestId('reaction-picker-trigger');
+    await expect(trigger).toBeEnabled();
+    await expect(likeButton).toContainText('1');
+
+    // Re-open the picker immediately after — must not carry over any stale
+    // focus/index state from the rapid-fire activation above.
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const menu = card.getByRole('menu', { name: 'Pasirinkite reakciją' });
+    await expect(menu).toBeVisible();
+    await expect(card.getByTestId('reaction-option-like')).toBeFocused();
+    await expect(card.getByTestId('reaction-option-like')).toHaveAttribute('aria-checked', 'true');
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
   });
 
   test('bookmark and unbookmark a post', async ({ page }) => {
