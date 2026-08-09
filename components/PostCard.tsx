@@ -92,7 +92,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [reactionCount, setReactionCount] = useState(Number(post.reactions?.[0]?.count || 0))
   const [showReactionPicker, setShowReactionPicker] = useState(false)
   const [focusedReactionIndex, setFocusedReactionIndex] = useState(0)
-  const reactionTriggerRef = useRef<HTMLButtonElement>(null)
+  const reactionPickerTriggerRef = useRef<HTMLButtonElement>(null)
   const reactionMenuRef = useRef<HTMLDivElement>(null)
   const reactionItemRefs = useRef<(HTMLButtonElement | null)[]>([])
   const [showComments, setShowComments] = useState(false)
@@ -178,50 +178,6 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     post.reposts,
   ])
 
-  // Load comments on mount since comment section is visible by default
-  useEffect(() => {
-    let active = true
-
-    const loadInitialComments = async () => {
-      setLoadingComments(true)
-      const { data, count } = await supabase
-        .from('comments')
-        .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id', { count: 'exact' })
-        .eq('post_id', post.id)
-        .eq('status', 'active')
-        .is('parent_comment_id', null)
-        .order('created_at', { ascending: true })
-        .range(0, 9)
-
-      // Also load replies for these top-level comments
-      const topLevelIds = (data || []).map((c: any) => c.id)
-      let replies: any[] = []
-      if (topLevelIds.length > 0) {
-        const { data: replyData } = await supabase
-          .from('comments')
-          .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id')
-          .eq('post_id', post.id)
-          .eq('status', 'active')
-          .in('parent_comment_id', topLevelIds)
-          .order('created_at', { ascending: true })
-        replies = replyData || []
-      }
-
-      const rows = [...(data || []), ...replies]
-      if (!active) return
-      setComments(rows)
-      setCommentCount(count || rows.length)
-      setHasMoreComments((count || 0) > 10)
-      setCommentOffset(10)
-      setLoadingComments(false)
-    }
-    void loadInitialComments()
-
-    return () => {
-      active = false
-    }
-  }, [post.id, supabase])
-
   // Focus moves into the picker when opened
   useEffect(() => {
     if (showReactionPicker && reactionMenuRef.current) {
@@ -241,7 +197,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       if (e.key === 'Escape') {
         e.preventDefault()
         setShowReactionPicker(false)
-        reactionTriggerRef.current?.focus()
+        reactionPickerTriggerRef.current?.focus()
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
         setFocusedReactionIndex((prev) => {
@@ -261,7 +217,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
     const handleClickOutside = (e: MouseEvent) => {
       const menu = reactionMenuRef.current
-      const trigger = reactionTriggerRef.current
+      const trigger = reactionPickerTriggerRef.current
       if (menu && !menu.contains(e.target as Node) && trigger && !trigger.contains(e.target as Node)) {
         setShowReactionPicker(false)
       }
@@ -317,7 +273,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       if (error) rollback()
       setReactionLoading(false)
       // Return focus to trigger after removing reaction
-      reactionTriggerRef.current?.focus()
+      reactionPickerTriggerRef.current?.focus()
       return
     }
 
@@ -348,7 +304,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     }
     setReactionLoading(false)
     // Return focus to trigger after selecting a reaction
-    reactionTriggerRef.current?.focus()
+    reactionPickerTriggerRef.current?.focus()
   }
 
   const loadComments = async () => {
@@ -855,7 +811,6 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="relative flex items-center">
               <button
                 type="button"
-                ref={reactionTriggerRef}
                 onClick={() => void handleReact('like')}
                 disabled={reactionLoading}
                 aria-label={mainButtonLabel}
@@ -872,6 +827,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               </button>
               <button
                 type="button"
+                ref={reactionPickerTriggerRef}
                 onClick={toggleReactionPicker}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -1233,6 +1189,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   <button
                     type="submit"
                     disabled={!commentText.trim() || commentLoading}
+                    aria-label="Paskelbti komentarą"
                     className="bg-[#1A1A2E] text-white p-2 rounded-full hover:bg-[#16213E] disabled:opacity-50 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shadow-sm hover:shadow-md self-end"
                   >
                     <Send size={16} />

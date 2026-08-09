@@ -331,7 +331,7 @@ test.describe.serial('Social features (authenticated)', () => {
     const commentText = `Test comment ${Date.now()}`;
     const commentInput = card.getByPlaceholder('Write a comment...');
     await commentInput.fill(commentText);
-    await card.getByRole('button', { name: 'Submit comment' }).click();
+    await card.getByRole('button', { name: 'Paskelbti komentarą' }).click();
 
     // Verify the comment appears
     await expect(card.getByText(commentText)).toBeVisible();
@@ -416,10 +416,7 @@ test.describe.serial('Social features (authenticated)', () => {
     const searchInput = page.getByPlaceholder('Ieškokite žmonių arba įrašų...');
     await searchInput.fill('tester-b');
 
-    // Wait for debounce and search results
-    await page.waitForTimeout(400);
-
-    // Verify results appear
+    // The result assertion waits for the debounced request without a fixed delay.
     await expect(page.getByText('@tester-b')).toBeVisible();
   });
 
@@ -433,10 +430,10 @@ test.describe.serial('Social features (authenticated)', () => {
     await expect(bottomNav).toBeVisible();
 
     // Verify bottom nav has links to home, services, search, messages, profile
-    await expect(bottomNav.getByRole('link', { name: /Pagrindinis|Home/ })).toBeVisible();
-    await expect(bottomNav.getByRole('link', { name: /Paslaugos|Services/ })).toBeVisible();
-    await expect(bottomNav.getByRole('link', { name: /Atrasti|Search/ })).toBeVisible();
-    await expect(bottomNav.getByRole('link', { name: /Žinutės|Messages/ })).toBeVisible();
-    await expect(bottomNav.getByRole('link', { name: /Profilis|Profile/ })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Pradžia' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Paslaugos' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Paieška' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Žinutės' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Profilis' })).toBeVisible();
   });
 });
