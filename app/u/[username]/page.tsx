@@ -1,13 +1,14 @@
 // app/u/[username]/page.tsx
 import { createClient } from '@/lib/backend-server'
-import PostCard from '@/components/PostCard'
 import ProfileActions from '@/components/ProfileActions'
 import ProfileStats from '@/components/ProfileStats'
 import SendMessageButton from '@/components/SendMessageButton'
 import FriendButton from '@/components/FriendButton'
+import ReportUserButton from '@/components/ReportUserButton'
+import ProfileTabs from '@/components/ProfileTabs'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Settings, Ban, BellOff } from 'lucide-react'
+import { Settings, Ban, BellOff, Bookmark } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import type { Metadata } from 'next'
@@ -304,13 +305,22 @@ export default async function ProfilePage(props: ProfilePageProps) {
             
             <div className="flex flex-row md:flex-col gap-2 items-center flex-wrap justify-center">
               {currentUser && currentUser.id === profile.id && (
-                <Link
-                  href="/settings"
-                  className="flex items-center gap-2 border-2 border-slate-200 text-slate-700 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 hover:border-slate-300 transition-all min-h-[44px] text-sm"
-                >
-                  <Settings size={16} />
-                  Redaguoti profilį
-                </Link>
+                <>
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-2 border-2 border-slate-200 text-slate-700 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 hover:border-slate-300 transition-all min-h-[44px] text-sm"
+                  >
+                    <Settings size={16} />
+                    Redaguoti profilį
+                  </Link>
+                  <Link
+                    href="/bookmarks"
+                    className="flex items-center gap-2 border-2 border-slate-200 text-slate-700 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 hover:border-slate-300 transition-all min-h-[44px] text-sm"
+                  >
+                    <Bookmark size={16} />
+                    Išsaugoti įrašai
+                  </Link>
+                </>
               )}
               {currentUser && currentUser.id !== profile.id && !isBlockedEitherWay && (
                 <form action={toggleMute} className="contents">
@@ -355,6 +365,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   {currentUser && currentUser.id !== profile.id && (
                     <SendMessageButton otherUserId={profile.id} />
                   )}
+                  <ReportUserButton profileId={profile.id} currentUserId={currentUser?.id} />
                 </>
               )}
             </div>
@@ -378,41 +389,13 @@ export default async function ProfilePage(props: ProfilePageProps) {
         </div>
       </div>
 
-      {/* User Posts */}
-      <div className="divide-y divide-slate-100 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-50">
-          <h2 className="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
-            <span className="w-1 h-5 bg-blue-500 rounded-full" />
-            Įrašai
-          </h2>
-        </div>
-        {postsWithLikeStatus.map((post) => (
-          <PostCard key={post.id} post={post} currentUserId={currentUser?.id} currentUserRole={currentUserRole} />
-        ))}
-        {postsWithLikeStatus.length === 0 && (
-          <div className="p-10 sm:p-20 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </div>
-            <p className="text-slate-500 font-medium">Šis vartotojas dar nieko nepaskelbė.</p>
-            <p className="text-slate-400 text-sm mt-1">Nauji įrašai bus rodomi čia.</p>
-          </div>
-        )}
-      </div>
-
-      {repostedPosts.length > 0 && <div className="divide-y divide-slate-100 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-50">
-          <h2 className="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
-            <span className="w-1 h-5 bg-emerald-500 rounded-full" />
-            Pakartotiniai įrašai
-          </h2>
-        </div>
-        {repostedPosts.map((post: any) => (
-          <PostCard key={post.feed_key || post.id} post={post} currentUserId={currentUser?.id} currentUserRole={currentUserRole} />
-        ))}
-      </div>}
+      {/* User Posts / Media / Reposts */}
+      <ProfileTabs
+        posts={postsWithLikeStatus}
+        repostedPosts={repostedPosts}
+        currentUserId={currentUser?.id}
+        currentUserRole={currentUserRole}
+      />
     </div>
   )
 }
