@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useId, useCallback } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
-import { Image as ImageIcon, Video, Send, X } from 'lucide-react'
+import { Image as ImageIcon, Video, Send, X, Sparkles, Loader2, Check } from 'lucide-react'
 import Image from 'next/image'
 import { notifyMentions } from '@/lib/mentions'
 import { extractYoutubeId, normalizeYoutubeUrl, resolveSupabaseStorageUrl } from '@/lib/media'
@@ -75,6 +75,13 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [uploadStep, setUploadStep] = useState('')
   const [isDragActive, setIsDragActive] = useState(false)
   const [avatar, setAvatar] = useState<{ path: string | null; displayName: string | null }>({ path: null, displayName: null })
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const [aiLoading, setAiLoading] = useState<string | null>(null)
+  const [aiSuggestion, setAiSuggestion] = useState('')
+  const [aiSuggestionAction, setAiSuggestionAction] = useState<string | null>(null)
+  const [aiError, setAiError] = useState('')
+  const [aiTone, setAiTone] = useState('draugišką')
+  const [aiLanguage, setAiLanguage] = useState('anglų')
   const fileInputId = useId()
   // UX5: Memoize supabase client to prevent recreation causing re-render loops
   const supabase = useMemo(() => createClient(), [])
@@ -132,6 +139,49 @@ export default function PostComposer({ userId }: { userId: string }) {
       previews.forEach((preview) => URL.revokeObjectURL(preview.url))
     }
   }, [previews])
+
+  const handleAiAction = async (action: 'rewrite' | 'tone' | 'translate' | 'spelling' | 'hashtags') => {
+    if (!content.trim() || aiLoading) return
+    setAiLoading(action)
+    setAiError('')
+    setAiSuggestion('')
+    try {
+      const res = await fetch('/api/ai/compose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, text: content, tone: aiTone, targetLanguage: aiLanguage }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setAiError(
+          res.status === 503 ? 'AI įrankiai šiuo metu nepasiekiami.'
+          : res.status === 429 ? 'Pasiekėte AI naudojimo limitą. Bandykite vėliau.'
+          : 'Nepavyko gauti AI pasiūlymo. Bandykite dar kartą.'
+        )
+        return
+      }
+      setAiSuggestion(data.suggestion || '')
+      setAiSuggestionAction(action)
+    } catch {
+      setAiError('Nepavyko prisijungti prie AI paslaugos.')
+    } finally {
+      setAiLoading(null)
+    }
+  }
+
+  const applyAiSuggestion = () => {
+    if (!aiSuggestion) return
+    // Only happens on an explicit "Naudoti" click — never automatically.
+    if (aiSuggestionAction === 'hashtags') {
+      const tags = aiSuggestion.split(/[\s,]+/).filter(Boolean).map((t) => (t.startsWith('#') ? t : `#${t}`))
+      setContent((prev) => (prev.trim() ? `${prev.trim()} ${tags.join(' ')}` : tags.join(' ')))
+    } else {
+      setContent(aiSuggestion)
+    }
+    setAiSuggestion('')
+    setAiSuggestionAction(null)
+    setShowAiPanel(false)
+  }
 
   const handlePost = async () => {
     if (loading) return
@@ -251,6 +301,9 @@ export default function PostComposer({ userId }: { userId: string }) {
     setFiles([])
     setUploadStep('')
     setLoading(false)
+    setShowAiPanel(false)
+    setAiSuggestion('')
+    setAiSuggestionAction(null)
     router.refresh()
   }
 
@@ -354,7 +407,77 @@ export default function PostComposer({ userId }: { userId: string }) {
               className="min-h-[44px] w-full border-b border-transparent bg-transparent text-slate-700 outline-none focus:border-purple-400 sm:w-40"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowAiPanel((v) => !v)}
+            disabled={!content.trim()}
+            aria-expanded={showAiPanel}
+            className="flex min-h-[44px] items-center gap-2 text-sm px-2 rounded-lg transition-colors text-violet-600 hover:text-violet-700 hover:bg-violet-50 disabled:text-slate-300 disabled:cursor-not-allowed"
+          >
+            <Sparkles size={18} />
+            <span>AI pagalba</span>
+          </button>
         </div>
+
+        {showAiPanel && (
+          <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-3 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => handleAiAction('rewrite')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+                {aiLoading === 'rewrite' ? <Loader2 size={14} className="animate-spin" /> : null} Perrašyti
+              </button>
+              <button type="button" onClick={() => handleAiAction('spelling')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+                {aiLoading === 'spelling' ? <Loader2 size={14} className="animate-spin" /> : null} Taisyti rašybą
+              </button>
+              <button type="button" onClick={() => handleAiAction('hashtags')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+                {aiLoading === 'hashtags' ? <Loader2 size={14} className="animate-spin" /> : null} #Hashtag&apos;ai
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={aiTone} onChange={(e) => setAiTone(e.target.value)} className="min-h-[36px] rounded-full border border-violet-200 bg-white px-2 text-sm text-violet-700">
+                <option value="draugišką">draugišką</option>
+                <option value="formalų">formalų</option>
+                <option value="glaustą">glaustą</option>
+                <option value="entuziastingą">entuziastingą</option>
+              </select>
+              <button type="button" onClick={() => handleAiAction('tone')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+                {aiLoading === 'tone' ? <Loader2 size={14} className="animate-spin" /> : null} Keisti toną
+              </button>
+              <select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)} className="min-h-[36px] rounded-full border border-violet-200 bg-white px-2 text-sm text-violet-700">
+                <option value="anglų">į anglų</option>
+                <option value="lietuvių">į lietuvių</option>
+                <option value="rusų">į rusų</option>
+                <option value="lenkų">į lenkų</option>
+              </select>
+              <button type="button" onClick={() => handleAiAction('translate')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+                {aiLoading === 'translate' ? <Loader2 size={14} className="animate-spin" /> : null} Versti
+              </button>
+            </div>
+
+            {aiError && (
+              <p role="alert" className="text-sm text-red-600">{aiError}</p>
+            )}
+
+            {aiSuggestion && (
+              <div className="rounded-xl border border-violet-200 bg-white p-3 space-y-2">
+                <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide">AI pasiūlymas — peržiūrėkite prieš naudodami</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{aiSuggestion}</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={applyAiSuggestion}
+                    className="min-h-[36px] px-4 rounded-full bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 flex items-center gap-1.5"
+                  >
+                    <Check size={14} /> Naudoti
+                  </button>
+                  <button type="button" onClick={() => { setAiSuggestion(''); setAiSuggestionAction(null) }} className="min-h-[36px] px-4 rounded-full border border-slate-200 text-slate-600 text-sm hover:bg-slate-50">
+                    Atmesti
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <p className="text-xs text-slate-400">
           Enter palieka naują eilutę. YouTube nuorodą galite dėti į atskirą lauką arba vieną pačią į posto tekstą. Nuotraukas taip pat galite tempti ir paleisti čia.
         </p>

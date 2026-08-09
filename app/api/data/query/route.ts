@@ -28,6 +28,7 @@ const allowedTables = new Set([
   'maps_cache',
   'messages',
   'moderation_actions',
+  'moderation_decisions',
   'monthly_income',
   'mutes',
   'notifications',
