@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/backend-server'
+import { rateLimit } from '@/lib/rate-limit'
 import webpush from 'web-push'
+
+const notifyLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 })
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +15,14 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const limitResult = await notifyLimiter.check(`push:notify:${user.id}`)
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: 'RATE_LIMITED', retryAfter: limitResult.resetIn },
+        { status: 429, headers: { 'Retry-After': String(limitResult.resetIn) } }
+      )
     }
 
     const { userId, title, body, url } = await req.json()

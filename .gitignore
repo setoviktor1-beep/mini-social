@@ -1,5 +1,6 @@
 .env
 .env.local
+.env.production
 .env.*.local
 node_modules/
 .next/
@@ -17,3 +18,4 @@ audit_results/
 
 VAPID_KEYS.txt
 test-results/
+deploy.tgz

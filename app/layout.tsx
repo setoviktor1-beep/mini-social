@@ -6,6 +6,7 @@ import { ThemeProvider } from './providers'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import { I18nProvider } from '@/lib/i18n'
 import SiteFooter from '@/components/SiteFooter'
+import CookieNotice from '@/components/CookieNotice'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
@@ -21,6 +22,15 @@ export const metadata: Metadata = {
   description: 'Paprastas socialinis tinklas tikram bendravimui.',
   applicationName: 'Mini Social',
   manifest: '/manifest.webmanifest',
+  keywords: [
+    'socialinis tinklas',
+    'lietuviškas socialinis tinklas',
+    'bendravimas',
+    'diskusijos',
+    'paslaugos',
+    'meistrai',
+    'Mini Social',
+  ],
   icons: {
     icon: '/icon.svg',
   },
@@ -67,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 md:pb-8" style={{ maxWidth: 'var(--content-max)' }}>{children}</main>
           <SiteFooter />
           <BottomNav />
+          <CookieNotice />
         </ThemeProvider>
         </I18nProvider>
       </body>

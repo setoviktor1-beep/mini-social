@@ -120,7 +120,7 @@ export default function ProAgent({ isEnterprise }: { isEnterprise: boolean }) {
         </div>
         <h3 className="text-white font-bold text-lg">AI Agentas — Enterprise funkcija</h3>
         <p className="text-gray-500 text-sm text-center max-w-xs">
-          Pilna agento automatizacija prieinama tik Enterprise plane (€99.99/mėn).
+          Pilna agento automatizacija prieinama tik Enterprise plane (€89.99/mėn).
           Agentas savarankiškai stebi jūsų verslą, siunčia ataskaitas ir perspėjimus.
         </p>
         <a

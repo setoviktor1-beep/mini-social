@@ -3,6 +3,7 @@ import { createClient } from '@/lib/backend-server'
 import PostComposer from '@/components/PostComposer'
 import Link from 'next/link'
 import FeedListClient from '@/components/FeedListClient'
+import LandingPage from '@/components/LandingPage'
 import WhoToFollowRow from '@/components/WhoToFollowRow'
 import { attachUserInteractionFlags, getFeedItems, parseTab, type TabKey } from '@/lib/feed-service'
 import {
@@ -57,7 +58,12 @@ function buildTrendingFromPosts(posts: any[]) {
 export default async function Home(props: { searchParams?: Promise<{ tab?: string }> }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const homeHref = user ? '/home' : '/'
+
+  if (!user) {
+    return <LandingPage />
+  }
+
+  const homeHref = '/home'
 
   const requestedTab = parseTab((await props.searchParams)?.tab)
   const activeTab: TabKey = user ? (requestedTab || 'latest') : 'latest'

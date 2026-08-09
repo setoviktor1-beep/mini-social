@@ -1,0 +1,83 @@
+# Mini Social — pilnas aprašymas AI sistemoms
+
+Svetainė: https://mini-social.online
+Kontaktas: support@minisocial.lt
+Kalba: lietuvių (lt)
+Platformos: web aplikacija ir Android programėlė
+
+## Kas yra Mini Social
+
+Mini Social — lietuviškas socialinis tinklas, sukurtas tikram bendravimui be
+triukšmo ir be reklaminio sekimo. Platforma jungia klasikinį socialinį tinklą
+(įrašai, komentarai, diskusijos, žinutės) su vietine paslaugų erdve, kurioje
+specialistai gali siūlyti paslaugas, o klientai — jų ieškoti pagal vietovę.
+
+## Funkcijos
+
+### Bendravimas
+- Įrašų srautas: tekstas, nuotraukos, patiktukai, komentarai, pasidalinimai ir citavimas
+- Teminės diskusijos su atsakymais
+- Privačios žinutės realiu laiku (Socket.IO)
+- Pranešimai apie patiktukus, komentarus, sekėjus ir žinutes
+- Naršyklės push pranešimai
+- Vartotojų profiliai, sekimas, draugų kvietimai, blokavimas
+
+### Paslaugų erdvė
+- Specialistų (meistrų) paslaugų katalogas su paieška pagal vietovę
+- Paslaugų užklausos: klientas aprašo darbą, specialistai atsiliepia
+- Užsakymų valdymas, kalendorius ir darbo laiko nustatymai specialistams
+- Aptarnavimo spindulys pagal planą
+
+### AI įrankiai
+- Įrašo tobulinimas, atsakymo generavimas, toksiškumo patikra
+- AI pokalbiai su kontekstu; naudojimas apmokestinamas pagal sunaudotus tokenus
+
+### Verslo funkcijos
+- Verslo darbalaukis specialistams (užsakymai, finansų apžvalga, čekių skenavimas)
+- Piniginė su Stripe papildymu
+- Kainodara pagal naudojimą (EUR); bazinės socialinės funkcijos nemokamos
+
+## Privatumas ir saugumas
+
+- Tik būtinieji slapukai (prisijungimui ir sesijos saugumui); jokių reklamos ar
+  analitikos sekimo skriptų
+- GDPR atitiktis: vartotojas gali pats ištrinti paskyrą ir visus duomenis
+- Eilučių lygio sauga (RLS) duomenų bazėje, API užklausų limitai
+- Finansiniai dokumentai saugomi privačioje saugykloje
+
+## Technologijos
+
+Next.js (App Router), TypeScript, PostgreSQL + PostGIS, Better Auth,
+MinIO objektų saugykla, Redis, Socket.IO, Stripe mokėjimai, Gemini AI.
+Android programėlė sukurta su Capacitor.
+
+## Puslapių žemėlapis
+
+- https://mini-social.online/ — pradžia (landing, funkcijų apžvalga, DUK)
+- https://mini-social.online/auth/register — nemokama registracija
+- https://mini-social.online/auth/login — prisijungimas
+- https://mini-social.online/pricing — kainodara
+- https://mini-social.online/services — paslaugų katalogas
+- https://mini-social.online/discussions — viešos diskusijos
+- https://mini-social.online/legal/privacy — privatumo politika
+- https://mini-social.online/legal/terms — naudojimo sąlygos
+- https://mini-social.online/legal/cookies — slapukų politika
+- https://mini-social.online/legal/contact — kontaktai
+
+## Dažni klausimai
+
+K: Ar Mini Social nemokamas?
+A: Taip, registracija ir pagrindinės funkcijos (srautas, žinutės, diskusijos,
+pranešimai) nemokamos. Verslo ir AI funkcijos apmokestinamos pagal naudojimą.
+
+K: Kam skirta paslaugų erdvė?
+A: Specialistams, norintiems siūlyti paslaugas savo vietovėje, ir klientams,
+ieškantiems patikimų meistrų ar kitų specialistų netoliese.
+
+K: Ar platforma seka vartotojus?
+A: Ne. Naudojami tik būtinieji slapukai prisijungimui; reklaminio ar
+analitinio sekimo nėra.
+
+K: Kaip ištrinti paskyrą?
+A: Nustatymuose yra paskyros trynimo mygtukas — jis ištrina paskyrą ir visus
+susijusius duomenis pagal GDPR.

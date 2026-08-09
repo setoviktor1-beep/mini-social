@@ -1,6 +1,8 @@
 // playwright.config.ts
 import { defineConfig, devices } from '@playwright/test';
 
+const externalBaseURL = process.env.PLAYWRIGHT_BASE_URL;
+const baseURL = externalBaseURL || 'http://127.0.0.1:3000';
 export default defineConfig({
   testDir: './tests',
   timeout: 30000,
@@ -8,7 +10,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -18,7 +20,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
+  webServer: externalBaseURL ? undefined : {
     command: 'npm run dev',
     port: 3000,
     reuseExistingServer: false, // Ensure it always restarts with the correct env vars

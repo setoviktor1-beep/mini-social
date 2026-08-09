@@ -52,7 +52,10 @@ export async function GET(req: Request) {
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const category = searchParams.get('category') || 'restaurant';
-    const radius = Math.min(parseInt(searchParams.get('radius') || '5000'), 5000);
+    const requestedRadius = Number.parseInt(searchParams.get('radius') || '5000', 10);
+    const radius = Number.isFinite(requestedRadius)
+      ? Math.min(Math.max(requestedRadius, 1000), 50000)
+      : 5000;
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 

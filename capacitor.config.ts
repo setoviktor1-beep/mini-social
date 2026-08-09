@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Mini Social',
   webDir: 'out',
   server: {
-    url: 'https://mini-social-mvp.vercel.app',
-    cleartext: true
+    url: 'https://mini-social.online',
+    cleartext: false
   }
 };
 

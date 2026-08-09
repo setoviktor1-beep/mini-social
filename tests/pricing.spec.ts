@@ -15,9 +15,9 @@ test.describe('Pricing Page E2E Tests', () => {
     await expect(page.locator('h2', { hasText: 'Enterprise' })).toBeVisible();
 
     // Verify plan prices using exact match to avoid matching description text
-    await expect(page.getByText('€14.99', { exact: true })).toBeVisible();
-    await expect(page.getByText('€29.99', { exact: true })).toBeVisible();
-    await expect(page.getByText('€89.99', { exact: true })).toBeVisible();
+    await expect(page.getByText('14.99', { exact: true })).toBeVisible();
+    await expect(page.getByText('29.99', { exact: true })).toBeVisible();
+    await expect(page.getByText('89.99', { exact: true })).toBeVisible();
 
     // Verify FAQ exists
     await expect(page.locator('text=D.U.K.')).toBeVisible();

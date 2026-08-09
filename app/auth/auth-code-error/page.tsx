@@ -41,7 +41,7 @@ function AuthCodeErrorContent() {
 
       <p className="text-xs text-gray-500">
         If your email confirmation link opens <span className="font-bold">localhost</span>, you likely signed up while running the app locally.
-        Sign up again on the Vercel domain to get a new link.
+        Sign up again on mini-social.online to get a new link.
       </p>
     </div>
   )

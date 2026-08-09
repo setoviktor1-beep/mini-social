@@ -5,33 +5,33 @@ test.describe('Search Page E2E Tests', () => {
     await page.goto('/search');
 
     // Verify header and input presence
-    await expect(page.locator('h1', { hasText: 'Search' })).toBeVisible();
-    const searchInput = page.getByPlaceholder('Search users or posts...');
+    await expect(page.locator('h1', { hasText: 'Paieška' })).toBeVisible();
+    const searchInput = page.getByPlaceholder('Ieškokite žmonių arba įrašų...');
     await expect(searchInput).toBeVisible();
 
     // Verify initial "no query" placeholder state
-    await expect(page.locator('text=Search for users or posts')).toBeVisible();
-    await expect(page.locator('text=Type something above to get started')).toBeVisible();
+    await expect(page.getByText('Raskite žmones arba įrašus')).toBeVisible();
+    await expect(page.getByText('Pradėkite rašyti paieškos laukelyje')).toBeVisible();
   });
 
   test('should show empty state when search returns no results', async ({ page }) => {
     await page.goto('/search');
 
     // Type a query in search input
-    const searchInput = page.getByPlaceholder('Search users or posts...');
+    const searchInput = page.getByPlaceholder('Ieškokite žmonių arba įrašų...');
     await searchInput.fill('nonexistentuser123');
 
     // Verify the empty state shows up
-    await expect(page.locator('text=No results found')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Try a different search term')).toBeVisible();
+    await expect(page.getByText('Nieko nerasta')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Pabandykite kitą paieškos frazę')).toBeVisible();
   });
 
   test('should allow switching between Users and Posts tabs', async ({ page }) => {
     await page.goto('/search');
 
     // Locate the tabs
-    const usersTab = page.getByRole('button', { name: 'Users' });
-    const postsTab = page.getByRole('button', { name: 'Posts' });
+    const usersTab = page.getByRole('button', { name: 'Žmonės' });
+    const postsTab = page.getByRole('button', { name: 'Įrašai' });
 
     await expect(usersTab).toBeVisible();
     await expect(postsTab).toBeVisible();

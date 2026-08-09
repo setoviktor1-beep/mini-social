@@ -53,10 +53,11 @@ const sections = [
     content: (
       <>
         <p>
-          Verslo paslaugos (Pro &ndash; €29,99/mėn., Enterprise &ndash; €99,99/mėn.) teikiamos pagal mokamos
-          prenumeratos modelį. Atsiskaitymai vykdomi per saugią Stripe sistemą. Prenumerata automatiškai
-          pratęsiama, nebent ji atšaukiama nustatymuose prieš naują atsiskaitymo laikotarpį. Pirmosios 14 dienų
-          yra nemokamas bandomasis laikotarpis.
+          Verslo paslaugos (Basic &ndash; €14,99/mėn., Pro &ndash; €29,99/mėn., Enterprise &ndash; €89,99/mėn.)
+          teikiamos pagal mokamos prenumeratos modelį. Atsiskaitymai vykdomi per saugią Stripe sistemą.
+          Prenumerata automatiškai pratęsiama, nebent ji atšaukiama nustatymuose prieš naują atsiskaitymo
+          laikotarpį. Pro ir Enterprise planams taikomas 14 dienų nemokamas bandomasis laikotarpis; Basic
+          planui bandomasis laikotarpis netaikomas.
         </p>
       </>
     ),

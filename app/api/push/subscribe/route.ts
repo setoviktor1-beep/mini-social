@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/backend-server'
+import { rateLimit } from '@/lib/rate-limit'
+
+const subscribeLimiter = rateLimit({ limit: 20, windowMs: 60 * 1000 })
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +14,14 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const limitResult = await subscribeLimiter.check(`push:subscribe:${user.id}`)
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: 'RATE_LIMITED', retryAfter: limitResult.resetIn },
+        { status: 429, headers: { 'Retry-After': String(limitResult.resetIn) } }
+      )
     }
 
     const body = await req.json()

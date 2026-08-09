@@ -1,0 +1,26 @@
+# Mini Social
+
+> Mini Social (mini-social.online) — lietuviškas socialinis tinklas tikram bendravimui: įrašai, komentarai, diskusijos, privačios žinutės realiu laiku ir paslaugų erdvė, jungianti specialistus su klientais. Registracija nemokama; naudojami tik būtinieji slapukai, be reklaminio sekimo.
+
+Mini Social is a Lithuanian social network focused on genuine communication:
+posts, comments, discussions, real-time private messaging, and a services
+marketplace connecting local professionals with clients. Free registration,
+essential cookies only, no ad tracking. Web app plus Android (Capacitor).
+
+## Pagrindiniai puslapiai
+
+- [Pradžia ir registracija](https://mini-social.online/): landing puslapis su funkcijų apžvalga
+- [Registracija](https://mini-social.online/auth/register): nemokama paskyra per mažiau nei minutę
+- [Kainodara](https://mini-social.online/pricing): nemokamos bazinės funkcijos; verslo ir AI funkcijos apmokestinamos pagal naudojimą (EUR)
+- [Paslaugos](https://mini-social.online/services): specialistų paslaugų katalogas
+
+## Teisinė informacija
+
+- [Privatumo politika](https://mini-social.online/legal/privacy)
+- [Naudojimo sąlygos](https://mini-social.online/legal/terms)
+- [Slapukų politika](https://mini-social.online/legal/cookies)
+- [Kontaktai](https://mini-social.online/legal/contact): support@minisocial.lt
+
+## Daugiau
+
+- [Pilnas aprašymas AI sistemoms](https://mini-social.online/llms-full.txt)

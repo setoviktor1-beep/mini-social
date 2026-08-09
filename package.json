@@ -7,13 +7,13 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
+    "test:e2e": "playwright test",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1097.0",
     "@aws-sdk/s3-request-presigner": "^3.1097.0",
     "@capacitor/android": "^8.4.1",
-    "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
@@ -39,6 +39,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
@@ -56,7 +58,8 @@
   "overrides": {
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "minimatch@3.1.5": "5.1.6",
+    "js-yaml": "4.3.1",
+    "minimatch@3.1.5": "5.1.9",
     "postcss": "$postcss",
     "sharp": "$sharp",
     "tar": "$tar"

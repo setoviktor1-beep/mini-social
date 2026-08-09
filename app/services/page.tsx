@@ -296,7 +296,7 @@ export default function ServicesPage() {
         category === "Grožis" ? "beauty_salon" :
         category === "Auto" ? "car_repair" :
         category === "Sveikata" ? "pharmacy" : "store";
-      const radius = Math.min(radiusKm * 1000, 5000);
+      const radius = Math.min(Math.max(radiusKm * 1000, 1000), 50000);
       const res = await fetch(`/api/services?lat=${lat}&lng=${lng}&category=${googleType}&radius=${radius}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
