@@ -512,4 +512,265 @@ test.describe('Social features (authenticated)', () => {
     await expect(bottomNav.getByRole('link', { name: 'Žinutės' })).toBeVisible();
     await expect(bottomNav.getByRole('link', { name: 'Profilis' })).toBeVisible();
   });
+
+  test.describe('nested comments (db/migrations/0010_nested_comments.sql)', () => {
+    test('top-level comment creation, reply creation, and hierarchy survive reload', async ({ page }) => {
+      await login(page, USER_A);
+      const unique = `Nested comment target ${Date.now()}`;
+      const card = await createPost(page, unique);
+
+      await card.getByRole('button', { name: 'Rodyti komentarus' }).click();
+      const commentInput = card.getByPlaceholder('Parašykite komentarą...');
+
+      const topLevelText = `Top level ${Date.now()}`;
+      await commentInput.fill(topLevelText);
+      await card.getByRole('button', { name: 'Paskelbti komentarą' }).click();
+      await expect(card.getByText(topLevelText)).toBeVisible();
+
+      // Reply to the top-level comment.
+      const topLevelRow = card.locator('div').filter({ hasText: topLevelText }).last();
+      await topLevelRow.getByRole('button', { name: /^Atsakyti/ }).click();
+      await expect(card.getByText('Atsakoma vartotojui Tester A')).toBeVisible();
+
+      const replyText = `Reply ${Date.now()}`;
+      const replyInput = card.getByPlaceholder('Parašykite atsakymą...');
+      await expect(replyInput).toBeFocused();
+      await replyInput.fill(replyText);
+      await card.getByRole('button', { name: 'Paskelbti atsakymą' }).click();
+      await expect(card.getByText(replyText)).toBeVisible();
+      // Reply context clears after posting.
+      await expect(card.getByText('Atsakoma vartotojui Tester A')).toBeHidden();
+
+      // Reply-to-reply (depth 2, the maximum allowed).
+      const replyRow = card.locator('div').filter({ hasText: replyText }).last();
+      await replyRow.getByRole('button', { name: /^Atsakyti/ }).click();
+      const nestedReplyText = `Nested reply ${Date.now()}`;
+      await card.getByPlaceholder('Parašykite atsakymą...').fill(nestedReplyText);
+      await card.getByRole('button', { name: 'Paskelbti atsakymą' }).click();
+      await expect(card.getByText(nestedReplyText)).toBeVisible();
+
+      // A depth-2 comment has no further "Atsakyti" button — max nesting reached.
+      const nestedReplyRow = card.locator('div').filter({ hasText: nestedReplyText }).last();
+      await expect(nestedReplyRow.getByRole('button', { name: /^Atsakyti/ })).toHaveCount(0);
+
+      // Hierarchy and content survive a full reload (server-rendered, not just client state).
+      // The comment section itself collapses on reload — it must be
+      // reopened before the (still server-persisted) thread is visible again.
+      await page.reload();
+      const reloadedCard = page.getByTestId('post-card').filter({ hasText: unique }).first();
+      await reloadedCard.getByRole('button', { name: 'Rodyti komentarus' }).click();
+      await expect(reloadedCard.getByText(topLevelText)).toBeVisible();
+      await expect(reloadedCard.getByText(replyText)).toBeVisible();
+      await expect(reloadedCard.getByText(nestedReplyText)).toBeVisible();
+    });
+
+    test('comment count stays accurate across top-level and replies', async ({ page }) => {
+      await login(page, USER_A);
+      const unique = `Count target ${Date.now()}`;
+      const card = await createPost(page, unique);
+
+      // The toggle button's accessible name flips to "Slėpti komentarus"
+      // once the section is open, so match either state by count badge
+      // instead of the exact pre-open label.
+      const toggleButton = card.getByRole('button', { name: /komentarus/ });
+      await toggleButton.click();
+      await expect(toggleButton).toContainText('0');
+
+      const commentInput = card.getByPlaceholder('Parašykite komentarą...');
+      const topText = `Count top ${Date.now()}`;
+      await commentInput.fill(topText);
+      await card.getByRole('button', { name: 'Paskelbti komentarą' }).click();
+      await expect(card.getByText(topText)).toBeVisible();
+      await expect(toggleButton).toContainText('1');
+
+      const topRow = card.locator('div').filter({ hasText: topText }).last();
+      await topRow.getByRole('button', { name: /^Atsakyti/ }).click();
+      const replyText = `Count reply ${Date.now()}`;
+      await card.getByPlaceholder('Parašykite atsakymą...').fill(replyText);
+      await card.getByRole('button', { name: 'Paskelbti atsakymą' }).click();
+      await expect(card.getByText(replyText)).toBeVisible();
+
+      // Total count includes both the top-level comment and its reply.
+      await expect(toggleButton).toContainText('2');
+    });
+
+    test('another user cannot edit or delete someone else\'s comment (forbidden, UI and API)', async ({ browser, request }) => {
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+
+        await login(pageA, USER_A);
+        const unique = `Forbidden edit target ${Date.now()}`;
+        const card = await createPost(pageA, unique);
+        await card.getByRole('button', { name: 'Rodyti komentarus' }).click();
+        const commentText = `Owner-only comment ${Date.now()}`;
+        await card.getByPlaceholder('Parašykite komentarą...').fill(commentText);
+        await card.getByRole('button', { name: 'Paskelbti komentarą' }).click();
+        await expect(card.getByText(commentText)).toBeVisible();
+
+        await login(pageB, USER_B);
+        await pageB.goto('/home?tab=latest');
+        const cardB = pageB.getByTestId('post-card').filter({ hasText: unique }).first();
+        await cardB.getByRole('button', { name: 'Rodyti komentarus' }).click();
+        const commentRowB = cardB.locator('div').filter({ hasText: commentText }).last();
+        // UI: neither the edit nor delete action is even offered to a
+        // non-owner, non-admin viewer.
+        await expect(commentRowB.getByRole('button', { name: 'Redaguoti komentarą' })).toHaveCount(0);
+        await expect(commentRowB.getByRole('button', { name: 'Ištrinti komentarą' })).toHaveCount(0);
+
+        // API: even bypassing the UI entirely, RLS (comments_owner policy)
+        // must reject a direct mutation attempt against someone else's row.
+        const cookies = await pageB.context().cookies();
+        const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+
+        // comments_read (public/active) lets USER_B resolve the row's real
+        // id — the RLS boundary that matters is on the WRITE (comments_owner),
+        // not on being able to look the comment up at all.
+        const lookupResponse = await request.post('/api/data/query', {
+          headers: { cookie: cookieHeader },
+          data: {
+            table: 'comments',
+            method: 'GET',
+            filters: [['content', `eq.${commentText}`]],
+            order: [],
+            select: 'id',
+          },
+        });
+        const lookupBody = await lookupResponse.json();
+        const commentId = lookupBody?.data?.[0]?.id;
+        expect(commentId).toBeTruthy();
+
+        // Postgres RLS on UPDATE: a row excluded by the USING clause simply
+        // isn't matched by the WHERE — PostgREST returns 200/204 with zero
+        // rows affected, not a 401/403 error (that only happens for a
+        // WITH CHECK violation, e.g. on INSERT — see the sibling 'mutes'
+        // test above). The real security assertion here is that the row
+        // is provably unchanged afterward, not a specific status code.
+        const updateResponse = await request.post('/api/data/query', {
+          headers: { cookie: cookieHeader },
+          data: {
+            table: 'comments',
+            method: 'PATCH',
+            body: { content: 'hijacked' },
+            filters: [['id', `eq.${commentId}`]],
+            order: [],
+          },
+        });
+        expect(updateResponse.ok()).toBe(true);
+        const updateBody = await updateResponse.json();
+        expect(Array.isArray(updateBody?.data) ? updateBody.data.length : 0).toBe(0);
+
+        const deleteResponse = await request.post('/api/data/query', {
+          headers: { cookie: cookieHeader },
+          data: {
+            table: 'comments',
+            method: 'PATCH',
+            body: { status: 'deleted' },
+            filters: [['id', `eq.${commentId}`]],
+            order: [],
+          },
+        });
+        expect(deleteResponse.ok()).toBe(true);
+        const deleteBody = await deleteResponse.json();
+        expect(Array.isArray(deleteBody?.data) ? deleteBody.data.length : 0).toBe(0);
+
+        // Ground truth: re-read the comment (as USER_A, who can) and
+        // confirm neither mutation actually took effect.
+        const verifyResponse = await request.post('/api/data/query', {
+          headers: { cookie: (await pageA.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ') },
+          data: {
+            table: 'comments',
+            method: 'GET',
+            filters: [['id', `eq.${commentId}`]],
+            order: [],
+            select: 'content,status',
+          },
+        });
+        const verifyBody = await verifyResponse.json();
+        expect(verifyBody?.data?.[0]?.content).toBe(commentText);
+        expect(verifyBody?.data?.[0]?.status).toBe('active');
+      } finally {
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('deleting a parent comment leaves a tombstone; its reply stays visible', async ({ page }) => {
+      await login(page, USER_A);
+      const unique = `Tombstone target ${Date.now()}`;
+      const card = await createPost(page, unique);
+
+      await card.getByRole('button', { name: 'Rodyti komentarus' }).click();
+      const parentText = `Parent to delete ${Date.now()}`;
+      await card.getByPlaceholder('Parašykite komentarą...').fill(parentText);
+      await card.getByRole('button', { name: 'Paskelbti komentarą' }).click();
+      await expect(card.getByText(parentText)).toBeVisible();
+
+      const parentRow = card.locator('div').filter({ hasText: parentText }).last();
+      await parentRow.getByRole('button', { name: /^Atsakyti/ }).click();
+      const replyText = `Reply to deleted parent ${Date.now()}`;
+      await card.getByPlaceholder('Parašykite atsakymą...').fill(replyText);
+      await card.getByRole('button', { name: 'Paskelbti atsakymą' }).click();
+      await expect(card.getByText(replyText)).toBeVisible();
+
+      // Delete the parent.
+      const parentRowAgain = card.locator('div').filter({ hasText: parentText }).last();
+      await parentRowAgain.getByRole('button', { name: 'Ištrinti komentarą' }).click();
+      await card.getByRole('button', { name: 'Ištrinti', exact: true }).click();
+
+      // Tombstone replaces the parent's content; the reply remains fully visible.
+      await expect(card.getByText(parentText)).toBeHidden();
+      await expect(card.getByText('Komentaras ištrintas')).toBeVisible();
+      await expect(card.getByText(replyText)).toBeVisible();
+
+      // Survives reload too (server-enforced via comments_read RLS, not just client state).
+      await page.reload();
+      const reloadedCard = page.getByTestId('post-card').filter({ hasText: unique }).first();
+      await reloadedCard.getByRole('button', { name: 'Rodyti komentarus' }).click();
+      await expect(reloadedCard.getByText('Komentaras ištrintas')).toBeVisible();
+      await expect(reloadedCard.getByText(replyText)).toBeVisible();
+    });
+
+    test('optimistic reply is rolled back in full after a forced server error', async ({ page }) => {
+      await login(page, USER_A);
+      const unique = `Reply rollback target ${Date.now()}`;
+      const card = await createPost(page, unique);
+
+      const toggleButton = card.getByRole('button', { name: /komentarus/ });
+      await toggleButton.click();
+      const parentText = `Rollback parent ${Date.now()}`;
+      await card.getByPlaceholder('Parašykite komentarą...').fill(parentText);
+      await card.getByRole('button', { name: 'Paskelbti komentarą' }).click();
+      await expect(card.getByText(parentText)).toBeVisible();
+      await expect(toggleButton).toContainText('1');
+
+      // Force the reply mutation to fail server-side after the optimistic UI update.
+      await page.route('**/api/data/query', async (route) => {
+        const request = route.request();
+        const body = request.postDataJSON?.() as { table?: string; method?: string; body?: { parent_comment_id?: string } } | undefined;
+        if (body?.table === 'comments' && body.method === 'POST' && body?.body?.parent_comment_id) {
+          await route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":{"message":"forced failure"}}' });
+          return;
+        }
+        await route.continue();
+      });
+
+      const parentRow = card.locator('div').filter({ hasText: parentText }).last();
+      await parentRow.getByRole('button', { name: /^Atsakyti/ }).click();
+      const replyText = `Doomed reply ${Date.now()}`;
+      const replyInput = card.getByPlaceholder('Parašykite atsakymą...');
+      await replyInput.fill(replyText);
+      await card.getByRole('button', { name: 'Paskelbti atsakymą' }).click();
+
+      // Full rollback: the optimistic reply is removed, the count reverts,
+      // the error is surfaced, and the text is restored so the user doesn't
+      // have to retype it.
+      await expect(card.getByText(replyText)).toBeHidden();
+      await expect(toggleButton).toContainText('1');
+      await expect(card.getByText('Nepavyko paskelbti atsakymo. Bandykite dar kartą.')).toBeVisible();
+      await expect(card.getByPlaceholder('Parašykite atsakymą...')).toHaveValue(replyText);
+    });
+  });
 });
