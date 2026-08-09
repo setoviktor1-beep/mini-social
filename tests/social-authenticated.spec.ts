@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator, type BrowserContext } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
 // Authenticated coverage for the social-redesign feature branch. Requires
 // two pre-seeded accounts (created via /api/auth/sign-up/email against a
@@ -6,6 +6,7 @@ import { test, expect, type Page, type Locator, type BrowserContext } from '@pla
 // against a locally running app (PLAYWRIGHT_BASE_URL), never production.
 const USER_A = { email: 'tester-a@example.com', password: 'TestPass123!' };
 const USER_B = { email: 'tester-b@example.com', password: 'TestPass123!' };
+const authCookieCache = new Map<string, Awaited<ReturnType<BrowserContext['cookies']>>>();
 
 async function dismissCookieNotice(page: Page) {
   const accept = page.getByRole('button', { name: 'Supratau' });
@@ -15,6 +16,18 @@ async function dismissCookieNotice(page: Page) {
 }
 
 async function login(page: Page, user: { email: string; password: string }) {
+  const cachedCookies = authCookieCache.get(user.email);
+  if (cachedCookies) {
+    await page.context().addCookies(cachedCookies);
+    await page.goto('/home');
+    await page.waitForURL(/\/home/, { timeout: 60000 });
+    await dismissCookieNotice(page);
+    // Better Auth may rotate the session cookie while the home page restores
+    // the session; carry that refreshed cookie into the next isolated context.
+    authCookieCache.set(user.email, await page.context().cookies());
+    return;
+  }
+
   await page.goto('/auth/login');
   await dismissCookieNotice(page);
   await page.getByPlaceholder('john@example.com').fill(user.email);
@@ -22,19 +35,7 @@ async function login(page: Page, user: { email: string; password: string }) {
   await page.getByRole('button', { name: 'Prisijungti' }).click();
   await page.waitForURL(/\/home/, { timeout: 60000 });
   await dismissCookieNotice(page);
-}
-
-// The reaction picker opens on a held pointer-down (>450ms), not a click.
-// hover() + page.mouse.down()/up() is unreliable because the last-known
-// pointer position can drift; move explicitly to the element's center.
-async function longPress(page: Page, locator: Locator) {
-  await expect(locator).toBeVisible();
-  const box = await locator.boundingBox({ timeout: 60000 });
-  if (!box) throw new Error('longPress target has no bounding box');
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(700);
-  await page.mouse.up();
+  authCookieCache.set(user.email, await page.context().cookies());
 }
 
 async function createPost(page: Page, content: string) {
@@ -72,7 +73,7 @@ async function createPost(page: Page, content: string) {
   return card;
 }
 
-test.describe.serial('Social features (authenticated)', () => {
+test.describe('Social features (authenticated)', () => {
   test.describe.configure({ timeout: 120000 });
 
   test('create a post', async ({ page }) => {
@@ -92,17 +93,20 @@ test.describe.serial('Social features (authenticated)', () => {
 
     // add: tap toggles the default 'like' reaction
     await reactButton.click();
+    const trigger = card.getByTestId('reaction-picker-trigger');
+    await expect(trigger).toBeEnabled();
     const likeButton = card.getByRole('button', { name: /Reakcija: Patinka/ });
     await expect(likeButton).toContainText('1');
     // accessibility: when the active reaction really is 'like', a tap really
     // does remove it — the label's claim matches the click's real effect.
     await expect(likeButton).toHaveAttribute('aria-label', /pašalintumėte/);
 
-    // change: long-press opens the picker, pick a different reaction
-    await longPress(page, card.getByRole('button', { name: /Reakcija: Patinka/ }));
+    // change: the dedicated picker trigger opens the reaction menu
+    await trigger.click();
     const picker = card.getByRole('menu', { name: 'Pasirinkite reakciją' });
     await expect(picker).toBeVisible();
-    await picker.getByRole('menuitemradio', { name: 'Super' }).click();
+    await picker.getByRole('menuitemradio', { name: /Super/ }).click();
+    await expect(trigger).toBeEnabled();
     const reactedButton = card.getByRole('button', { name: /Reakcija: Super/ });
     await expect(reactedButton).toBeVisible();
     // switching type does not change the total count (still one reaction)
@@ -118,8 +122,9 @@ test.describe.serial('Social features (authenticated)', () => {
     // remove: re-opening the picker and choosing the same active reaction
     // toggles it off (a plain tap on the main button always targets 'like'
     // specifically, matching the Facebook-style default-reaction pattern).
-    await longPress(page, reactedButton);
-    await card.getByRole('menu', { name: 'Pasirinkite reakciją' }).getByRole('menuitemradio', { name: 'Super' }).click();
+    await trigger.click();
+    await card.getByRole('menu', { name: 'Pasirinkite reakciją' }).getByRole('menuitemradio', { name: /Super/ }).click();
+    await expect(trigger).toBeEnabled();
     await expect(card.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' })).toContainText('0');
   });
 
@@ -175,6 +180,7 @@ test.describe.serial('Social features (authenticated)', () => {
     await expect(card.getByTestId('reaction-option-love')).toBeFocused();
     await expect(card.getByTestId('reaction-option-love')).toHaveAttribute('aria-checked', 'true');
     await page.keyboard.press('Enter');
+    await expect(trigger).toBeEnabled();
     await expect(card.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' })).toContainText('0');
   });
 
@@ -320,5 +326,139 @@ test.describe.serial('Social features (authenticated)', () => {
       },
     });
     expect([401, 403]).toContain(response.status());
+  });
+
+  test('feed tab switching', async ({ page }) => {
+    await login(page, USER_A);
+    await page.goto('/home');
+
+    await page.getByRole('link', { name: 'Sekami' }).click();
+    await expect(page).toHaveURL(/tab=following/);
+
+    await page.getByRole('link', { name: 'Naujausi' }).click();
+    await expect(page).toHaveURL(/tab=latest/);
+
+    await page.getByRole('link', { name: 'Tau' }).click();
+    await expect(page).toHaveURL(/tab=for_you/);
+  });
+
+  test('comment creation', async ({ page }) => {
+    await login(page, USER_A);
+    const unique = `Comment target ${Date.now()}`;
+    const card = await createPost(page, unique);
+
+    // Click the comment button to show comments
+    await card.getByRole('button', { name: 'Rodyti komentarus' }).click();
+
+    // Type a comment and submit
+    const commentText = `Test comment ${Date.now()}`;
+    const commentInput = card.getByPlaceholder('Parašykite komentarą...');
+    await commentInput.fill(commentText);
+    await card.getByRole('button', { name: 'Paskelbti komentarą' }).click();
+
+    // Verify the comment appears
+    await expect(card.getByText(commentText)).toBeVisible();
+  });
+
+  test('follow and unfollow', async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    try {
+      const pageA = await contextA.newPage();
+      const pageB = await contextB.newPage();
+
+      // Login as USER_B and create a post
+      await login(pageB, USER_B);
+      const unique = `Follow test post ${Date.now()}`;
+      await createPost(pageB, unique);
+
+      // Get USER_B's profile URL from the navbar
+      const profileHref = await pageB.locator('a[href^="/u/"]').first().getAttribute('href');
+      expect(profileHref).toBeTruthy();
+
+      // Login as USER_A and visit USER_B's profile
+      await login(pageA, USER_A);
+      await pageA.goto(profileHref!);
+
+      // Click follow button
+      const followButton = pageA.getByRole('button', { name: 'Sekti' });
+      await expect(followButton).toBeVisible();
+      await followButton.click();
+
+      // Verify button changes to unfollow
+      const unfollowButton = pageA.getByRole('button', { name: 'Nebesekti' });
+      await expect(unfollowButton).toBeVisible();
+
+      // Click unfollow
+      await unfollowButton.click();
+
+      // Verify button changes back to follow
+      await expect(followButton).toBeVisible();
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
+  test('notification appears after like', async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    try {
+      const pageA = await contextA.newPage();
+      const pageB = await contextB.newPage();
+
+      // Login as USER_B and create a post
+      await login(pageB, USER_B);
+      const unique = `Notification target ${Date.now()}`;
+      const card = await createPost(pageB, unique);
+      const postId = await card.getAttribute('data-post-id');
+      expect(postId).toBeTruthy();
+
+      // Login as USER_A and like USER_B's post
+      await login(pageA, USER_A);
+      await pageA.goto('/home?tab=latest');
+      const targetCard = pageA.getByTestId('post-card').filter({ hasText: unique }).first();
+      await expect(targetCard).toBeVisible();
+      await targetCard.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' }).click();
+      await expect(targetCard.getByTestId('reaction-picker-trigger')).toBeEnabled();
+
+      // USER_B is already authenticated in this context; navigate directly.
+      await pageB.goto('/notifications');
+
+      // Verify a notification about the like is visible
+      await expect(pageB.locator(`a[href="/posts/${postId}"]`)).toContainText(/pamėgo jūsų įrašą/);
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
+  test('search for users', async ({ page }) => {
+    await login(page, USER_A);
+    await page.goto('/search');
+
+    // Type a username in the search box
+    const searchInput = page.getByPlaceholder('Ieškokite žmonių arba įrašų...');
+    await searchInput.fill('Tester B');
+
+    // The result assertion waits for the debounced request without a fixed delay.
+    await expect(page.getByText('Tester B', { exact: true })).toBeVisible();
+  });
+
+  test('mobile navigation', async ({ page }) => {
+    // Set viewport to mobile size
+    await page.setViewportSize({ width: 375, height: 667 });
+    await login(page, USER_A);
+
+    // Verify bottom nav is visible
+    const bottomNav = page.locator('nav').filter({ has: page.locator('a[href="/home"]') }).last();
+    await expect(bottomNav).toBeVisible();
+
+    // Verify bottom nav has links to home, services, search, messages, profile
+    await expect(bottomNav.getByRole('link', { name: 'Pradžia' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Paslaugos' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Paieška' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Žinutės' })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: 'Profilis' })).toBeVisible();
   });
 });

@@ -8,6 +8,36 @@ import { SkeletonCard } from '@/components/Skeleton'
 
 type TabKey = 'for_you' | 'following' | 'latest'
 
+function dedupePosts(items: any[]) {
+  const seenIds = new Set<string>()
+  const seenFeedKeys = new Set<string>()
+
+  return items.filter((post) => {
+    const id = typeof post?.id === 'string' ? post.id : ''
+    const feedKey = typeof post?.feed_key === 'string' ? post.feed_key : ''
+    if ((id && seenIds.has(id)) || (feedKey && seenFeedKeys.has(feedKey))) return false
+    if (id) seenIds.add(id)
+    if (feedKey) seenFeedKeys.add(feedKey)
+    return true
+  })
+}
+
+function appendUniquePosts(existing: any[], incoming: any[]) {
+  const result = [...existing]
+  const seenIds = new Set(existing.map((post) => post?.id).filter(Boolean))
+  const seenFeedKeys = new Set(existing.map((post) => post?.feed_key).filter(Boolean))
+
+  for (const post of incoming) {
+    if (post?.id && seenIds.has(post.id)) continue
+    if (post?.feed_key && seenFeedKeys.has(post.feed_key)) continue
+    if (post?.id) seenIds.add(post.id)
+    if (post?.feed_key) seenFeedKeys.add(post.feed_key)
+    result.push(post)
+  }
+
+  return result
+}
+
 export default function FeedListClient(props: {
   initialPosts: any[]
   tab: TabKey
@@ -15,7 +45,7 @@ export default function FeedListClient(props: {
   currentUserRole?: string
 }) {
   const { initialPosts, tab, currentUserId, currentUserRole } = props
-  const [posts, setPosts] = useState<any[]>(initialPosts || [])
+  const [posts, setPosts] = useState<any[]>(() => dedupePosts(initialPosts || []))
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState((initialPosts || []).length === 20)
@@ -27,7 +57,7 @@ export default function FeedListClient(props: {
   const controllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    setPosts(initialPosts || [])
+    setPosts(dedupePosts(initialPosts || []))
     setPage(0)
     setHasMore((initialPosts || []).length === 20)
     setLoading(false)
@@ -78,7 +108,7 @@ export default function FeedListClient(props: {
       })
       if (!res.ok) throw new Error('Failed to fetch feed')
       const json = await res.json()
-      const freshPosts = json.posts || []
+      const freshPosts = dedupePosts(json.posts || [])
       setPosts(freshPosts)
       setPage(0)
       setHasMore(Boolean(json.hasMore))
@@ -104,11 +134,8 @@ export default function FeedListClient(props: {
       })
       if (!res.ok) throw new Error('Failed to fetch feed')
       const json = await res.json()
-      const newPosts = json.posts || []
-      setPosts((prev) => {
-        const existingIds = new Set(prev.map((p) => p.feed_key || p.id))
-        return [...prev, ...newPosts.filter((p: any) => !existingIds.has(p.feed_key || p.id))]
-      })
+      const newPosts = dedupePosts(json.posts || [])
+      setPosts((prev) => appendUniquePosts(prev, newPosts))
       setPage(nextPage)
       setHasMore(Boolean(json.hasMore))
     } catch (e) {

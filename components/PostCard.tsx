@@ -132,28 +132,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [localContent, setLocalContent] = useState(post.content)
   const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [commentError, setCommentError] = useState('')
   const commentSubmitLockRef = useRef(false)
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressTriggeredRef = useRef(false)
   const reactionTriggerRef = useRef<HTMLButtonElement | null>(null)
   const reactionMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([])
   const [focusedReactionIndex, setFocusedReactionIndex] = useState(0)
   const reactionMenuId = `reaction-menu-${post.id}`
   const reactionTypes = Object.keys(REACTIONS) as ReactionType[]
-
-  const startLongPress = () => {
-    longPressTimerRef.current = setTimeout(() => {
-      longPressTriggeredRef.current = true
-      openReactionPicker()
-    }, 450)
-  }
-
-  const cancelLongPress = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-  }
 
   const openReactionPicker = () => {
     setShowReactionPicker(true)
@@ -164,8 +149,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     if (returnFocus) reactionTriggerRef.current?.focus()
   }
 
-  // Move focus into the picker whenever it opens (mouse long-press, touch,
-  // or keyboard) so keyboard/screen-reader users land on the active
+  // Move focus into the picker whenever it opens so keyboard/screen-reader
+  // users land on the active
   // reaction without having to tab through every emoji. useLayoutEffect
   // (not useEffect+rAF) so focus lands synchronously in the same paint —
   // an extra animation frame of delay here was enough for fast
@@ -311,8 +296,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   // specifically (see handleReact) — it does not toggle off whatever
   // reaction is currently active. Screen-reader text must describe that
   // real outcome: removing the reaction only when it's already 'like',
-  // switching to 'like' otherwise. (Long-press opens the picker, which is
-  // the only way to remove or set a non-'like' reaction.)
+  // switching to 'like' otherwise. The chevron button opens the full picker.
   const mainButtonLabel = !userReaction
     ? 'Reaguoti į įrašą (patinka)'
     : userReaction === 'like'
@@ -343,6 +327,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       const { error } = await supabase.from('reactions').delete().eq('user_id', currentUserId).eq('post_id', post.id)
       if (error) rollback()
       setReactionLoading(false)
+      // Return focus to trigger after removing reaction
+      reactionTriggerRef.current?.focus()
       return
     }
 
@@ -353,6 +339,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     if (error) {
       rollback()
       setReactionLoading(false)
+      reactionTriggerRef.current?.focus()
       return
     }
 
@@ -372,6 +359,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       )
     }
     setReactionLoading(false)
+    // Return focus to trigger after selecting a reaction
+    reactionTriggerRef.current?.focus()
   }
 
   const loadComments = async () => {
@@ -486,48 +475,80 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     if (!currentUserId || !commentText.trim() || commentLoading || commentSubmitLockRef.current) return
     commentSubmitLockRef.current = true
     setCommentLoading(true)
+    setCommentError('')
     const content = commentText.trim()
+    const tempId = `temp-${Date.now()}`
+
+    // Optimistic update
+    const optimisticComment = {
+      id: tempId,
+      post_id: post.id,
+      user_id: currentUserId,
+      content,
+      created_at: new Date().toISOString(),
+      profiles: {
+        username: '',
+        display_name: 'Jūs',
+        avatar_path: null,
+      },
+      _optimistic: true,
+    }
+    setComments(prev => [...prev, optimisticComment])
+    setCommentText('')
+    setCommentCount(prev => prev + 1)
+
     const { data: newComment, error } = await supabase.from('comments').insert({
       post_id: post.id,
       user_id: currentUserId,
       content
     }).select('id, post_id, user_id, content, created_at, profiles:user_id(username, display_name, avatar_path)').single()
-    if (!error) {
-      setCommentText('')
-      setCommentCount(prev => prev + 1)
-      setComments(prev => [...prev, newComment])
-      if (!showComments) {
-        setShowComments(true)
-      }
-      // Keep focus on the comment input after a successful reply so
-      // keyboard/screen-reader users aren't dropped back to the top of the card.
-      commentInputRef.current?.focus()
 
-      if (post.user_id && post.user_id !== currentUserId) {
-        await supabase.from('notifications').insert({
-          user_id: post.user_id,
-          actor_id: currentUserId,
-          type: 'comment',
-          target_id: newComment?.id || post.id,
-          target_type: newComment?.id ? 'comment' : 'post',
-        })
-        await sendPushNotification(
-          post.user_id,
-          'Naujas komentaras',
-          content.slice(0, 100),
-          `/u/${post.profiles?.username}`
-        )
-      }
-
-      await notifyMentions({
-        supabase,
-        content,
-        actorId: currentUserId,
-        targetId: newComment?.id || post.id,
-        targetType: newComment?.id ? 'comment' : 'post',
-        excludeUserIds: post.user_id ? [post.user_id] : [],
-      })
+    if (error) {
+      // Rollback: remove optimistic comment
+      setComments(prev => prev.filter(c => c.id !== tempId))
+      setCommentCount(prev => Math.max(0, prev - 1))
+      setCommentText(content) // restore text
+      setCommentError('Nepavyko paskelbti komentaro. Bandykite dar kartą.')
+      setCommentLoading(false)
+      commentSubmitLockRef.current = false
+      return
     }
+
+    // Replace temp comment with real one
+    setComments(prev => prev.map(c => c.id === tempId ? newComment : c))
+
+    if (!showComments) {
+      setShowComments(true)
+    }
+
+    // Keep focus on the comment input after a successful submission.
+    commentInputRef.current?.focus()
+
+    if (post.user_id && post.user_id !== currentUserId) {
+      await supabase.from('notifications').insert({
+        user_id: post.user_id,
+        actor_id: currentUserId,
+        type: 'comment',
+        target_id: newComment?.id || post.id,
+        target_type: newComment?.id ? 'comment' : 'post',
+      })
+      await sendPushNotification(
+        post.user_id,
+        'Naujas komentaras',
+        content.slice(0, 100),
+        `/u/${post.profiles?.username}`
+      )
+    }
+
+    await notifyMentions({
+      supabase,
+      content,
+      actorId: currentUserId,
+      targetId: newComment?.id || post.id,
+      targetType: newComment?.id ? 'comment' : 'post',
+      excludeUserIds: post.user_id ? [post.user_id] : [],
+    })
+
     setCommentLoading(false)
     commentSubmitLockRef.current = false
   }
@@ -866,18 +887,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="relative flex items-center">
               <button
                 type="button"
-                onClick={() => {
-                  if (longPressTriggeredRef.current) {
-                    longPressTriggeredRef.current = false
-                    return
-                  }
-                  void handleReact('like')
-                }}
-                onMouseDown={startLongPress}
-                onMouseUp={cancelLongPress}
-                onMouseLeave={cancelLongPress}
-                onTouchStart={startLongPress}
-                onTouchEnd={cancelLongPress}
+                onClick={() => void handleReact('like')}
                 disabled={reactionLoading}
                 aria-label={mainButtonLabel}
                 aria-pressed={Boolean(userReaction)}
@@ -901,9 +911,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 aria-haspopup="menu"
                 aria-expanded={showReactionPicker}
                 aria-controls={reactionMenuId}
-                aria-label="Visos reakcijos"
-                title="Visos reakcijos"
-                className="flex items-center justify-center min-w-[28px] min-h-[44px] text-slate-300 hover:text-[#E94560] disabled:opacity-60 transition-colors"
+                aria-label="Atidaryti reakcijų pasirinkimą"
+                title="Daugiau reakcijų"
+                className="flex items-center justify-center min-w-[44px] min-h-[44px] text-slate-300 hover:text-[#E94560] disabled:opacity-60 transition-colors"
               >
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
@@ -936,7 +946,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         onKeyDown={(event) => handleReactionMenuKeyDown(event, index)}
                         title={REACTIONS[type].label}
                         aria-label={userReaction === type ? `${REACTIONS[type].label} (pasirinkta). Paspauskite, kad pašalintumėte.` : REACTIONS[type].label}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${userReaction === type ? 'bg-slate-100' : ''}`}
+                        className={`flex h-11 w-11 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${userReaction === type ? 'bg-slate-100' : ''}`}
                       >
                         {REACTIONS[type].emoji}
                       </button>
@@ -1064,7 +1074,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           {/* Comments section */}
           {showComments && (
             <div className="mt-3 sm:mt-4 space-y-3 border-t border-slate-100 pt-3 sm:pt-4">
-              {loadingComments ? (
+              {loadingComments && comments.length === 0 ? (
                 <div className="space-y-2 py-2">
                   <div className="flex gap-2 animate-pulse">
                     <div className="w-8 h-8 rounded-full bg-slate-200" />
@@ -1092,7 +1102,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     const canModerateComment = isCommentOwner || isAdmin
                     const isEditingThis = editingCommentId === c.id
                     return (
-                      <div key={c.id} className="flex gap-2 sm:gap-3 animate-fade-in-up">
+                      <div key={c.id} className={`flex gap-2 sm:gap-3 animate-fade-in-up ${c._optimistic ? 'opacity-60' : ''}`}>
                         <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white shadow-sm">
                           {c.profiles?.avatar_path ? (
                             <Image
@@ -1258,6 +1268,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       </div>
                     )
                   })}
+
                   {comments.length === 0 && (
                     <div className="text-center py-4">
                       <MessageCircle size={24} className="mx-auto text-slate-300 mb-2" />
@@ -1290,26 +1301,26 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     void handleComment()
                   }}
                 >
-                  <input
-                    ref={commentInputRef}
-                    type="text"
-                    value={commentText}
-                    onChange={e => setCommentText(e.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        void handleComment()
-                      }
-                    }}
-                    placeholder="Write a comment..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 text-slate-800 min-h-[44px] placeholder:text-slate-400 transition-all"
-                    maxLength={500}
-                    disabled={commentLoading}
-                  />
+                  <div className="flex-1 relative">
+                    {commentError && (
+                      <p className="text-xs text-red-500 mb-1 px-3">{commentError}</p>
+                    )}
+                    <input
+                      ref={commentInputRef}
+                      type="text"
+                      value={commentText}
+                      onChange={e => { setCommentText(e.target.value); setCommentError('') }}
+                      placeholder="Parašykite komentarą..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 text-slate-800 min-h-[44px] placeholder:text-slate-400 transition-all"
+                      maxLength={500}
+                      disabled={commentLoading}
+                    />
+                  </div>
                   <button
                     type="submit"
                     disabled={!commentText.trim() || commentLoading}
-                    className="bg-[#1A1A2E] text-white p-2 rounded-full hover:bg-[#16213E] disabled:opacity-50 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shadow-sm hover:shadow-md"
+                    aria-label="Paskelbti komentarą"
+                    className="bg-[#1A1A2E] text-white p-2 rounded-full hover:bg-[#16213E] disabled:opacity-50 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shadow-sm hover:shadow-md self-end"
                   >
                     <Send size={16} />
                   </button>
