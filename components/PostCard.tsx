@@ -95,6 +95,18 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState('')
   const [commentCount, setCommentCount] = useState(post.comments?.[0]?.count || 0)
+  const [commentsHasMore, setCommentsHasMore] = useState(false)
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false)
+  const [commentsError, setCommentsError] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingCommentText, setEditingCommentText] = useState('')
+  const [editingCommentLoading, setEditingCommentLoading] = useState(false)
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null)
+  const [commentReportReason, setCommentReportReason] = useState('')
+  const [commentReportSentId, setCommentReportSentId] = useState<string | null>(null)
+  const commentInputRef = useRef<HTMLInputElement | null>(null)
+  const COMMENT_PAGE_SIZE = 10
   const [reposted, setReposted] = useState(post.user_reposted || false)
   const [repostCount, setRepostCount] = useState(post.reposts?.[0]?.count || 0)
   const [bookmarked, setBookmarked] = useState(post.user_bookmarked || false)
@@ -257,22 +269,30 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     post.reposts,
   ])
 
-  // Load comments on mount since comment section is visible by default
+  // Load the first page of comments on mount since the section is visible
+  // by default; further comments are paged in via "load more".
   useEffect(() => {
     let active = true
 
     const loadInitialComments = async () => {
       setLoadingComments(true)
-      const { data } = await supabase
+      setCommentsError(false)
+      const { data, error } = await supabase
         .from('comments')
         .select('*, profiles:user_id(username, display_name, avatar_path)')
         .eq('post_id', post.id)
         .eq('status', 'active')
         .order('created_at', { ascending: true })
-      const rows = data || []
+        .range(0, COMMENT_PAGE_SIZE - 1)
       if (!active) return
+      if (error) {
+        setCommentsError(true)
+        setLoadingComments(false)
+        return
+      }
+      const rows = data || []
       setComments(rows)
-      setCommentCount(rows.length)
+      setCommentsHasMore(rows.length === COMMENT_PAGE_SIZE)
       setLoadingComments(false)
     }
     void loadInitialComments()
@@ -351,21 +371,110 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
   const loadComments = async () => {
     setLoadingComments(true)
-    const { data } = await supabase
+    setCommentsError(false)
+    const { data, error } = await supabase
       .from('comments')
       .select('*, profiles:user_id(username, display_name, avatar_path)')
       .eq('post_id', post.id)
       .eq('status', 'active')
       .order('created_at', { ascending: true })
+      .range(0, COMMENT_PAGE_SIZE - 1)
+    if (error) {
+      setCommentsError(true)
+      setLoadingComments(false)
+      return
+    }
     const rows = data || []
     setComments(rows)
-    setCommentCount(rows.length)
+    setCommentsHasMore(rows.length === COMMENT_PAGE_SIZE)
     setLoadingComments(false)
+  }
+
+  const loadMoreComments = async () => {
+    if (loadingMoreComments || !commentsHasMore) return
+    setLoadingMoreComments(true)
+    setCommentsError(false)
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, profiles:user_id(username, display_name, avatar_path)')
+      .eq('post_id', post.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: true })
+      .range(comments.length, comments.length + COMMENT_PAGE_SIZE - 1)
+    if (error) {
+      setCommentsError(true)
+      setLoadingMoreComments(false)
+      return
+    }
+    const rows = data || []
+    setComments((prev) => {
+      const existingIds = new Set(prev.map((c) => c.id))
+      return [...prev, ...rows.filter((c) => !existingIds.has(c.id))]
+    })
+    setCommentsHasMore(rows.length === COMMENT_PAGE_SIZE)
+    setLoadingMoreComments(false)
   }
 
   const toggleComments = async () => {
     if (!showComments) await loadComments()
     setShowComments(!showComments)
+  }
+
+  const startEditComment = (comment: { id: string; content: string }) => {
+    setEditingCommentId(comment.id)
+    setEditingCommentText(comment.content)
+  }
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null)
+    setEditingCommentText('')
+  }
+
+  const saveEditComment = async (commentId: string) => {
+    const trimmed = editingCommentText.trim()
+    if (!trimmed || editingCommentLoading) return
+    setEditingCommentLoading(true)
+    const { data: updated, error } = await supabase
+      .from('comments')
+      .update({ content: trimmed })
+      .eq('id', commentId)
+      .eq('user_id', currentUserId)
+      .select('content')
+      .maybeSingle()
+    if (!error && updated) {
+      setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, content: updated.content } : c)))
+      setEditingCommentId(null)
+      setEditingCommentText('')
+    }
+    setEditingCommentLoading(false)
+  }
+
+  const deleteComment = async (commentId: string) => {
+    const previousComments = comments
+    setComments((prev) => prev.filter((c) => c.id !== commentId))
+    setCommentCount((prev) => Math.max(0, prev - 1))
+    setDeletingCommentId(null)
+    const { error } = await supabase.from('comments').update({ status: 'deleted' }).eq('id', commentId)
+    if (error) {
+      setComments(previousComments)
+      setCommentCount((prev) => prev + 1)
+    }
+  }
+
+  const submitCommentReport = async (commentId: string) => {
+    if (!currentUserId || !commentReportReason.trim()) return
+    await supabase.from('reports').insert({
+      reporter_id: currentUserId,
+      target_type: 'comment',
+      target_id: commentId,
+      reason: commentReportReason.trim(),
+    })
+    setCommentReportSentId(commentId)
+    setTimeout(() => {
+      setReportingCommentId(null)
+      setCommentReportReason('')
+      setCommentReportSentId(null)
+    }, 1500)
   }
 
   const handleComment = async () => {
@@ -385,6 +494,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       if (!showComments) {
         setShowComments(true)
       }
+      // Keep focus on the comment input after a successful reply so
+      // keyboard/screen-reader users aren't dropped back to the top of the card.
+      commentInputRef.current?.focus()
 
       if (post.user_id && post.user_id !== currentUserId) {
         await supabase.from('notifications').insert({
@@ -957,49 +1069,210 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     </div>
                   </div>
                 </div>
+              ) : commentsError && comments.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-4 text-center">
+                  <p className="text-sm text-slate-500">Nepavyko įkelti komentarų.</p>
+                  <button
+                    type="button"
+                    onClick={loadComments}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 min-h-[36px] transition-all"
+                  >
+                    Bandyti dar kartą
+                  </button>
+                </div>
               ) : (
                 <>
-                  {comments.map((c) => (
-                    <div key={c.id} className="flex gap-2 sm:gap-3 animate-fade-in-up">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white shadow-sm">
-                        {c.profiles?.avatar_path ? (
-                          <Image
-                            src={resolveSupabaseStorageUrl(
-                              (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
-                              c.profiles.avatar_path
-                            )!}
-                            alt=""
-                            fill
-                            sizes="32px"
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-blue-600">
-                            {c.profiles?.display_name?.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-slate-900 hover:underline">
-                            {c.profiles?.display_name}
-                          </Link>
-                          <span className="text-slate-400 text-xs">
-                            {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
-                          </span>
+                  {comments.map((c) => {
+                    const isCommentOwner = currentUserId === c.user_id
+                    const canModerateComment = isCommentOwner || isAdmin
+                    const isEditingThis = editingCommentId === c.id
+                    return (
+                      <div key={c.id} className="flex gap-2 sm:gap-3 animate-fade-in-up">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white shadow-sm">
+                          {c.profiles?.avatar_path ? (
+                            <Image
+                              src={resolveSupabaseStorageUrl(
+                                (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+                                c.profiles.avatar_path
+                              )!}
+                              alt=""
+                              fill
+                              sizes="32px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-blue-600">
+                              {c.profiles?.display_name?.charAt(0).toUpperCase()}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-slate-600 text-xs sm:text-sm whitespace-pre-wrap break-words">
-                          <ParsedContent content={c.content} />
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                              <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-slate-900 hover:underline truncate">
+                                {c.profiles?.display_name}
+                              </Link>
+                              <span className="text-slate-400 text-xs shrink-0">
+                                {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            {canModerateComment && !isEditingThis && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                {isCommentOwner && (
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditComment(c)}
+                                    aria-label="Redaguoti komentarą"
+                                    title="Redaguoti komentarą"
+                                    className="p-1 text-slate-300 hover:text-blue-600 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center"
+                                  >
+                                    <Pencil size={13} />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingCommentId(c.id)}
+                                  aria-label="Ištrinti komentarą"
+                                  title="Ištrinti komentarą"
+                                  className="p-1 text-slate-300 hover:text-red-500 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            )}
+                            {currentUserId && !isCommentOwner && (
+                              <button
+                                type="button"
+                                onClick={() => setReportingCommentId(c.id)}
+                                aria-label="Pranešti apie komentarą"
+                                title="Pranešti apie komentarą"
+                                className="p-1 text-slate-300 hover:text-amber-500 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center shrink-0"
+                              >
+                                <AlertCircle size={13} />
+                              </button>
+                            )}
+                          </div>
+
+                          {isEditingThis ? (
+                            <div className="mt-1 flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={editingCommentText}
+                                onChange={(e) => setEditingCommentText(e.target.value)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    void saveEditComment(c.id)
+                                  } else if (event.key === 'Escape') {
+                                    cancelEditComment()
+                                  }
+                                }}
+                                autoFocus
+                                maxLength={500}
+                                className="flex-1 bg-slate-50 border border-blue-300 rounded-full px-3 py-1.5 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/10 text-slate-800 min-h-[36px]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void saveEditComment(c.id)}
+                                disabled={editingCommentLoading || !editingCommentText.trim()}
+                                aria-label="Išsaugoti komentarą"
+                                className="text-blue-600 disabled:opacity-50 min-w-[28px] min-h-[28px] flex items-center justify-center"
+                              >
+                                <Check size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditComment}
+                                aria-label="Atšaukti redagavimą"
+                                className="text-slate-400 min-w-[28px] min-h-[28px] flex items-center justify-center"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-slate-600 text-xs sm:text-sm whitespace-pre-wrap break-words">
+                              <ParsedContent content={c.content} />
+                            </p>
+                          )}
+
+                          {deletingCommentId === c.id && (
+                            <div className="mt-2 flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2">
+                              <span className="text-xs text-red-600">Ištrinti komentarą?</span>
+                              <button
+                                type="button"
+                                onClick={() => void deleteComment(c.id)}
+                                className="text-xs font-semibold text-red-600 hover:underline min-h-[28px]"
+                              >
+                                Ištrinti
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeletingCommentId(null)}
+                                className="text-xs font-semibold text-slate-500 hover:underline min-h-[28px]"
+                              >
+                                Atšaukti
+                              </button>
+                            </div>
+                          )}
+
+                          {reportingCommentId === c.id && (
+                            <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                              {commentReportSentId === c.id ? (
+                                <p className="text-xs font-semibold text-emerald-600">Pranešimas išsiųstas. Ačiū!</p>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={commentReportReason}
+                                    onChange={(e) => setCommentReportReason(e.target.value)}
+                                    placeholder="Kodėl pranešate?"
+                                    maxLength={500}
+                                    className="flex-1 bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-amber-500/10 min-h-[36px]"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => void submitCommentReport(c.id)}
+                                    disabled={!commentReportReason.trim()}
+                                    className="text-xs font-semibold text-amber-600 hover:underline disabled:opacity-50 min-h-[28px]"
+                                  >
+                                    Siųsti
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setReportingCommentId(null); setCommentReportReason('') }}
+                                    className="text-xs font-semibold text-slate-500 hover:underline min-h-[28px]"
+                                  >
+                                    Atšaukti
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   {comments.length === 0 && (
                     <div className="text-center py-4">
                       <MessageCircle size={24} className="mx-auto text-slate-300 mb-2" />
-                      <p className="text-sm text-slate-400">No comments yet. Be the first!</p>
+                      <p className="text-sm text-slate-400">Komentarų dar nėra. Būkite pirmi!</p>
                     </div>
+                  )}
+                  {commentsHasMore && (
+                    <div className="text-center pt-1">
+                      <button
+                        type="button"
+                        onClick={loadMoreComments}
+                        disabled={loadingMoreComments}
+                        className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60 min-h-[36px] transition-all"
+                      >
+                        {loadingMoreComments ? 'Kraunama...' : 'Rodyti daugiau komentarų'}
+                      </button>
+                    </div>
+                  )}
+                  {commentsError && comments.length > 0 && (
+                    <p className="text-center text-xs text-slate-400">Nepavyko įkelti daugiau komentarų. Bandykite dar kartą.</p>
                   )}
                 </>
               )}
@@ -1013,6 +1286,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   }}
                 >
                   <input
+                    ref={commentInputRef}
                     type="text"
                     value={commentText}
                     onChange={e => setCommentText(e.target.value)}
