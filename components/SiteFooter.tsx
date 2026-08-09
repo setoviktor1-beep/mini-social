@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const appPathPrefixes = [
   '/admin',
+  '/bookmarks',
   '/dashboard',
   '/discussions',
   '/home',

@@ -50,7 +50,13 @@ function makeUrl(spec: QuerySpec) {
     .join('/')
   const url = new URL(`${baseURL.replace(/\/$/, '')}/${safePath}`)
 
-  if (spec.select) url.searchParams.set('select', spec.select)
+  // PostgREST's select-parameter grammar rejects whitespace next to `(`
+  // (e.g. "fkey( *," fails, "fkey(*," is fine) and outright fails to parse
+  // literal newlines/indentation — which multi-line template literals for
+  // `select` produce all over this codebase. Field/embed names never
+  // contain whitespace, so it's always safe to strip it entirely rather
+  // than just collapsing it.
+  if (spec.select) url.searchParams.set('select', spec.select.replace(/\s+/g, ''))
   for (const [key, value] of spec.filters) {
     url.searchParams.append(key, value)
   }
