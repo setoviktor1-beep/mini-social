@@ -51,6 +51,39 @@ function PostMediaImage({ src }: { src: string }) {
   )
 }
 
+function PostLinkPreviewImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false)
+
+  if (failed) {
+    return (
+      <div className="flex h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 items-center justify-center bg-slate-100 text-slate-400">
+        <LinkIcon size={22} aria-hidden="true" />
+      </div>
+    )
+  }
+
+  // Third-party OG images come from arbitrary hosts (never allowlistable
+  // for next/image's optimizer), so a plain <img> with an error fallback —
+  // same approach as PostMediaImage above.
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      className="h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 object-cover bg-slate-100"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
+
 interface PostCardProps {
   post: {
     id: string
@@ -60,6 +93,10 @@ interface PostCardProps {
     user_id?: string
     youtube_url?: string | null
     youtube_video_id?: string
+    link_preview_url?: string | null
+    link_preview_title?: string | null
+    link_preview_description?: string | null
+    link_preview_image?: string | null
     edited_at?: string | null
     reposted_at?: string
     reposted_by_profile?: { id?: string; username: string; display_name: string; avatar_path?: string | null }
@@ -1204,6 +1241,33 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 allowFullScreen
               />
             </div>
+          )}
+
+          {post.link_preview_url && (
+            <a
+              href={post.link_preview_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Atverti išorinę nuorodą: ${post.link_preview_title || post.link_preview_url} (naujame lange)`}
+              className="mb-3 flex items-stretch gap-3 rounded-2xl border border-slate-200 overflow-hidden hover:bg-slate-50 transition-colors"
+            >
+              {post.link_preview_image ? (
+                <PostLinkPreviewImage src={post.link_preview_image} />
+              ) : (
+                <div className="flex h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 items-center justify-center bg-slate-100 text-slate-400">
+                  <LinkIcon size={22} aria-hidden="true" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1 py-2 pr-3">
+                {post.link_preview_title && (
+                  <p className="text-sm font-semibold text-slate-800 line-clamp-1">{post.link_preview_title}</p>
+                )}
+                {post.link_preview_description && (
+                  <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{post.link_preview_description}</p>
+                )}
+                <p className="text-xs text-slate-400 mt-1 truncate">{safeHostname(post.link_preview_url)}</p>
+              </div>
+            </a>
           )}
 
           {/* Action buttons */}

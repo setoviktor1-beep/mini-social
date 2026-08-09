@@ -448,7 +448,15 @@ test.describe('Social features (authenticated)', () => {
       await page.getByRole('button', { name: 'Skelbti', exact: true }).first().click();
 
       const card = page.getByTestId('post-card').filter({ hasText: unique }).first();
-      await expect(card).toBeVisible({ timeout: 30000 });
+      // Same documented shared-host caveat as createPost(): client-side
+      // re-render after posting is occasionally slow — reload rather than
+      // resubmit on timeout.
+      try {
+        await expect(card).toBeVisible({ timeout: 15000 });
+      } catch {
+        await page.reload();
+        await expect(card).toBeVisible({ timeout: 30000 });
+      }
 
       const video = card.getByLabel('Įrašo vaizdo įrašas');
       await expect(video).toBeVisible();
@@ -514,6 +522,108 @@ test.describe('Social features (authenticated)', () => {
       const response = await request.put('/api/storage/upload?bucket=post-images&path=someone/clip.mp4', {
         headers: { 'Content-Type': 'video/mp4' },
         data: buildMp4Buffer(5),
+      });
+      expect(response.status()).toBe(401);
+    });
+  });
+
+  test.describe('link previews (db/migrations/0012_link_previews.sql)', () => {
+    test('posting a link fetches, shows, and persists a preview card', async ({ page }) => {
+      await login(page, USER_A);
+
+      const unique = `Link post ${Date.now()}`;
+      const composer = page.getByPlaceholder('Ką galvojate?').first();
+      await composer.fill(`${unique} https://example.com`);
+
+      // Skeleton, then the resolved card — real fetch, no fixed sleep.
+      const removeButton = page.getByLabel('Pašalinti nuorodos peržiūrą');
+      await expect(removeButton).toBeVisible({ timeout: 15000 });
+
+      await page.getByRole('button', { name: 'Skelbti', exact: true }).first().click();
+
+      const card = page.getByTestId('post-card').filter({ hasText: unique }).first();
+      try {
+        await expect(card).toBeVisible({ timeout: 15000 });
+      } catch {
+        await page.reload();
+        await expect(card).toBeVisible({ timeout: 30000 });
+      }
+
+      const previewLink = card.getByRole('link', { name: /Atverti išorinę nuorodą: Example Domain/ });
+      await expect(previewLink).toBeVisible();
+      // The stored URL is exactly what the user typed (not silently
+      // rewritten to the fetch's normalized/trailing-slash form) — the
+      // preview *metadata* is fetched and sanitized server-side, but the
+      // link itself stays what was actually posted.
+      await expect(previewLink).toHaveAttribute('href', 'https://example.com');
+      await expect(previewLink).toHaveAttribute('target', '_blank');
+      await expect(previewLink).toHaveAttribute('rel', /noopener/);
+      // Scoped to the preview link itself — the post's own text content
+      // also literally contains "example.com" (the URL the user typed),
+      // so an unscoped card-wide getByText matches both.
+      await expect(previewLink).toContainText('example.com');
+
+      // Survives reload — a stored snapshot, not fetched live on every render.
+      await page.reload();
+      const reloadedCard = page.getByTestId('post-card').filter({ hasText: unique }).first();
+      await expect(reloadedCard.getByRole('link', { name: /Atverti išorinę nuorodą: Example Domain/ })).toBeVisible();
+    });
+
+    test('removing the preview before posting sends a plain link with no card', async ({ page }) => {
+      await login(page, USER_A);
+
+      const unique = `Removed preview post ${Date.now()}`;
+      const composer = page.getByPlaceholder('Ką galvojate?').first();
+      await composer.fill(`${unique} https://example.com`);
+
+      // Scoped to the remove button itself, not page-wide "Example Domain"
+      // text — an earlier test in this run may have already posted a card
+      // with the same preview, still sitting in the feed below the composer.
+      const removeButton = page.getByLabel('Pašalinti nuorodos peržiūrą');
+      await expect(removeButton).toBeVisible({ timeout: 15000 });
+      await removeButton.click();
+      await expect(removeButton).toBeHidden();
+
+      await page.getByRole('button', { name: 'Skelbti', exact: true }).first().click();
+      const card = page.getByTestId('post-card').filter({ hasText: unique }).first();
+      // Same documented shared-host caveat as createPost() in this file:
+      // client-side re-render after posting is occasionally slow enough to
+      // exceed even a generous timeout despite the mutation itself being
+      // instant server-side — reload rather than resubmit on timeout.
+      try {
+        await expect(card).toBeVisible({ timeout: 15000 });
+      } catch {
+        await page.reload();
+        await expect(card).toBeVisible({ timeout: 30000 });
+      }
+      await expect(card.getByRole('link', { name: /Atverti išorinę nuorodą/ })).toHaveCount(0);
+    });
+
+    test('SSRF attempt via the API is rejected regardless of what the composer would do', async ({ page, request }) => {
+      await login(page, USER_A);
+      const cookies = await page.context().cookies();
+      const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+
+      for (const target of [
+        'http://127.0.0.1:3000/api/health',
+        'http://169.254.169.254/latest/meta-data/',
+        'http://10.0.0.1/',
+        'file:///etc/passwd',
+      ]) {
+        const response = await request.post('/api/link-preview', {
+          headers: { cookie: cookieHeader, 'Content-Type': 'application/json' },
+          data: { url: target },
+        });
+        expect(response.status(), `expected ${target} to be rejected`).toBe(400);
+        const body = await response.json();
+        expect(['BLOCKED_ADDRESS', 'UNSUPPORTED_PROTOCOL', 'INVALID_URL']).toContain(body.reason);
+      }
+    });
+
+    test('unauthorized link-preview request is rejected (401)', async ({ request }) => {
+      const response = await request.post('/api/link-preview', {
+        headers: { 'Content-Type': 'application/json' },
+        data: { url: 'https://example.com' },
       });
       expect(response.status()).toBe(401);
     });

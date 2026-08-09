@@ -2,10 +2,10 @@
 import { useState, useEffect, useMemo, useId, useCallback } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
-import { Image as ImageIcon, Video, Film, Send, X, Sparkles, Loader2, Check } from 'lucide-react'
+import { Image as ImageIcon, Video, Film, Send, X, Sparkles, Loader2, Check, Link as LinkIcon } from 'lucide-react'
 import Image from 'next/image'
 import { notifyMentions } from '@/lib/mentions'
-import { extractYoutubeId, normalizeYoutubeUrl, resolveSupabaseStorageUrl } from '@/lib/media'
+import { extractYoutubeId, normalizeYoutubeUrl, resolveSupabaseStorageUrl, extractFirstPreviewableUrl } from '@/lib/media'
 
 const MAX_ATTACHMENTS = 5
 const MAX_CONTENT_LENGTH = 2000
@@ -97,6 +97,13 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [files, setFiles] = useState<File[]>([])
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoError, setVideoError] = useState('')
+  const [linkPreview, setLinkPreview] = useState<{ url: string; title: string | null; description: string | null; image: string | null } | null>(null)
+  const [linkPreviewLoading, setLinkPreviewLoading] = useState(false)
+  const [linkPreviewError, setLinkPreviewError] = useState(false)
+  // The URL a preview was explicitly dismissed for — kept so we don't
+  // immediately refetch it while the user is still editing text around
+  // the same link. Cleared if the content no longer contains that URL.
+  const [dismissedPreviewUrl, setDismissedPreviewUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [postError, setPostError] = useState('')
   const [uploadStep, setUploadStep] = useState('')
@@ -123,6 +130,9 @@ export default function PostComposer({ userId }: { userId: string }) {
     setFiles([])
     setVideoFile(null)
     setVideoError('')
+    setLinkPreview(null)
+    setLinkPreviewError(false)
+    setDismissedPreviewUrl(null)
     setPostError('')
     setLoading(false)
     setAiAssistedApplied(false)
@@ -208,6 +218,55 @@ export default function PostComposer({ userId }: { userId: string }) {
     }
   }, [previews])
 
+  // Debounced link-preview fetch: detect a URL in the content, wait for
+  // typing to settle, then ask the server to fetch/sanitize a preview.
+  // Never fetches from the browser directly — see app/api/link-preview/route.ts.
+  useEffect(() => {
+    const url = extractFirstPreviewableUrl(content)
+
+    if (!url) {
+      setLinkPreview(null)
+      setLinkPreviewError(false)
+      setDismissedPreviewUrl(null)
+      return
+    }
+    if (url === dismissedPreviewUrl) return
+    if (linkPreview?.url === url) return
+
+    setLinkPreviewError(false)
+    const timeout = setTimeout(async () => {
+      setLinkPreviewLoading(true)
+      try {
+        const res = await fetch('/api/link-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        })
+        if (!res.ok) {
+          setLinkPreviewError(true)
+          setLinkPreview(null)
+          return
+        }
+        const data = await res.json()
+        setLinkPreview({ url, title: data.title, description: data.description, image: data.image })
+      } catch {
+        setLinkPreviewError(true)
+        setLinkPreview(null)
+      } finally {
+        setLinkPreviewLoading(false)
+      }
+    }, 600)
+
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, dismissedPreviewUrl])
+
+  const removeLinkPreview = () => {
+    if (linkPreview) setDismissedPreviewUrl(linkPreview.url)
+    setLinkPreview(null)
+    setLinkPreviewError(false)
+  }
+
   const handleAiAction = async (action: 'rewrite' | 'tone' | 'translate' | 'spelling' | 'hashtags') => {
     if (!content.trim() || aiLoading) return
     setAiLoading(action)
@@ -288,11 +347,21 @@ export default function PostComposer({ userId }: { userId: string }) {
       return
     }
 
+    // Only attach the preview if it's still for a URL actually present in
+    // the content being posted — the user may have edited the text after
+    // the preview loaded (e.g. deleted the link) without explicitly
+    // dismissing it.
+    const activePreview = linkPreview && extractFirstPreviewableUrl(finalContent) === linkPreview.url ? linkPreview : null
+
     const { data: post, error } = await supabase.from('posts').insert({
       user_id: userId,
       content: finalContent,
       youtube_url: normalizedYoutubeUrl,
       youtube_video_id: youtubeId,
+      link_preview_url: activePreview?.url ?? null,
+      link_preview_title: activePreview?.title ?? null,
+      link_preview_description: activePreview?.description ?? null,
+      link_preview_image: activePreview?.image ?? null,
     }).select().single()
 
     if (error) {
@@ -417,6 +486,9 @@ export default function PostComposer({ userId }: { userId: string }) {
     setYoutube('')
     setVideoFile(null)
     setVideoError('')
+    setLinkPreview(null)
+    setLinkPreviewError(false)
+    setDismissedPreviewUrl(null)
     setFiles([])
     setUploadStep('')
     setLoading(false)
@@ -523,6 +595,63 @@ export default function PostComposer({ userId }: { userId: string }) {
                 </button>
               </div>
             </div>
+          )}
+
+          {linkPreviewLoading && (
+            <div className="mb-3 sm:mb-4 flex items-center gap-3 rounded-xl border border-slate-200 p-3 animate-pulse">
+              <div className="h-14 w-14 flex-shrink-0 rounded-lg bg-slate-200" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-2/3 rounded bg-slate-200" />
+                <div className="h-3 w-1/3 rounded bg-slate-200" />
+              </div>
+            </div>
+          )}
+
+          {!linkPreviewLoading && linkPreview && (
+            <div className="mb-3 sm:mb-4 group relative flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+              {linkPreview.image ? (
+                <div className="relative h-14 w-14 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200">
+                  {/* Remote OG images come from arbitrary third-party hosts,
+                      so next/image's optimizer (which would need every host
+                      allowlisted) is skipped here — same reasoning as
+                      avatar/post images elsewhere in this app. */}
+                  <img
+                    src={linkPreview.image}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+              ) : (
+                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-400">
+                  <LinkIcon size={20} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                {linkPreview.title && (
+                  <p className="text-sm font-semibold text-slate-800 truncate">{linkPreview.title}</p>
+                )}
+                {linkPreview.description && (
+                  <p className="text-xs text-slate-500 line-clamp-1">{linkPreview.description}</p>
+                )}
+                <p className="text-xs text-slate-400 truncate">{new URL(linkPreview.url).hostname}</p>
+              </div>
+              <button
+                type="button"
+                onClick={removeLinkPreview}
+                aria-label="Pašalinti nuorodos peržiūrą"
+                title="Pašalinti nuorodos peržiūrą"
+                className="absolute top-1 right-1 bg-white/90 text-slate-500 rounded-full p-1 min-w-[28px] min-h-[28px] flex items-center justify-center hover:bg-white hover:text-slate-700 shadow-sm transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {!linkPreviewLoading && linkPreviewError && (
+            <p className="mb-3 sm:mb-4 text-xs text-slate-400">
+              Nepavyko įkelti nuorodos peržiūros — įrašas bus paskelbtas su paprasta nuoroda.
+            </p>
           )}
         </div>
       </div>
