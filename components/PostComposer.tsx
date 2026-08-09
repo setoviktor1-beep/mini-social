@@ -82,6 +82,7 @@ export default function PostComposer({ userId }: { userId: string }) {
   const [aiError, setAiError] = useState('')
   const [aiTone, setAiTone] = useState('draugišką')
   const [aiLanguage, setAiLanguage] = useState('anglų')
+  const [aiAssistedApplied, setAiAssistedApplied] = useState(false)
   const fileInputId = useId()
   // UX5: Memoize supabase client to prevent recreation causing re-render loops
   const supabase = useMemo(() => createClient(), [])
@@ -94,6 +95,7 @@ export default function PostComposer({ userId }: { userId: string }) {
     setFiles([])
     setPostError('')
     setLoading(false)
+    setAiAssistedApplied(false)
   }, [userId])
 
   useEffect(() => {
@@ -145,26 +147,38 @@ export default function PostComposer({ userId }: { userId: string }) {
     setAiLoading(action)
     setAiError('')
     setAiSuggestion('')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 20000)
     try {
       const res = await fetch('/api/ai/compose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, text: content, tone: aiTone, targetLanguage: aiLanguage }),
+        signal: controller.signal,
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
+        const code = data?.error
         setAiError(
-          res.status === 503 ? 'AI įrankiai šiuo metu nepasiekiami.'
-          : res.status === 429 ? 'Pasiekėte AI naudojimo limitą. Bandykite vėliau.'
+          code === 'AI_UNAVAILABLE' ? 'AI įrankiai šiuo metu nepasiekiami. Pabandykite vėliau.'
+          : code === 'QUOTA_EXCEEDED' ? (data?.message || 'Pasiekėte mėnesinę AI naudojimo ribą.')
+          : code === 'RATE_LIMITED' ? 'Per daug AI užklausų per trumpą laiką. Palaukite ir bandykite dar kartą.'
+          : code === 'TEXT_TOO_LONG' ? 'Tekstas per ilgas AI apdorojimui.'
+          : code === 'AI_REQUEST_FAILED' ? 'AI paslauga negrąžino atsakymo. Bandykite dar kartą.'
           : 'Nepavyko gauti AI pasiūlymo. Bandykite dar kartą.'
         )
         return
       }
       setAiSuggestion(data.suggestion || '')
       setAiSuggestionAction(action)
-    } catch {
-      setAiError('Nepavyko prisijungti prie AI paslaugos.')
+    } catch (err) {
+      setAiError(
+        (err as Error)?.name === 'AbortError'
+          ? 'AI užklausa užtruko per ilgai ir buvo nutraukta. Bandykite dar kartą.'
+          : 'Nepavyko prisijungti prie AI paslaugos.'
+      )
     } finally {
+      clearTimeout(timeout)
       setAiLoading(null)
     }
   }
@@ -178,6 +192,7 @@ export default function PostComposer({ userId }: { userId: string }) {
     } else {
       setContent(aiSuggestion)
     }
+    setAiAssistedApplied(true)
     setAiSuggestion('')
     setAiSuggestionAction(null)
     setShowAiPanel(false)
@@ -304,6 +319,7 @@ export default function PostComposer({ userId }: { userId: string }) {
     setShowAiPanel(false)
     setAiSuggestion('')
     setAiSuggestionAction(null)
+    setAiAssistedApplied(false)
     router.refresh()
   }
 
@@ -346,7 +362,7 @@ export default function PostComposer({ userId }: { userId: string }) {
         >
           <textarea
             value={content}
-            onChange={e => setContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))}
+            onChange={e => { setContent(e.target.value.slice(0, MAX_CONTENT_LENGTH)); setAiAssistedApplied(false) }}
             placeholder="Ką galvojate?"
             maxLength={MAX_CONTENT_LENGTH}
             className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-slate-800 placeholder-slate-400 outline-none px-1"
@@ -482,9 +498,16 @@ export default function PostComposer({ userId }: { userId: string }) {
           Enter palieka naują eilutę. YouTube nuorodą galite dėti į atskirą lauką arba vieną pačią į posto tekstą. Nuotraukas taip pat galite tempti ir paleisti čia.
         </p>
         <div className="flex justify-between items-center">
-          <span className={`text-xs ${nearLimit ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
-            {remainingChars}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs ${nearLimit ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
+              {remainingChars}
+            </span>
+            {aiAssistedApplied && (
+              <span className="flex items-center gap-1 text-xs font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+                <Sparkles size={12} /> AI redaguota
+              </span>
+            )}
+          </div>
           <button
             type="button"
             onClick={handlePost}
