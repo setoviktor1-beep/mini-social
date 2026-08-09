@@ -29,15 +29,38 @@ tables, and the reaction-based routing added to `protect_service_request_partici
 ```sql
 BEGIN;
 
+-- Rehydrate `likes` from the current `reactions` table BEFORE dropping
+-- `reactions`. Since 0008, `sync_reaction_to_likes` only mirrors
+-- 'like'-typed rows into `likes` — a user who changed a pre-migration like
+-- to love/laugh/etc. has *no* `likes` row anymore, even though they had
+-- one before 0008 ran. Rollback is downgrading a richer typed-reaction
+-- model back to the old boolean model, so every reaction (regardless of
+-- type) is treated as equivalent to a legacy "like": it's the closest
+-- available signal to "this user engaged with this post", and skipping
+-- this step would silently lose that engagement for anyone who changed
+-- their reaction type after migrating.
+INSERT INTO likes (user_id, post_id, created_at)
+SELECT user_id, post_id, created_at FROM reactions
+ON CONFLICT (user_id, post_id) DO NOTHING;
+
 DROP TRIGGER IF EXISTS sync_reaction_to_likes ON reactions;
 DROP FUNCTION IF EXISTS public.sync_reaction_to_likes();
 DROP TABLE IF EXISTS reactions;
 
+-- 0008 revoked authenticated's direct write access to `likes` as part of
+-- the cutover-safety strategy (see that migration's comments). Restore it
+-- here — without this, rolling back leaves users unable to like/unlike
+-- posts at all, since the pre-0008 client code writes to `likes` directly.
+GRANT INSERT, UPDATE, DELETE ON public.likes TO authenticated;
+
+NOTIFY pgrst, 'reload schema';
+
 COMMIT;
 ```
 
-The `likes` table is untouched by this rollback — it was already the
-source of truth before 0008 and stays populated/correct on its own.
+Automated test for this exact sequence (existing like → change to a
+non-like reaction → rollback → confirm the `likes` row is restored):
+`scripts/test-reactions-rollback.mjs`.
 
 ## 0007_bookmarks_and_mutes.sql
 
@@ -151,3 +174,21 @@ against the production database:
   bookmark/unbookmark, and mute/unmute against the app running on top of
   this migrated schema — see that file and `docs/testing-social-features.md`
   for how to reproduce.
+- Found and fixed a second issue in Codex review: legacy clients/browser
+  tabs could still write directly to `likes` after the 0008 cutover and
+  silently diverge from `reactions` (no reverse sync existed). Fixed by
+  revoking `authenticated`'s write grant on `likes` and making the mirror
+  trigger `SECURITY DEFINER` — see the "cutover safety" comments in
+  `0008_reactions.sql`. `scripts/test-reactions-db.mjs` now also verifies:
+  a legacy direct `INSERT`/`DELETE` on `likes` as `authenticated` is
+  rejected (permission denied, not silently accepted); `likes` has no
+  trigger of its own, so a reactions<->likes recursive trigger loop cannot
+  exist structurally; and a `likes` delete (even as `service_role`, which
+  keeps write access) cannot touch an active non-`'like'` reaction, because
+  non-`'like'` reactions never have a `likes` mirror row to begin with.
+- `scripts/test-reactions-rollback.mjs`: automated test for the exact
+  scenario in the 0008 rollback SQL above — a user likes a post, changes
+  that reaction to a non-`'like'` type (which removes the `likes` mirror
+  row per the trigger), the documented rollback SQL is executed verbatim,
+  and the test confirms the `likes` row exists again afterward with no
+  data loss.

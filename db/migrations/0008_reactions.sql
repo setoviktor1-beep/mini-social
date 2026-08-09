@@ -36,9 +36,15 @@ ON CONFLICT (user_id, post_id) DO NOTHING;
 -- of the 'like'-typed rows in `reactions`, so existing counts/ranking that
 -- haven't been migrated to `reactions(count)` stay correct. Only the 'like'
 -- reaction type is mirrored; other reaction types are reactions-only.
+--
+-- SECURITY DEFINER: this function must keep writing to `likes` even though
+-- `authenticated` no longer has direct write access to that table (see the
+-- REVOKE below) — the whole point is that `reactions` is the only writable
+-- path, and this trigger is its one privileged escape hatch.
 CREATE OR REPLACE FUNCTION public.sync_reaction_to_likes()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -64,6 +70,26 @@ CREATE TRIGGER sync_reaction_to_likes
   AFTER INSERT OR UPDATE OF type OR DELETE ON reactions
   FOR EACH ROW
   EXECUTE FUNCTION public.sync_reaction_to_likes();
+
+-- Cutover safety (chosen strategy, see docs/migrations-0006-0008-rollback.md
+-- and the reactions-vs-likes section of docs/testing-social-features.md):
+-- block legacy direct writes to `likes` from the `authenticated` role
+-- instead of building a reverse (likes -> reactions) trigger.
+--
+-- A bidirectional trigger pair (reactions -> likes AND likes -> reactions)
+-- would need explicit re-entrancy guards to avoid an infinite trigger loop,
+-- and would still leave an ambiguous conflict to resolve any time a legacy
+-- client's `likes` write disagreed with an existing non-'like' reaction
+-- (e.g. a legacy insert into `likes` for a user who currently has a 'love'
+-- reaction — should that downgrade them to 'like', or be rejected, or be
+-- ignored?). Rather than encode a guessed answer to that, we remove the
+-- ambiguity: `reactions` becomes the single writable source of truth, and
+-- `likes` is a read-only projection of it for `authenticated`/`anonymous`.
+-- Legacy clients/tabs still on the old bundle get an explicit
+-- permission-denied error on their `likes` write (surfaced through
+-- PostgREST as 401/403) instead of silently diverging from `reactions`.
+-- `service_role` keeps full access for operational/admin use.
+REVOKE INSERT, UPDATE, DELETE ON public.likes FROM authenticated;
 
 NOTIFY pgrst, 'reload schema';
 

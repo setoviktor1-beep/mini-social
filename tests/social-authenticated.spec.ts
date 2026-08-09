@@ -92,7 +92,11 @@ test.describe.serial('Social features (authenticated)', () => {
 
     // add: tap toggles the default 'like' reaction
     await reactButton.click();
-    await expect(card.getByRole('button', { name: /Reakcija: Patinka/ })).toContainText('1');
+    const likeButton = card.getByRole('button', { name: /Reakcija: Patinka/ });
+    await expect(likeButton).toContainText('1');
+    // accessibility: when the active reaction really is 'like', a tap really
+    // does remove it — the label's claim matches the click's real effect.
+    await expect(likeButton).toHaveAttribute('aria-label', /pašalintumėte/);
 
     // change: long-press opens the picker, pick a different reaction
     await longPress(page, card.getByRole('button', { name: /Reakcija: Patinka/ }));
@@ -103,6 +107,13 @@ test.describe.serial('Social features (authenticated)', () => {
     await expect(reactedButton).toBeVisible();
     // switching type does not change the total count (still one reaction)
     await expect(reactedButton).toContainText('1');
+
+    // accessibility: a plain tap on this button always sets 'like' (see
+    // handleReact), never removes the active 'love' reaction — the label
+    // must describe that real outcome, not claim it removes the reaction.
+    const nonLikeAriaLabel = await reactedButton.getAttribute('aria-label');
+    expect(nonLikeAriaLabel).toContain('pakeistumėte');
+    expect(nonLikeAriaLabel).not.toContain('pašalintumėte');
 
     // remove: re-opening the picker and choosing the same active reaction
     // toggles it off (a plain tap on the main button always targets 'like'
@@ -126,6 +137,37 @@ test.describe.serial('Social features (authenticated)', () => {
     const bookmarkedCard = page.getByTestId('post-card').filter({ hasText: unique }).first();
     await bookmarkedCard.getByRole('button', { name: 'Pašalinti iš išsaugotų' }).click();
     await page.reload();
+    await expect(page.getByTestId('post-card').filter({ hasText: unique })).toHaveCount(0);
+  });
+
+  test('an already-bookmarked post appears bookmarked on its author\'s profile page, and can be unbookmarked there', async ({ page }) => {
+    await login(page, USER_A);
+    const unique = `Profile bookmark target ${Date.now()}`;
+    const card = await createPost(page, unique);
+
+    await card.getByRole('button', { name: 'Išsaugoti įrašą' }).click();
+    await expect(card.getByRole('button', { name: 'Pašalinti iš išsaugotų' })).toBeVisible();
+
+    // Resolve the current user's own profile URL from the navbar instead of
+    // assuming the generated username.
+    const profileHref = await page.locator('a[href^="/u/"]').first().getAttribute('href');
+    expect(profileHref).toBeTruthy();
+
+    await page.goto(profileHref!);
+    const profileCard = page.getByTestId('post-card').filter({ hasText: unique }).first();
+    await expect(profileCard).toBeVisible();
+    // Regression: app/u/[username]/page.tsx must load the viewer's own
+    // bookmark IDs and set user_bookmarked, or this button falsely shows
+    // "Išsaugoti įrašą" for a post that's already bookmarked, and clicking
+    // it attempts a duplicate insert that silently no-ops instead of
+    // unbookmarking.
+    const profileBookmarkButton = profileCard.getByRole('button', { name: 'Pašalinti iš išsaugotų' });
+    await expect(profileBookmarkButton).toBeVisible();
+
+    await profileBookmarkButton.click();
+    await expect(profileCard.getByRole('button', { name: 'Išsaugoti įrašą' })).toBeVisible();
+
+    await page.goto('/bookmarks');
     await expect(page.getByTestId('post-card').filter({ hasText: unique })).toHaveCount(0);
   });
 

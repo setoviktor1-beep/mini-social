@@ -218,7 +218,11 @@ export default function SettingsPage() {
 
   const handleUnmute = async (mutedId: string) => {
     if (!profile) return
-    await supabase.from('mutes').delete().eq('muter_id', profile.id).eq('muted_id', mutedId)
+    const { error } = await supabase.from('mutes').delete().eq('muter_id', profile.id).eq('muted_id', mutedId)
+    if (error) {
+      setErrorMessage('Nepavyko nebenutildyti vartotojo. Bandykite dar kartą.')
+      return
+    }
     setMutedUsers(prev => prev.filter(m => m.muted_id !== mutedId))
     router.refresh()
   }
@@ -550,7 +554,7 @@ export default function SettingsPage() {
         </div>
       )}
       {errorMessage && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-2">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-2">
           <AlertCircle size={18} className="text-red-600 shrink-0" />
           <span className="text-sm font-medium">{errorMessage}</span>
         </div>

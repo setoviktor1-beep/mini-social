@@ -207,6 +207,18 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     }
   }, [post.id, supabase])
 
+  // A plain tap on the main reaction button always targets 'like'
+  // specifically (see handleReact) — it does not toggle off whatever
+  // reaction is currently active. Screen-reader text must describe that
+  // real outcome: removing the reaction only when it's already 'like',
+  // switching to 'like' otherwise. (Long-press opens the picker, which is
+  // the only way to remove or set a non-'like' reaction.)
+  const mainButtonLabel = !userReaction
+    ? 'Reaguoti į įrašą (patinka)'
+    : userReaction === 'like'
+      ? 'Reakcija: Patinka. Paspauskite, kad pašalintumėte.'
+      : `Reakcija: ${REACTIONS[userReaction].label}. Paspauskite, kad pakeistumėte į „Patinka“.`
+
   const handleReact = async (type: ReactionType) => {
     if (!currentUserId || reactionLoading) return
     const previousReaction = userReaction
@@ -675,7 +687,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 onTouchStart={startLongPress}
                 onTouchEnd={cancelLongPress}
                 disabled={reactionLoading}
-                aria-label={userReaction ? `Reakcija: ${REACTIONS[userReaction].label}. Paspauskite, kad pašalintumėte.` : 'Reaguoti į įrašą (patinka)'}
+                aria-label={mainButtonLabel}
                 aria-pressed={Boolean(userReaction)}
                 title={userReaction ? REACTIONS[userReaction].label : 'Reaguoti (laikykite, kad pasirinktumėte kitą reakciją)'}
                 className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${userReaction ? 'text-[#E94560]' : 'hover:text-[#E94560]'}`}
