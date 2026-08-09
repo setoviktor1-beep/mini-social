@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Briefcase,
   Store,
+  Bookmark,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -130,6 +131,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                 { href: '/notifications', icon: Bell, label: 'Pranešimai', show: true },
                 { href: '/messages', icon: Mail, label: 'Žinutės', show: true },
                 { href: '/discussions', icon: Users, label: 'Diskusijos', show: true },
+                { href: '/bookmarks', icon: Bookmark, label: 'Išsaugoti', show: true },
                 { href: '/settings', icon: Settings, label: 'Nustatymai', show: true },
               ].filter(item => item.show).map((item) => (
                 <Link

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil } from 'lucide-react'
+import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil, Bookmark } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
@@ -67,6 +67,7 @@ interface PostCardProps {
     reposts?: { count: number }[]
     user_liked?: boolean
     user_reposted?: boolean
+    user_bookmarked?: boolean
   }
   currentUserId?: string
   currentUserRole?: string
@@ -83,6 +84,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [commentCount, setCommentCount] = useState(post.comments?.[0]?.count || 0)
   const [reposted, setReposted] = useState(post.user_reposted || false)
   const [repostCount, setRepostCount] = useState(post.reposts?.[0]?.count || 0)
+  const [bookmarked, setBookmarked] = useState(post.user_bookmarked || false)
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [showRepostMenu, setShowRepostMenu] = useState(false)
   const [showQuoteModal, setShowQuoteModal] = useState(false)
   const [quoteText, setQuoteText] = useState('')
@@ -133,6 +136,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     setCommentCount(Number(post.comments?.[0]?.count || 0))
     setReposted(Boolean(post.user_reposted))
     setRepostCount(Number(post.reposts?.[0]?.count || 0))
+    setBookmarked(Boolean(post.user_bookmarked))
     setEditedContent(post.content)
     setLocalContent(post.content)
     setLocalEditedAt(post.edited_at ?? null)
@@ -140,6 +144,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     post.id,
     post.user_liked,
     post.user_reposted,
+    post.user_bookmarked,
     post.content,
     post.edited_at,
     post.likes,
@@ -422,6 +427,24 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     router.refresh()
   }
 
+  const handleBookmark = async () => {
+    if (!currentUserId || bookmarkLoading) return
+    const nextBookmarked = !bookmarked
+    const previousBookmarked = bookmarked
+
+    setBookmarkLoading(true)
+    setBookmarked(nextBookmarked)
+
+    const { error } = nextBookmarked
+      ? await supabase.from('bookmarks').insert({ user_id: currentUserId, post_id: post.id })
+      : await supabase.from('bookmarks').delete().eq('user_id', currentUserId).eq('post_id', post.id)
+
+    if (error) {
+      setBookmarked(previousBookmarked)
+    }
+    setBookmarkLoading(false)
+  }
+
   const handleCreateQuote = async () => {
     if (!currentUserId || !quoteText.trim()) return
     setQuoteLoading(true)
@@ -688,6 +711,18 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 </>
               )}
             </div>
+            {/* Bookmark */}
+            {currentUserId && (
+              <button
+                type="button"
+                onClick={handleBookmark}
+                disabled={bookmarkLoading}
+                title={bookmarked ? 'Pašalinti iš išsaugotų' : 'Išsaugoti įrašą'}
+                className={`flex items-center gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${bookmarked ? 'text-amber-500' : 'hover:text-amber-500'}`}
+              >
+                <Bookmark size={20} fill={bookmarked ? 'currentColor' : 'none'} />
+              </button>
+            )}
             {/* Report */}
             {currentUserId && !isOwner && (
               <button

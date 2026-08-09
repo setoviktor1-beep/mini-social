@@ -7,7 +7,7 @@ import SendMessageButton from '@/components/SendMessageButton'
 import FriendButton from '@/components/FriendButton'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Settings, Ban } from 'lucide-react'
+import { Settings, Ban, BellOff } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import type { Metadata } from 'next'
@@ -119,6 +119,19 @@ export default async function ProfilePage(props: ProfilePageProps) {
     blockedBy = !!blockedByRow
   }
 
+  // 3c. Check mute status (one direction only — muting is private and does
+  // not restrict the muted user's ability to interact with you)
+  let hasMuted = false
+  if (currentUser && currentUser.id !== profile.id) {
+    const { data: muteRow } = await supabase
+      .from('mutes')
+      .select('muter_id')
+      .eq('muter_id', currentUser.id)
+      .eq('muted_id', profile.id)
+      .maybeSingle()
+    hasMuted = !!muteRow
+  }
+
   const { count: followersCount } = await supabase
     .from('follows')
     .select('*', { count: 'exact', head: true })
@@ -205,6 +218,28 @@ export default async function ProfilePage(props: ProfilePageProps) {
     redirect(`/u/${profile.username}`)
   }
 
+  const toggleMute = async () => {
+    'use server'
+    const s = createClient()
+    const { data: { user } } = await s.auth.getUser()
+    if (!user || user.id === profile.id) return
+
+    const { data: existing } = await s
+      .from('mutes')
+      .select('muter_id')
+      .eq('muter_id', user.id)
+      .eq('muted_id', profile.id)
+      .maybeSingle()
+
+    if (existing) {
+      await s.from('mutes').delete().eq('muter_id', user.id).eq('muted_id', profile.id)
+    } else {
+      await s.from('mutes').insert({ muter_id: user.id, muted_id: profile.id })
+    }
+
+    redirect(`/u/${profile.username}`)
+  }
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Profile Header with Cover */}
@@ -256,6 +291,21 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   <Settings size={16} />
                   Redaguoti profilį
                 </Link>
+              )}
+              {currentUser && currentUser.id !== profile.id && !isBlockedEitherWay && (
+                <form action={toggleMute} className="contents">
+                  <button
+                    className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 rounded-full font-bold transition-all min-h-[44px] text-sm ${
+                      hasMuted
+                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'border-2 border-slate-200 text-slate-700 hover:border-amber-200 hover:text-amber-600 hover:bg-amber-50'
+                    }`}
+                    title={hasMuted ? 'Nebenutildyti vartotojo' : 'Nutildyti vartotoją'}
+                  >
+                    <BellOff size={16} />
+                    {hasMuted ? 'Nebenutildyti' : 'Nutildyti'}
+                  </button>
+                </form>
               )}
               {currentUser && currentUser.id !== profile.id && (
                 <form action={toggleBlock} className="contents">
