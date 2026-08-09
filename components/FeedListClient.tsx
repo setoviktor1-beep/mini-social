@@ -105,7 +105,12 @@ export default function FeedListClient(props: {
       if (!res.ok) throw new Error('Failed to fetch feed')
       const json = await res.json()
       const newPosts = json.posts || []
-      setPosts((prev) => [...prev, ...newPosts])
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((p: any) => p.id))
+        const existingKeys = new Set(prev.map((p: any) => p.feed_key))
+        const unique = newPosts.filter((p: any) => !existingIds.has(p.id) && !existingKeys.has(p.feed_key))
+        return [...prev, ...unique]
+      })
       setPage(nextPage)
       setHasMore(Boolean(json.hasMore))
     } catch (e) {

@@ -2,9 +2,9 @@
 import { createClient } from '@/lib/backend-client'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil, Bookmark } from 'lucide-react'
+import { Heart, MessageCircle, AlertCircle, Send, X, Share2, Trash2, Check, Link as LinkIcon, Repeat2, Pencil, Bookmark, ChevronDown } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import ImageLightbox from './ImageLightbox'
 import ParsedContent from '@/lib/parseContent'
@@ -91,6 +91,10 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [userReaction, setUserReaction] = useState<ReactionType | null>(post.user_reaction ?? (post.user_liked ? 'like' : null))
   const [reactionCount, setReactionCount] = useState(Number(post.reactions?.[0]?.count || 0))
   const [showReactionPicker, setShowReactionPicker] = useState(false)
+  const [focusedReactionIndex, setFocusedReactionIndex] = useState(0)
+  const reactionTriggerRef = useRef<HTMLButtonElement>(null)
+  const reactionMenuRef = useRef<HTMLDivElement>(null)
+  const reactionItemRefs = useRef<(HTMLButtonElement | null)[]>([])
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState('')
@@ -120,23 +124,15 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const [localContent, setLocalContent] = useState(post.content)
   const [localEditedAt, setLocalEditedAt] = useState<string | null>(post.edited_at ?? null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [replyToComment, setReplyToComment] = useState<{id: string, display_name: string} | null>(null)
+  const [commentError, setCommentError] = useState('')
+  const [commentOffset, setCommentOffset] = useState(0)
+  const [hasMoreComments, setHasMoreComments] = useState(false)
+  const [showDeleteCommentConfirm, setShowDeleteCommentConfirm] = useState<string | null>(null)
+  const commentInputRef = useRef<HTMLInputElement>(null)
   const commentSubmitLockRef = useRef(false)
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressTriggeredRef = useRef(false)
+  const COMMENTS_PAGE_SIZE = 10
 
-  const startLongPress = () => {
-    longPressTimerRef.current = setTimeout(() => {
-      longPressTriggeredRef.current = true
-      setShowReactionPicker(true)
-    }, 450)
-  }
-
-  const cancelLongPress = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-  }
   const mediaUrls = (post.post_media || [])
     .map((media) => resolveSupabaseStorageUrl(
       (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
@@ -188,16 +184,35 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
     const loadInitialComments = async () => {
       setLoadingComments(true)
-      const { data } = await supabase
+      const { data, count } = await supabase
         .from('comments')
-        .select('*, profiles:user_id(username, display_name, avatar_path)')
+        .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id', { count: 'exact' })
         .eq('post_id', post.id)
         .eq('status', 'active')
+        .is('parent_comment_id', null)
         .order('created_at', { ascending: true })
-      const rows = data || []
+        .range(0, 9)
+
+      // Also load replies for these top-level comments
+      const topLevelIds = (data || []).map((c: any) => c.id)
+      let replies: any[] = []
+      if (topLevelIds.length > 0) {
+        const { data: replyData } = await supabase
+          .from('comments')
+          .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id')
+          .eq('post_id', post.id)
+          .eq('status', 'active')
+          .in('parent_comment_id', topLevelIds)
+          .order('created_at', { ascending: true })
+        replies = replyData || []
+      }
+
+      const rows = [...(data || []), ...replies]
       if (!active) return
       setComments(rows)
-      setCommentCount(rows.length)
+      setCommentCount(count || rows.length)
+      setHasMoreComments((count || 0) > 10)
+      setCommentOffset(10)
       setLoadingComments(false)
     }
     void loadInitialComments()
@@ -207,17 +222,75 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     }
   }, [post.id, supabase])
 
+  // Focus moves into the picker when opened
+  useEffect(() => {
+    if (showReactionPicker && reactionMenuRef.current) {
+      const firstItem = reactionItemRefs.current[0]
+      if (firstItem) {
+        firstItem.focus()
+        setFocusedReactionIndex(0)
+      }
+    }
+  }, [showReactionPicker])
+
+  // Close picker on Escape and click outside; arrow-key navigation
+  useEffect(() => {
+    if (!showReactionPicker) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowReactionPicker(false)
+        reactionTriggerRef.current?.focus()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        setFocusedReactionIndex((prev) => {
+          const next = (prev + 1) % reactionTypes.length
+          reactionItemRefs.current[next]?.focus()
+          return next
+        })
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        setFocusedReactionIndex((prev) => {
+          const next = (prev - 1 + reactionTypes.length) % reactionTypes.length
+          reactionItemRefs.current[next]?.focus()
+          return next
+        })
+      }
+    }
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const menu = reactionMenuRef.current
+      const trigger = reactionTriggerRef.current
+      if (menu && !menu.contains(e.target as Node) && trigger && !trigger.contains(e.target as Node)) {
+        setShowReactionPicker(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showReactionPicker])
+
+  const toggleReactionPicker = useCallback(() => {
+    setShowReactionPicker((prev) => !prev)
+  }, [])
+
   // A plain tap on the main reaction button always targets 'like'
   // specifically (see handleReact) — it does not toggle off whatever
   // reaction is currently active. Screen-reader text must describe that
   // real outcome: removing the reaction only when it's already 'like',
-  // switching to 'like' otherwise. (Long-press opens the picker, which is
-  // the only way to remove or set a non-'like' reaction.)
+  // switching to 'like' otherwise. The chevron button opens the full picker.
   const mainButtonLabel = !userReaction
     ? 'Reaguoti į įrašą (patinka)'
     : userReaction === 'like'
       ? 'Reakcija: Patinka. Paspauskite, kad pašalintumėte.'
       : `Reakcija: ${REACTIONS[userReaction].label}. Paspauskite, kad pakeistumėte į „Patinka“.`
+
+  const reactionTypes = Object.keys(REACTIONS) as ReactionType[]
 
   const handleReact = async (type: ReactionType) => {
     if (!currentUserId || reactionLoading) return
@@ -243,6 +316,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       const { error } = await supabase.from('reactions').delete().eq('user_id', currentUserId).eq('post_id', post.id)
       if (error) rollback()
       setReactionLoading(false)
+      // Return focus to trigger after removing reaction
+      reactionTriggerRef.current?.focus()
       return
     }
 
@@ -272,19 +347,39 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       )
     }
     setReactionLoading(false)
+    // Return focus to trigger after selecting a reaction
+    reactionTriggerRef.current?.focus()
   }
 
   const loadComments = async () => {
     setLoadingComments(true)
-    const { data } = await supabase
+    const { data, count } = await supabase
       .from('comments')
-      .select('*, profiles:user_id(username, display_name, avatar_path)')
+      .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id', { count: 'exact' })
       .eq('post_id', post.id)
       .eq('status', 'active')
+      .is('parent_comment_id', null)
       .order('created_at', { ascending: true })
-    const rows = data || []
+      .range(0, 9)
+
+    const topLevelIds = (data || []).map((c: any) => c.id)
+    let replies: any[] = []
+    if (topLevelIds.length > 0) {
+      const { data: replyData } = await supabase
+        .from('comments')
+        .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id')
+        .eq('post_id', post.id)
+        .eq('status', 'active')
+        .in('parent_comment_id', topLevelIds)
+        .order('created_at', { ascending: true })
+      replies = replyData || []
+    }
+
+    const rows = [...(data || []), ...replies]
     setComments(rows)
-    setCommentCount(rows.length)
+    setCommentCount(count || rows.length)
+    setHasMoreComments((count || 0) > 10)
+    setCommentOffset(10)
     setLoadingComments(false)
   }
 
@@ -297,47 +392,133 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     if (!currentUserId || !commentText.trim() || commentLoading || commentSubmitLockRef.current) return
     commentSubmitLockRef.current = true
     setCommentLoading(true)
+    setCommentError('')
     const content = commentText.trim()
+    const tempId = `temp-${Date.now()}`
+    const parentCommentId = replyToComment?.id || null
+
+    // Optimistic update
+    const optimisticComment = {
+      id: tempId,
+      post_id: post.id,
+      user_id: currentUserId,
+      content,
+      created_at: new Date().toISOString(),
+      parent_comment_id: parentCommentId,
+      profiles: {
+        username: '',
+        display_name: 'Jūs',
+        avatar_path: null,
+      },
+      _optimistic: true,
+    }
+    setComments(prev => [...prev, optimisticComment])
+    setCommentText('')
+    setReplyToComment(null)
+    setCommentCount(prev => prev + 1)
+
     const { data: newComment, error } = await supabase.from('comments').insert({
       post_id: post.id,
       user_id: currentUserId,
-      content
-    }).select('id, post_id, user_id, content, created_at, profiles:user_id(username, display_name, avatar_path)').single()
-    if (!error) {
-      setCommentText('')
-      setCommentCount(prev => prev + 1)
-      setComments(prev => [...prev, newComment])
-      if (!showComments) {
-        setShowComments(true)
-      }
+      content,
+      parent_comment_id: parentCommentId,
+    }).select('id, post_id, user_id, content, created_at, parent_comment_id, profiles:user_id(username, display_name, avatar_path)').single()
 
-      if (post.user_id && post.user_id !== currentUserId) {
-        await supabase.from('notifications').insert({
-          user_id: post.user_id,
-          actor_id: currentUserId,
-          type: 'comment',
-          target_id: newComment?.id || post.id,
-          target_type: newComment?.id ? 'comment' : 'post',
-        })
-        await sendPushNotification(
-          post.user_id,
-          'Naujas komentaras',
-          content.slice(0, 100),
-          `/u/${post.profiles?.username}`
-        )
-      }
-
-      await notifyMentions({
-        supabase,
-        content,
-        actorId: currentUserId,
-        targetId: newComment?.id || post.id,
-        targetType: newComment?.id ? 'comment' : 'post',
-        excludeUserIds: post.user_id ? [post.user_id] : [],
-      })
+    if (error) {
+      // Rollback: remove optimistic comment
+      setComments(prev => prev.filter(c => c.id !== tempId))
+      setCommentCount(prev => Math.max(0, prev - 1))
+      setCommentText(content) // restore text
+      setCommentError('Nepavyko paskelbti komentaro. Bandykite dar kartą.')
+      setCommentLoading(false)
+      commentSubmitLockRef.current = false
+      return
     }
+
+    // Replace temp comment with real one
+    setComments(prev => prev.map(c => c.id === tempId ? newComment : c))
+
+    if (!showComments) {
+      setShowComments(true)
+    }
+
+    // Focus back to input after reply
+    setTimeout(() => {
+      commentInputRef.current?.focus()
+    }, 0)
+
+    if (post.user_id && post.user_id !== currentUserId) {
+      await supabase.from('notifications').insert({
+        user_id: post.user_id,
+        actor_id: currentUserId,
+        type: 'comment',
+        target_id: newComment?.id || post.id,
+        target_type: newComment?.id ? 'comment' : 'post',
+      })
+      await sendPushNotification(
+        post.user_id,
+        'Naujas komentaras',
+        content.slice(0, 100),
+        `/u/${post.profiles?.username}`
+      )
+    }
+
+    await notifyMentions({
+      supabase,
+      content,
+      actorId: currentUserId,
+      targetId: newComment?.id || post.id,
+      targetType: newComment?.id ? 'comment' : 'post',
+      excludeUserIds: post.user_id ? [post.user_id] : [],
+    })
+
     setCommentLoading(false)
     commentSubmitLockRef.current = false
+  }
+
+  const handleLoadMoreComments = async () => {
+    if (loadingComments) return
+    setLoadingComments(true)
+    const { data, count } = await supabase
+      .from('comments')
+      .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id', { count: 'exact' })
+      .eq('post_id', post.id)
+      .eq('status', 'active')
+      .is('parent_comment_id', null)
+      .order('created_at', { ascending: true })
+      .range(commentOffset, commentOffset + 9)
+
+    const topLevelIds = (data || []).map((c: any) => c.id)
+    let replies: any[] = []
+    if (topLevelIds.length > 0) {
+      const { data: replyData } = await supabase
+        .from('comments')
+        .select('*, profiles:user_id(username, display_name, avatar_path), parent_comment_id')
+        .eq('post_id', post.id)
+        .eq('status', 'active')
+        .in('parent_comment_id', topLevelIds)
+        .order('created_at', { ascending: true })
+      replies = replyData || []
+    }
+
+    const rows = [...(data || []), ...replies]
+    setComments(prev => [...prev, ...rows])
+    setCommentCount(count || rows.length)
+    setHasMoreComments((count || 0) > commentOffset + 10)
+    setCommentOffset(prev => prev + 10)
+    setLoadingComments(false)
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    const { error } = await supabase
+      .from('comments')
+      .update({ status: 'deleted' })
+      .eq('id', commentId)
+    if (!error) {
+      setComments(prev => prev.filter(c => c.id !== commentId))
+      setCommentCount(prev => Math.max(0, prev - 1))
+    }
+    setShowDeleteCommentConfirm(null)
   }
 
   const handleReport = async () => {
@@ -671,25 +852,15 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Action buttons */}
           <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-slate-400">
-            <div className="relative">
+            <div className="relative flex items-center">
               <button
                 type="button"
-                onClick={() => {
-                  if (longPressTriggeredRef.current) {
-                    longPressTriggeredRef.current = false
-                    return
-                  }
-                  void handleReact('like')
-                }}
-                onMouseDown={startLongPress}
-                onMouseUp={cancelLongPress}
-                onMouseLeave={cancelLongPress}
-                onTouchStart={startLongPress}
-                onTouchEnd={cancelLongPress}
+                ref={reactionTriggerRef}
+                onClick={() => void handleReact('like')}
                 disabled={reactionLoading}
                 aria-label={mainButtonLabel}
                 aria-pressed={Boolean(userReaction)}
-                title={userReaction ? REACTIONS[userReaction].label : 'Reaguoti (laikykite, kad pasirinktumėte kitą reakciją)'}
+                title={userReaction ? REACTIONS[userReaction].label : 'Patinka'}
                 className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${userReaction ? 'text-[#E94560]' : 'hover:text-[#E94560]'}`}
               >
                 {userReaction && userReaction !== 'like' ? (
@@ -699,29 +870,53 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 )}
                 <span className="text-sm font-medium">{Number.isFinite(reactionCount) ? reactionCount : 0}</span>
               </button>
+              <button
+                type="button"
+                onClick={toggleReactionPicker}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    toggleReactionPicker()
+                  }
+                }}
+                aria-expanded={showReactionPicker}
+                aria-controls="reaction-picker-menu"
+                aria-label="Atidaryti reakcijų pasirinkimą"
+                title="Daugiau reakcijų"
+                className={`ml-0.5 flex items-center justify-center rounded-full p-0.5 transition-all duration-200 min-h-[28px] min-w-[28px] hover:bg-slate-100 ${showReactionPicker ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <ChevronDown size={14} />
+              </button>
               {showReactionPicker && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowReactionPicker(false)} />
-                  <div
-                    role="menu"
-                    aria-label="Pasirinkite reakciją"
-                    className="absolute bottom-11 left-0 flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
-                  >
-                    {(Object.keys(REACTIONS) as ReactionType[]).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        role="menuitem"
-                        onClick={() => void handleReact(type)}
-                        title={REACTIONS[type].label}
-                        aria-label={REACTIONS[type].label}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 ${userReaction === type ? 'bg-slate-100' : ''}`}
-                      >
-                        {REACTIONS[type].emoji}
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div
+                  id="reaction-picker-menu"
+                  ref={reactionMenuRef}
+                  role="menu"
+                  aria-label="Pasirinkite reakciją"
+                  className="absolute bottom-11 left-0 flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
+                >
+                  {reactionTypes.map((type, index) => (
+                    <button
+                      key={type}
+                      type="button"
+                      ref={(el) => { reactionItemRefs.current[index] = el }}
+                      role="menuitemradio"
+                      aria-checked={userReaction === type}
+                      onClick={() => void handleReact(type)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          void handleReact(type)
+                        }
+                      }}
+                      title={REACTIONS[type].label}
+                      aria-label={REACTIONS[type].label}
+                      className={`flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 focus:outline-none focus:ring-2 focus:ring-blue-400 ${userReaction === type ? 'bg-slate-100' : ''}`}
+                    >
+                      {REACTIONS[type].emoji}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
             <button type="button" onClick={toggleComments} aria-expanded={showComments} aria-label={showComments ? 'Slėpti komentarus' : 'Rodyti komentarus'} className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${showComments ? 'text-blue-500' : 'hover:text-blue-500'}`}>
@@ -843,7 +1038,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           {/* Comments section */}
           {showComments && (
             <div className="mt-3 sm:mt-4 space-y-3 border-t border-slate-100 pt-3 sm:pt-4">
-              {loadingComments ? (
+              {loadingComments && comments.length === 0 ? (
                 <div className="space-y-2 py-2">
                   <div className="flex gap-2 animate-pulse">
                     <div className="w-8 h-8 rounded-full bg-slate-200" />
@@ -855,47 +1050,139 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 </div>
               ) : (
                 <>
-                  {comments.map((c) => (
-                    <div key={c.id} className="flex gap-2 sm:gap-3 animate-fade-in-up">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white shadow-sm">
-                        {c.profiles?.avatar_path ? (
-                          <Image
-                            src={resolveSupabaseStorageUrl(
-                              (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
-                              c.profiles.avatar_path
-                            )!}
-                            alt=""
-                            fill
-                            sizes="32px"
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-blue-600">
-                            {c.profiles?.display_name?.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-slate-900 hover:underline">
-                            {c.profiles?.display_name}
-                          </Link>
-                          <span className="text-slate-400 text-xs">
-                            {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
-                          </span>
+                  {(() => {
+                    const topLevel = comments.filter(c => !c.parent_comment_id)
+                    const repliesByParent = comments
+                      .filter(c => c.parent_comment_id)
+                      .reduce((acc, c) => {
+                        acc[c.parent_comment_id] = acc[c.parent_comment_id] || []
+                        acc[c.parent_comment_id].push(c)
+                        return acc
+                      }, {} as Record<string, any[]>)
+
+                    return topLevel.map((c) => (
+                      <div key={c.id} className="space-y-2">
+                        {/* Top-level comment */}
+                        <div className={`flex gap-2 sm:gap-3 animate-fade-in-up ${c._optimistic ? 'opacity-60' : ''}`}>
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white shadow-sm">
+                            {c.profiles?.avatar_path ? (
+                              <Image
+                                src={resolveSupabaseStorageUrl(
+                                  (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+                                  c.profiles.avatar_path
+                                )!}
+                                alt=""
+                                fill
+                                sizes="32px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <span className="text-xs font-bold text-blue-600">
+                                {c.profiles?.display_name?.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-slate-900 hover:underline">
+                                {c.profiles?.display_name}
+                              </Link>
+                              <span className="text-slate-400 text-xs">
+                                {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 text-xs sm:text-sm whitespace-pre-wrap break-words">
+                              <ParsedContent content={c.content} />
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <button
+                                onClick={() => setReplyToComment({ id: c.id, display_name: c.profiles?.display_name || 'Anonimas' })}
+                                className="text-xs text-slate-400 hover:text-blue-500 transition-colors"
+                              >
+                                Atsakyti
+                              </button>
+                              {(currentUserId === c.user_id || isAdmin) && (
+                                <button
+                                  onClick={() => setShowDeleteCommentConfirm(c.id)}
+                                  className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                                >
+                                  Ištrinti
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-slate-600 text-xs sm:text-sm whitespace-pre-wrap break-words">
-                          <ParsedContent content={c.content} />
-                        </p>
+                        {/* Replies */}
+                        {(repliesByParent[c.id] || []).map((reply: any) => (
+                          <div key={reply.id} className={`flex gap-2 sm:gap-3 ml-6 sm:ml-8 pl-3 border-l-2 border-slate-200 animate-fade-in-up ${reply._optimistic ? 'opacity-60' : ''}`}>
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white shadow-sm">
+                              {reply.profiles?.avatar_path ? (
+                                <Image
+                                  src={resolveSupabaseStorageUrl(
+                                    (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+                                    reply.profiles.avatar_path
+                                  )!}
+                                  alt=""
+                                  fill
+                                  sizes="28px"
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <span className="text-[10px] font-bold text-blue-600">
+                                  {reply.profiles?.display_name?.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <Link href={`/u/${reply.profiles?.username}`} className="font-bold text-xs text-slate-900 hover:underline">
+                                  {reply.profiles?.display_name}
+                                </Link>
+                                <span className="text-slate-400 text-[10px]">
+                                  {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                                </span>
+                              </div>
+                              <p className="text-slate-600 text-xs whitespace-pre-wrap break-words">
+                                <ParsedContent content={reply.content} />
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <button
+                                  onClick={() => setReplyToComment({ id: c.id, display_name: reply.profiles?.display_name || 'Anonimas' })}
+                                  className="text-[10px] text-slate-400 hover:text-blue-500 transition-colors"
+                                >
+                                  Atsakyti
+                                </button>
+                                {(currentUserId === reply.user_id || isAdmin) && (
+                                  <button
+                                    onClick={() => setShowDeleteCommentConfirm(reply.id)}
+                                    className="text-[10px] text-slate-400 hover:text-red-500 transition-colors"
+                                  >
+                                    Ištrinti
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  })()}
                   {comments.length === 0 && (
                     <div className="text-center py-4">
                       <MessageCircle size={24} className="mx-auto text-slate-300 mb-2" />
                       <p className="text-sm text-slate-400">No comments yet. Be the first!</p>
                     </div>
+                  )}
+                  {hasMoreComments && (
+                    <button
+                      onClick={handleLoadMoreComments}
+                      disabled={loadingComments}
+                      className="w-full py-2 text-sm text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {loadingComments ? 'Kraunama...' : 'Rodyti daugiau komentarų'}
+                    </button>
                   )}
                 </>
               )}
@@ -908,25 +1195,45 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     void handleComment()
                   }}
                 >
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={e => setCommentText(e.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        void handleComment()
-                      }
-                    }}
-                    placeholder="Write a comment..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 text-slate-800 min-h-[44px] placeholder:text-slate-400 transition-all"
-                    maxLength={500}
-                    disabled={commentLoading}
-                  />
+                  <div className="flex-1 relative">
+                    {replyToComment && (
+                      <div className="flex items-center gap-1 mb-1 px-3">
+                        <span className="text-xs text-blue-500">
+                          Atsakote į {replyToComment.display_name}...
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setReplyToComment(null)}
+                          className="text-xs text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    {commentError && (
+                      <p className="text-xs text-red-500 mb-1 px-3">{commentError}</p>
+                    )}
+                    <input
+                      ref={commentInputRef}
+                      type="text"
+                      value={commentText}
+                      onChange={e => { setCommentText(e.target.value); setCommentError('') }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          void handleComment()
+                        }
+                      }}
+                      placeholder={replyToComment ? `Atsakote į ${replyToComment.display_name}...` : 'Parašykite komentarą...'}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 text-slate-800 min-h-[44px] placeholder:text-slate-400 transition-all"
+                      maxLength={500}
+                      disabled={commentLoading}
+                    />
+                  </div>
                   <button
                     type="submit"
                     disabled={!commentText.trim() || commentLoading}
-                    className="bg-[#1A1A2E] text-white p-2 rounded-full hover:bg-[#16213E] disabled:opacity-50 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shadow-sm hover:shadow-md"
+                    className="bg-[#1A1A2E] text-white p-2 rounded-full hover:bg-[#16213E] disabled:opacity-50 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shadow-sm hover:shadow-md self-end"
                   >
                     <Send size={16} />
                   </button>
@@ -1034,6 +1341,30 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   </button>
                   <button
                     onClick={handleDelete}
+                    className="flex-1 bg-red-500 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 transition-colors min-h-[44px]"
+                  >
+                    Ištrinti
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Comment Confirmation Modal */}
+          {showDeleteCommentConfirm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowDeleteCommentConfirm(null)}>
+              <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                <h3 className="font-bold text-lg mb-2 text-slate-900">Ištrinti komentarą?</h3>
+                <p className="text-slate-500 text-sm mb-4 sm:mb-6">Šio veiksmo negalima atšaukti. Komentaras bus pašalintas.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteCommentConfirm(null)}
+                    className="flex-1 border border-slate-200 text-slate-700 py-2.5 rounded-full font-semibold hover:bg-slate-50 transition-colors min-h-[44px]"
+                  >
+                    Atšaukti
+                  </button>
+                  <button
+                    onClick={() => handleDeleteComment(showDeleteCommentConfirm)}
                     className="flex-1 bg-red-500 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 transition-colors min-h-[44px]"
                   >
                     Ištrinti

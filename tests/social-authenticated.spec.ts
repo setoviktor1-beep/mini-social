@@ -266,4 +266,177 @@ test.describe.serial('Social features (authenticated)', () => {
     });
     expect([401, 403]).toContain(response.status());
   });
+
+  test('keyboard-only reaction picker', async ({ page }) => {
+    await login(page, USER_A);
+    const unique = `Keyboard reaction ${Date.now()}`;
+    const card = await createPost(page, unique);
+
+    // Focus the chevron toggle button
+    const chevron = card.getByRole('button', { name: 'Atidaryti reakcijų pasirinkimą' });
+    await chevron.focus();
+
+    // Press Enter to open the picker
+    await page.keyboard.press('Enter');
+    const picker = card.getByRole('menu', { name: 'Pasirinkite reakciją' });
+    await expect(picker).toBeVisible();
+
+    // Verify focus moved into the picker (first menuitem should be focused)
+    const firstItem = picker.getByRole('menuitemradio').first();
+    await expect(firstItem).toBeFocused();
+
+    // Use ArrowRight to navigate between options
+    await page.keyboard.press('ArrowRight');
+    const secondItem = picker.getByRole('menuitemradio').nth(1);
+    await expect(secondItem).toBeFocused();
+
+    // Press Enter to select a reaction
+    await page.keyboard.press('Enter');
+    await expect(picker).not.toBeVisible();
+    await expect(chevron).toBeFocused();
+    await expect(chevron).toHaveAttribute('aria-expanded', 'false');
+
+    // Reopen and press Escape to close without selecting
+    await chevron.focus();
+    await page.keyboard.press('Enter');
+    await expect(picker).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(picker).not.toBeVisible();
+    await expect(chevron).toBeFocused();
+  });
+
+  test('feed tab switching', async ({ page }) => {
+    await login(page, USER_A);
+    await page.goto('/home');
+
+    await page.getByRole('link', { name: 'Sekami' }).click();
+    await expect(page).toHaveURL(/tab=following/);
+
+    await page.getByRole('link', { name: 'Naujausi' }).click();
+    await expect(page).toHaveURL(/tab=latest/);
+
+    await page.getByRole('link', { name: 'Tau' }).click();
+    await expect(page).toHaveURL(/tab=for_you/);
+  });
+
+  test('comment creation', async ({ page }) => {
+    await login(page, USER_A);
+    const unique = `Comment target ${Date.now()}`;
+    const card = await createPost(page, unique);
+
+    // Click the comment button to show comments
+    await card.getByRole('button', { name: 'Rodyti komentarus' }).click();
+
+    // Type a comment and submit
+    const commentText = `Test comment ${Date.now()}`;
+    const commentInput = card.getByPlaceholder('Write a comment...');
+    await commentInput.fill(commentText);
+    await card.getByRole('button', { name: 'Submit comment' }).click();
+
+    // Verify the comment appears
+    await expect(card.getByText(commentText)).toBeVisible();
+  });
+
+  test('follow and unfollow', async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    try {
+      const pageA = await contextA.newPage();
+      const pageB = await contextB.newPage();
+
+      // Login as USER_B and create a post
+      await login(pageB, USER_B);
+      const unique = `Follow test post ${Date.now()}`;
+      await createPost(pageB, unique);
+
+      // Get USER_B's profile URL from the navbar
+      const profileHref = await pageB.locator('a[href^="/u/"]').first().getAttribute('href');
+      expect(profileHref).toBeTruthy();
+
+      // Login as USER_A and visit USER_B's profile
+      await login(pageA, USER_A);
+      await pageA.goto(profileHref!);
+
+      // Click follow button
+      const followButton = pageA.getByRole('button', { name: 'Sekti' });
+      await expect(followButton).toBeVisible();
+      await followButton.click();
+
+      // Verify button changes to unfollow
+      const unfollowButton = pageA.getByRole('button', { name: 'Nebesekti' });
+      await expect(unfollowButton).toBeVisible();
+
+      // Click unfollow
+      await unfollowButton.click();
+
+      // Verify button changes back to follow
+      await expect(followButton).toBeVisible();
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
+  test('notification appears after like', async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    try {
+      const pageA = await contextA.newPage();
+      const pageB = await contextB.newPage();
+
+      // Login as USER_B and create a post
+      await login(pageB, USER_B);
+      const unique = `Notification target ${Date.now()}`;
+      const card = await createPost(pageB, unique);
+
+      // Login as USER_A and like USER_B's post
+      await login(pageA, USER_A);
+      await pageA.goto('/home?tab=latest');
+      const targetCard = pageA.getByTestId('post-card').filter({ hasText: unique }).first();
+      await expect(targetCard).toBeVisible();
+      await targetCard.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' }).click();
+
+      // Login as USER_B and check notifications
+      await login(pageB, USER_B);
+      await pageB.goto('/notifications');
+
+      // Verify a notification about the like is visible
+      await expect(pageB.getByText(/pamėgo jūsų įrašą/)).toBeVisible();
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
+  test('search for users', async ({ page }) => {
+    await login(page, USER_A);
+    await page.goto('/search');
+
+    // Type a username in the search box
+    const searchInput = page.getByPlaceholder('Ieškokite žmonių arba įrašų...');
+    await searchInput.fill('tester-b');
+
+    // Wait for debounce and search results
+    await page.waitForTimeout(400);
+
+    // Verify results appear
+    await expect(page.getByText('@tester-b')).toBeVisible();
+  });
+
+  test('mobile navigation', async ({ page }) => {
+    // Set viewport to mobile size
+    await page.setViewportSize({ width: 375, height: 667 });
+    await login(page, USER_A);
+
+    // Verify bottom nav is visible
+    const bottomNav = page.locator('nav').filter({ has: page.locator('a[href="/home"]') }).last();
+    await expect(bottomNav).toBeVisible();
+
+    // Verify bottom nav has links to home, services, search, messages, profile
+    await expect(bottomNav.getByRole('link', { name: /Pagrindinis|Home/ })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: /Paslaugos|Services/ })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: /Atrasti|Search/ })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: /Žinutės|Messages/ })).toBeVisible();
+    await expect(bottomNav.getByRole('link', { name: /Profilis|Profile/ })).toBeVisible();
+  });
 });
