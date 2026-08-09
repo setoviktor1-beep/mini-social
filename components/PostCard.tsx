@@ -220,6 +220,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
       const trigger = reactionPickerTriggerRef.current
       if (menu && !menu.contains(e.target as Node) && trigger && !trigger.contains(e.target as Node)) {
         setShowReactionPicker(false)
+        reactionPickerTriggerRef.current?.focus()
       }
     }
 

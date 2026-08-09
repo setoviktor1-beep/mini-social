@@ -24,19 +24,6 @@ async function login(page: Page, user: { email: string; password: string }) {
   await dismissCookieNotice(page);
 }
 
-// The reaction picker opens on a held pointer-down (>450ms), not a click.
-// hover() + page.mouse.down()/up() is unreliable because the last-known
-// pointer position can drift; move explicitly to the element's center.
-async function longPress(page: Page, locator: Locator) {
-  await expect(locator).toBeVisible();
-  const box = await locator.boundingBox({ timeout: 60000 });
-  if (!box) throw new Error('longPress target has no bounding box');
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(700);
-  await page.mouse.up();
-}
-
 async function createPost(page: Page, content: string) {
   // Callers are always already on /home right after login(); an extra
   // page.goto() here raced with hydration and occasionally produced a
@@ -99,7 +86,7 @@ test.describe.serial('Social features (authenticated)', () => {
     await expect(likeButton).toHaveAttribute('aria-label', /pašalintumėte/);
 
     // change: long-press opens the picker, pick a different reaction
-    await longPress(page, card.getByRole('button', { name: /Reakcija: Patinka/ }));
+    await card.getByRole('button', { name: 'Atidaryti reakcijų pasirinkimą' }).click();
     const picker = card.getByRole('menu', { name: 'Pasirinkite reakciją' });
     await expect(picker).toBeVisible();
     await picker.getByRole('menuitem', { name: 'Super' }).click();
@@ -118,7 +105,7 @@ test.describe.serial('Social features (authenticated)', () => {
     // remove: re-opening the picker and choosing the same active reaction
     // toggles it off (a plain tap on the main button always targets 'like'
     // specifically, matching the Facebook-style default-reaction pattern).
-    await longPress(page, reactedButton);
+    await card.getByRole('button', { name: 'Atidaryti reakcijų pasirinkimą' }).click();
     await card.getByRole('menu', { name: 'Pasirinkite reakciją' }).getByRole('menuitem', { name: 'Super' }).click();
     await expect(card.getByRole('button', { name: 'Reaguoti į įrašą (patinka)' })).toContainText('0');
   });
