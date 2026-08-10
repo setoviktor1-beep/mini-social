@@ -146,7 +146,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl shadow-sm">
+    <nav className="sticky top-0 z-50 border-b border-slate-200/80 dark:border-gray-800 bg-white/85 dark:bg-gray-900/85 backdrop-blur-xl shadow-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16">
         {/* Logo */}
         <Link href={homeHref} className="font-black text-xl sm:text-2xl bg-gradient-to-r from-[#1A1A2E] to-[#E94560] bg-clip-text text-transparent hover:opacity-80 transition-opacity">
@@ -157,7 +157,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-1 text-sm font-medium">
           <LanguageSwitcher />
           {!isFeedPage && (
-            <Link href="/search" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/search') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Paieška" aria-label="Paieška">
+            <Link href="/search" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/search') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Paieška" aria-label="Paieška">
               <Search size={20} strokeWidth={isActive('/search') ? 2.5 : 1.5} />
             </Link>
           )}
@@ -166,10 +166,10 @@ export default function Navbar() {
             <>
               {!isFeedPage && (
                 <>
-                  <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Diskusijos" aria-label="Diskusijos">
+                  <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Diskusijos" aria-label="Diskusijos">
                     <MessageSquare size={20} strokeWidth={isActive('/discussions') ? 2.5 : 1.5} />
                   </Link>
-                  <Link href="/messages" className={`relative p-2.5 rounded-xl transition-all duration-200 ${isActive('/messages') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Žinutės" aria-label="Žinutės">
+                  <Link href="/messages" className={`relative p-2.5 rounded-xl transition-all duration-200 ${isActive('/messages') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Žinutės" aria-label="Žinutės">
                     <MessagesSquare size={20} strokeWidth={isActive('/messages') ? 2.5 : 1.5} />
                     {unreadCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 bg-[#E94560] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
@@ -179,56 +179,56 @@ export default function Navbar() {
                   </Link>
                   <NotificationBell />
                   {!isProUser && (
-                    <Link href="/my-orders" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/my-orders') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Mano užsakymai" aria-label="Mano užsakymai">
+                    <Link href="/my-orders" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/my-orders') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Mano užsakymai" aria-label="Mano užsakymai">
                       <ClipboardList size={20} />
                     </Link>
                   )}
                   {isProUser ? (
-                    <Link href="/pro" className={`flex items-center gap-1 rounded-xl p-2.5 transition-all duration-200 ${isActive('/pro') ? 'bg-emerald-50 text-emerald-600' : 'text-emerald-600 hover:bg-emerald-50'}`} title="Verslo darbalaukis" aria-label="Verslo darbalaukis">
+                    <Link href="/pro" className={`flex items-center gap-1 rounded-xl p-2.5 transition-all duration-200 ${isActive('/pro') ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`} title="Verslo darbalaukis" aria-label="Verslo darbalaukis">
                       <Briefcase size={20} />
                     </Link>
                   ) : (
-                    <Link href="/pricing" className={`flex items-center gap-1 rounded-xl p-2 text-xs font-semibold transition-all duration-200 ${isActive('/pricing') ? 'bg-emerald-50 text-emerald-600' : 'text-emerald-600 hover:bg-emerald-50'}`} title="Verslo planai" aria-label="Verslo planai">
+                    <Link href="/pricing" className={`flex items-center gap-1 rounded-xl p-2 text-xs font-semibold transition-all duration-200 ${isActive('/pricing') ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`} title="Verslo planai" aria-label="Verslo planai">
                       <Briefcase size={20} />
                       <span className="hidden xl:inline">Pro</span>
                     </Link>
                   )}
-                  <Link href="/bookmarks" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/bookmarks') ? 'bg-amber-50 text-amber-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Išsaugoti įrašai" aria-label="Išsaugoti įrašai">
+                  <Link href="/bookmarks" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/bookmarks') ? 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Išsaugoti įrašai" aria-label="Išsaugoti įrašai">
                     <Bookmark size={20} strokeWidth={isActive('/bookmarks') ? 2.5 : 1.5} />
                   </Link>
-                  <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`} title="Nustatymai" aria-label="Nustatymai">
+                  <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Nustatymai" aria-label="Nustatymai">
                     <Settings size={20} strokeWidth={isActive('/settings') ? 2.5 : 1.5} />
                   </Link>
                 </>
               )}
               {(role === 'admin' || role === 'moderator') && (
-                <Link href="/admin/dashboard" className="p-2.5 hover:bg-red-50 text-red-500 rounded-xl transition-all duration-200" title="Administravimas" aria-label="Administravimas">
+                <Link href="/admin/dashboard" className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl transition-all duration-200" title="Administravimas" aria-label="Administravimas">
                   <Shield size={20} />
                 </Link>
               )}
               <Link
                 href={profileHref}
-                className="ml-1 p-1.5 rounded-xl hover:bg-slate-50 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="ml-1 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 title="Profilis"
                 aria-label="Profilis"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white dark:ring-gray-900 shadow-sm">
                   {avatarUrl ? (
                     <div className="relative w-full h-full">
                       <Image src={avatarUrl} alt="" fill sizes="32px" className="object-cover" />
                     </div>
                   ) : (
-                    <span className="text-xs font-bold text-blue-600">
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                       {(username || user.user_metadata?.username || '?')?.charAt(0)?.toUpperCase()}
                     </span>
                   )}
                 </div>
               </Link>
-              <button onClick={signOut} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-full hover:bg-slate-200 transition-all duration-200 text-sm font-medium ml-1">Atsijungti</button>
+              <button onClick={signOut} className="bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium ml-1">Atsijungti</button>
             </>
           ) : (
             <>
-              <Link href="/discussions" className="text-slate-600 hover:text-slate-900 transition-colors px-3">Diskusijos</Link>
+              <Link href="/discussions" className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-100 transition-colors px-3">Diskusijos</Link>
               <Link href="/auth/login" className="bg-[#1A1A2E] text-white px-6 py-2.5 rounded-full hover:bg-[#16213E] transition-all duration-200 shadow-sm text-sm font-semibold ml-1">
                 Prisijungti
               </Link>
@@ -242,7 +242,7 @@ export default function Navbar() {
           {user && <NotificationBell />}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2.5 hover:bg-slate-100 rounded-xl transition-all duration-200 text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2.5 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 text-slate-600 dark:text-gray-400 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label={mobileMenuOpen ? 'Uždaryti meniu' : 'Atverti meniu'}
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -252,15 +252,15 @@ export default function Navbar() {
 
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-100 bg-white/95 backdrop-blur-md shadow-lg">
+        <div className="md:hidden border-t border-slate-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg">
           <div className="max-w-2xl mx-auto px-4 py-3 space-y-1">
             {user ? (
               <>
-                <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
+                <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <MessageSquare size={20} />
                   {t('nav.feed')}
                 </Link>
-                <Link href="/messages" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
+                <Link href="/messages" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <MessagesSquare size={20} />
                   {t('nav.messages')}
                   {unreadCount > 0 && (
@@ -270,67 +270,67 @@ export default function Navbar() {
                   )}
                 </Link>
                 {!isProUser && (
-                  <Link href="/my-orders" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
+                  <Link href="/my-orders" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                     <ClipboardList size={20} />
                     Mano užsakymai
                   </Link>
                 )}
                 {isProUser ? (
-                  <Link href="/pro" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-600 transition-colors font-medium">
+                  <Link href="/pro" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-colors font-medium">
                     <Briefcase size={20} />
                     Verslo darbalaukis
                   </Link>
                 ) : (
-                  <Link href="/pricing" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-600 transition-colors font-medium">
+                  <Link href="/pricing" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-colors font-medium">
                     <Briefcase size={20} />
                     Verslo planai
                   </Link>
                 )}
                 {(role === 'admin' || role === 'moderator') && (
-                  <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-50 text-red-500 transition-colors font-medium">
+                  <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 transition-colors font-medium">
                     <Shield size={20} />
                     Administravimas
                   </Link>
                 )}
-                <Link href={profileHref} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
+                <Link href={profileHref} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <div className="w-6 h-6 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden">
                     {avatarUrl ? (
                       <div className="relative w-full h-full">
                         <Image src={avatarUrl} alt="" fill sizes="24px" className="object-cover" />
                       </div>
                     ) : (
-                      <span className="text-xs font-bold text-blue-600">
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                         {(username || user.user_metadata?.username || '?')?.charAt(0)?.toUpperCase()}
                       </span>
                     )}
                   </div>
                   {t('nav.profile')}
                 </Link>
-                <Link href="/bookmarks" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-amber-50 text-slate-700 hover:text-amber-600 transition-colors font-medium">
+                <Link href="/bookmarks" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 text-slate-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors font-medium">
                   <Bookmark size={20} />
                   Išsaugoti įrašai
                 </Link>
-                <Link href="/settings" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
+                <Link href="/settings" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <Settings size={20} />
                   {t('nav.settings')}
                 </Link>
-                <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 mt-2 pt-2 gap-3">
+                <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-gray-800 mt-2 pt-2 gap-3">
                   <LanguageSwitcher />
                   <PushNotificationToggle />
                 </div>
                 <div className="pt-1">
-                  <button onClick={signOut} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors font-medium text-left">
+                  <button onClick={signOut} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-600 dark:text-gray-400 transition-colors font-medium text-left">
                     {t('nav.logout')}
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors font-medium">
+                <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <MessageSquare size={20} />
                   {t('nav.feed')}
                 </Link>
-                <div className="border-t border-slate-100 pt-2 mt-2">
+                <div className="border-t border-slate-100 dark:border-gray-800 pt-2 mt-2">
                   <Link href="/auth/login" className="block text-center bg-[#1A1A2E] text-white px-6 py-3 rounded-full hover:bg-[#16213E] transition-all shadow-sm font-bold">
                     {t('nav.login')}
                   </Link>

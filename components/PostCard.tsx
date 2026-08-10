@@ -28,7 +28,7 @@ function PostMediaImage({ src }: { src: string }) {
 
   if (failed) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-100 text-xs text-slate-400 rounded-lg">
+      <div className="flex h-full items-center justify-center bg-slate-100 dark:bg-gray-800 text-xs text-slate-400 dark:text-gray-500 rounded-lg">
         Image unavailable
       </div>
     )
@@ -39,7 +39,7 @@ function PostMediaImage({ src }: { src: string }) {
       src={src}
       alt=""
       loading="lazy"
-      className="block h-full w-full bg-slate-100 object-cover transition-transform duration-300 hover:scale-105 rounded-lg"
+      className="block h-full w-full bg-slate-100 dark:bg-gray-800 object-cover transition-transform duration-300 hover:scale-105 rounded-lg"
       onError={() => setFailed(true)}
       onLoad={(event) => {
         const element = event.currentTarget
@@ -56,7 +56,7 @@ function PostLinkPreviewImage({ src }: { src: string }) {
 
   if (failed) {
     return (
-      <div className="flex h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 items-center justify-center bg-slate-100 text-slate-400">
+      <div className="flex h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 items-center justify-center bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500">
         <LinkIcon size={22} aria-hidden="true" />
       </div>
     )
@@ -70,7 +70,7 @@ function PostLinkPreviewImage({ src }: { src: string }) {
       src={src}
       alt=""
       loading="lazy"
-      className="h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 object-cover bg-slate-100"
+      className="h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 object-cover bg-slate-100 dark:bg-gray-800"
       onError={() => setFailed(true)}
     />
   )
@@ -900,7 +900,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     return (
       <div key={c.id}>
         <div className={`flex gap-2 sm:gap-3 animate-fade-in-up ${c._optimistic ? 'opacity-60' : ''}`}>
-          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white shadow-sm">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ring-1 ring-white dark:ring-gray-900 shadow-sm">
             {!isTombstone && c.profiles?.avatar_path ? (
               <Image
                 src={resolveSupabaseStorageUrl(
@@ -914,24 +914,24 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 unoptimized
               />
             ) : (
-              <span className="text-xs font-bold text-blue-600">
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                 {isTombstone ? '·' : c.profiles?.display_name?.charAt(0).toUpperCase()}
               </span>
             )}
           </div>
           <div className="flex-1 min-w-0">
             {isTombstone ? (
-              <p className="text-slate-400 text-xs sm:text-sm italic py-1">
+              <p className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm italic py-1">
                 Komentaras ištrintas
               </p>
             ) : (
               <>
                 <div className="flex items-center justify-between gap-1.5 sm:gap-2">
                   <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-slate-900 hover:underline truncate">
+                    <Link href={`/u/${c.profiles?.username}`} className="font-bold text-xs sm:text-sm text-slate-900 dark:text-gray-100 hover:underline truncate">
                       {c.profiles?.display_name}
                     </Link>
-                    <span className="text-slate-400 text-xs shrink-0">
+                    <span className="text-slate-400 dark:text-gray-500 text-xs shrink-0">
                       {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
                     </span>
                   </div>
@@ -943,7 +943,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                           onClick={() => startEditComment(c)}
                           aria-label="Redaguoti komentarą"
                           title="Redaguoti komentarą"
-                          className="p-1 text-slate-300 hover:text-blue-600 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center"
+                          className="p-1 text-slate-300 dark:text-gray-600 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center"
                         >
                           <Pencil size={13} />
                         </button>
@@ -953,7 +953,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         onClick={() => setDeletingCommentId(c.id)}
                         aria-label="Ištrinti komentarą"
                         title="Ištrinti komentarą"
-                        className="p-1 text-slate-300 hover:text-red-500 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center"
+                        className="p-1 text-slate-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -965,7 +965,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       onClick={() => setReportingCommentId(c.id)}
                       aria-label="Pranešti apie komentarą"
                       title="Pranešti apie komentarą"
-                      className="p-1 text-slate-300 hover:text-amber-500 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center shrink-0"
+                      className="p-1 text-slate-300 dark:text-gray-600 hover:text-amber-500 dark:hover:text-amber-400 rounded transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center shrink-0"
                     >
                       <AlertCircle size={13} />
                     </button>
@@ -988,14 +988,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       }}
                       autoFocus
                       maxLength={500}
-                      className="flex-1 bg-slate-50 border border-blue-300 rounded-full px-3 py-1.5 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/10 text-slate-800 min-h-[36px]"
+                      className="flex-1 bg-slate-50 dark:bg-gray-800/50 border border-blue-300 dark:border-blue-700 rounded-full px-3 py-1.5 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 text-slate-800 dark:text-gray-200 min-h-[36px]"
                     />
                     <button
                       type="button"
                       onClick={() => void saveEditComment(c.id)}
                       disabled={editingCommentLoading || !editingCommentText.trim()}
                       aria-label="Išsaugoti komentarą"
-                      className="text-blue-600 disabled:opacity-50 min-w-[28px] min-h-[28px] flex items-center justify-center"
+                      className="text-blue-600 dark:text-blue-400 disabled:opacity-50 min-w-[28px] min-h-[28px] flex items-center justify-center"
                     >
                       <Check size={16} />
                     </button>
@@ -1003,13 +1003,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       type="button"
                       onClick={cancelEditComment}
                       aria-label="Atšaukti redagavimą"
-                      className="text-slate-400 min-w-[28px] min-h-[28px] flex items-center justify-center"
+                      className="text-slate-400 dark:text-gray-500 min-w-[28px] min-h-[28px] flex items-center justify-center"
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
-                  <p className="text-slate-600 text-xs sm:text-sm whitespace-pre-wrap break-words">
+                  <p className="text-slate-600 dark:text-gray-400 text-xs sm:text-sm whitespace-pre-wrap break-words">
                     <ParsedContent content={c.content} />
                   </p>
                 )}
@@ -1021,7 +1021,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         type="button"
                         onClick={() => startReply(c)}
                         aria-label={`Atsakyti ${c.profiles?.display_name || ''}`}
-                        className="text-xs font-semibold text-slate-400 hover:text-blue-600 transition-colors min-h-[28px]"
+                        className="text-xs font-semibold text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors min-h-[28px]"
                       >
                         Atsakyti
                       </button>
@@ -1030,19 +1030,19 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 )}
 
                 {deletingCommentId === c.id && (
-                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2">
-                    <span className="text-xs text-red-600">Ištrinti komentarą?</span>
+                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 px-3 py-2">
+                    <span className="text-xs text-red-600 dark:text-red-400">Ištrinti komentarą?</span>
                     <button
                       type="button"
                       onClick={() => void deleteComment(c.id)}
-                      className="text-xs font-semibold text-red-600 hover:underline min-h-[28px]"
+                      className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline min-h-[28px]"
                     >
                       Ištrinti
                     </button>
                     <button
                       type="button"
                       onClick={() => setDeletingCommentId(null)}
-                      className="text-xs font-semibold text-slate-500 hover:underline min-h-[28px]"
+                      className="text-xs font-semibold text-slate-500 dark:text-gray-400 hover:underline min-h-[28px]"
                     >
                       Atšaukti
                     </button>
@@ -1050,9 +1050,9 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 )}
 
                 {reportingCommentId === c.id && (
-                  <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="mt-2 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800/50 px-3 py-2">
                     {commentReportSentId === c.id ? (
-                      <p className="text-xs font-semibold text-emerald-600">Pranešimas išsiųstas. Ačiū!</p>
+                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Pranešimas išsiųstas. Ačiū!</p>
                     ) : (
                       <div className="flex items-center gap-2">
                         <input
@@ -1061,20 +1061,20 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                           onChange={(e) => setCommentReportReason(e.target.value)}
                           placeholder="Kodėl pranešate?"
                           maxLength={500}
-                          className="flex-1 bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-amber-500/10 min-h-[36px]"
+                          className="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-full px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-amber-500/10 dark:focus:ring-amber-500/20 min-h-[36px]"
                         />
                         <button
                           type="button"
                           onClick={() => void submitCommentReport(c.id)}
                           disabled={!commentReportReason.trim()}
-                          className="text-xs font-semibold text-amber-600 hover:underline disabled:opacity-50 min-h-[28px]"
+                          className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline disabled:opacity-50 min-h-[28px]"
                         >
                           Siųsti
                         </button>
                         <button
                           type="button"
                           onClick={() => { setReportingCommentId(null); setCommentReportReason('') }}
-                          className="text-xs font-semibold text-slate-500 hover:underline min-h-[28px]"
+                          className="text-xs font-semibold text-slate-500 dark:text-gray-400 hover:underline min-h-[28px]"
                         >
                           Atšaukti
                         </button>
@@ -1087,7 +1087,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           </div>
         </div>
         {children.length > 0 && (
-          <div className="ml-9 sm:ml-11 mt-2 space-y-2 border-l-2 border-slate-100 pl-3 sm:pl-4">
+          <div className="ml-9 sm:ml-11 mt-2 space-y-2 border-l-2 border-slate-100 dark:border-gray-800 pl-3 sm:pl-4">
             {children.map((child) => renderCommentNode(child))}
           </div>
         )}
@@ -1099,10 +1099,10 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
   const repostTimeAgo = post.reposted_at ? formatDistanceToNow(new Date(post.reposted_at), { addSuffix: true }) : null
 
   return (
-    <div data-testid="post-card" data-post-id={post.id} className="group p-4 sm:p-5 hover:bg-slate-50/80 transition-all duration-200 animate-fade-in-up">
+    <div data-testid="post-card" data-post-id={post.id} className="group p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-gray-800/50 transition-all duration-200 animate-fade-in-up">
       <div className="flex gap-3 sm:gap-4">
         <Link href={`/u/${post.profiles?.username}`} className="flex-shrink-0">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden relative ring-2 ring-white shadow-sm">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden relative ring-2 ring-white dark:ring-gray-900 shadow-sm">
             {post.profiles?.avatar_path ? (
               <Image
                 src={avatarUrl!}
@@ -1113,7 +1113,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 unoptimized
               />
             ) : (
-              <span className="text-base sm:text-lg font-bold text-blue-600">
+              <span className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400">
                 {post.profiles?.display_name?.charAt(0).toUpperCase()}
               </span>
             )}
@@ -1121,7 +1121,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
         </Link>
         <div className="flex-1 min-w-0">
           {post.reposted_by_profile && (
-            <div className="mb-1 text-xs text-emerald-600 font-medium">
+            <div className="mb-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
               <Link href={`/u/${post.reposted_by_profile.username}`} className="hover:underline font-semibold">
                 @{post.reposted_by_profile.username}
               </Link>{' '}
@@ -1130,20 +1130,20 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
           <div className="flex items-center justify-between mb-1 gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-slate-900 hover:underline text-sm sm:text-base truncate max-w-[120px] sm:max-w-[200px]">
+              <Link href={`/u/${post.profiles?.username}`} className="font-bold text-slate-900 dark:text-gray-100 hover:underline text-sm sm:text-base truncate max-w-[120px] sm:max-w-[200px]">
                 {post.profiles?.display_name}
               </Link>
-              <Link href={`/u/${post.profiles?.username}`} className="text-slate-400 text-xs sm:text-sm hover:underline hidden sm:inline truncate max-w-[100px]">
+              <Link href={`/u/${post.profiles?.username}`} className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm hover:underline hidden sm:inline truncate max-w-[100px]">
                 @{post.profiles?.username}
               </Link>
-              <span className="text-slate-400 text-xs sm:text-sm shrink-0">&middot; {timeAgo}</span>
+              <span className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm shrink-0">&middot; {timeAgo}</span>
             </div>
             {canDelete && (
               <div className="flex items-center gap-1">
                 {isOwner && (
                   <button
                     onClick={() => { setEditedContent(localContent); setShowEditModal(true) }}
-                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    className="p-1.5 text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200 min-w-[36px] min-h-[36px] flex items-center justify-center"
                     title="Redaguoti įrašą"
                   >
                     <Pencil size={16} />
@@ -1151,7 +1151,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 )}
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="p-1.5 text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 min-w-[36px] min-h-[36px] flex items-center justify-center"
                   title="Ištrinti įrašą"
                 >
                   <Trash2 size={16} />
@@ -1161,27 +1161,27 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           </div>
 
           {!hidesPlainYoutubeText && (
-            <p className="text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap mb-1">
+            <p className="text-slate-800 dark:text-gray-200 text-[15px] leading-relaxed whitespace-pre-wrap mb-1">
               <ParsedContent content={localContent} />
             </p>
           )}
           {localEditedAt && (
-            <p className="text-xs text-slate-400 mb-3">
+            <p className="text-xs text-slate-400 dark:text-gray-500 mb-3">
               edited {formatDistanceToNow(new Date(localEditedAt), { addSuffix: true })}
             </p>
           )}
 
           {post.quoted_post && post.quoted_post.status !== 'deleted' && (
-            <div className="mb-3 rounded-2xl border border-slate-200 p-3 sm:p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer">
+            <div className="mb-3 rounded-2xl border border-slate-200 dark:border-gray-700 p-3 sm:p-4 bg-slate-50/50 dark:bg-gray-800/30 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
               <div className="flex items-center gap-2 mb-1">
-                <Link href={`/u/${post.quoted_post.profiles?.username}`} className="text-sm font-semibold text-slate-800 hover:underline">
+                <Link href={`/u/${post.quoted_post.profiles?.username}`} className="text-sm font-semibold text-slate-800 dark:text-gray-200 hover:underline">
                   {post.quoted_post.profiles?.display_name}
                 </Link>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-400 dark:text-gray-500">
                   @{post.quoted_post.profiles?.username}
                 </span>
               </div>
-              <p className="text-sm text-slate-600 whitespace-pre-wrap break-words">
+              <p className="text-sm text-slate-600 dark:text-gray-400 whitespace-pre-wrap break-words">
                 <ParsedContent content={post.quoted_post.content} />
               </p>
             </div>
@@ -1192,7 +1192,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               {mediaUrls.map((src, i) => (
                 <div
                   key={i}
-                  className="relative w-full h-48 sm:h-64 overflow-hidden cursor-pointer bg-slate-100 rounded-xl"
+                  className="relative w-full h-48 sm:h-64 overflow-hidden cursor-pointer bg-slate-100 dark:bg-gray-800 rounded-xl"
                   onClick={() => setLightboxIndex(i)}
                 >
                   <PostMediaImage src={src} />
@@ -1215,7 +1215,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             // the YouTube embed just below. No autoPlay (with or without
             // sound) and no loop; native `controls` gives accessible
             // keyboard/screen-reader-operable playback controls for free.
-            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black">
+            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-gray-700 bg-black">
               <video
                 src={videoMediaUrl}
                 className="h-full w-full"
@@ -1230,7 +1230,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           )}
 
           {youtubeEmbedUrl && (
-            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black">
+            <div className="mb-3 aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-gray-700 bg-black">
               <iframe
                 width="100%" height="100%"
                 src={youtubeEmbedUrl}
@@ -1249,29 +1249,29 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Atverti išorinę nuorodą: ${post.link_preview_title || post.link_preview_url} (naujame lange)`}
-              className="mb-3 flex items-stretch gap-3 rounded-2xl border border-slate-200 overflow-hidden hover:bg-slate-50 transition-colors"
+              className="mb-3 flex items-stretch gap-3 rounded-2xl border border-slate-200 dark:border-gray-700 overflow-hidden hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
             >
               {post.link_preview_image ? (
                 <PostLinkPreviewImage src={post.link_preview_image} />
               ) : (
-                <div className="flex h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 items-center justify-center bg-slate-100 text-slate-400">
+                <div className="flex h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 items-center justify-center bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500">
                   <LinkIcon size={22} aria-hidden="true" />
                 </div>
               )}
               <div className="min-w-0 flex-1 py-2 pr-3">
                 {post.link_preview_title && (
-                  <p className="text-sm font-semibold text-slate-800 line-clamp-1">{post.link_preview_title}</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-gray-200 line-clamp-1">{post.link_preview_title}</p>
                 )}
                 {post.link_preview_description && (
-                  <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{post.link_preview_description}</p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 line-clamp-2 mt-0.5">{post.link_preview_description}</p>
                 )}
-                <p className="text-xs text-slate-400 mt-1 truncate">{safeHostname(post.link_preview_url)}</p>
+                <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 truncate">{safeHostname(post.link_preview_url)}</p>
               </div>
             </a>
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-slate-400">
+          <div className="flex items-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-slate-400 dark:text-gray-500">
             <div className="relative flex items-center">
               <button
                 type="button"
@@ -1301,7 +1301,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 aria-controls={reactionMenuId}
                 aria-label="Atidaryti reakcijų pasirinkimą"
                 title="Daugiau reakcijų"
-                className="flex items-center justify-center min-w-[44px] min-h-[44px] text-slate-300 hover:text-[#E94560] disabled:opacity-60 transition-colors"
+                className="flex items-center justify-center min-w-[44px] min-h-[44px] text-slate-300 dark:text-gray-600 hover:text-[#E94560] disabled:opacity-60 transition-colors"
               >
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
@@ -1318,7 +1318,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         setShowReactionPicker(false)
                       }
                     }}
-                    className="absolute bottom-11 left-0 flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
+                    className="absolute bottom-11 left-0 flex items-center gap-1 rounded-full border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-1.5 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
                     {reactionTypes.map((type, index) => (
                       <button
@@ -1334,7 +1334,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         onKeyDown={(event) => handleReactionMenuKeyDown(event, index)}
                         title={REACTIONS[type].label}
                         aria-label={userReaction === type ? `${REACTIONS[type].label} (pasirinkta). Paspauskite, kad pašalintumėte.` : REACTIONS[type].label}
-                        className={`flex h-11 w-11 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${userReaction === type ? 'bg-slate-100' : ''}`}
+                        className={`flex h-11 w-11 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${userReaction === type ? 'bg-slate-100 dark:bg-gray-800' : ''}`}
                       >
                         {REACTIONS[type].emoji}
                       </button>
@@ -1343,7 +1343,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 </>
               )}
             </div>
-            <button type="button" onClick={toggleComments} aria-expanded={showComments} aria-label={showComments ? 'Slėpti komentarus' : 'Rodyti komentarus'} className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${showComments ? 'text-blue-500' : 'hover:text-blue-500'}`}>
+            <button type="button" onClick={toggleComments} aria-expanded={showComments} aria-label={showComments ? 'Slėpti komentarus' : 'Rodyti komentarus'} className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${showComments ? 'text-blue-500 dark:text-blue-400' : 'hover:text-blue-500 dark:hover:text-blue-400'}`}>
               <MessageCircle size={20} />
               <span className="text-sm font-medium">{commentCount}</span>
             </button>
@@ -1353,7 +1353,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 aria-haspopup="menu"
                 aria-expanded={showRepostMenu}
                 aria-label={reposted ? 'Pakartotinio paskelbimo parinktys (jau pakartota)' : 'Pakartotinai paskelbti arba cituoti'}
-                className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${reposted ? 'text-emerald-600' : 'hover:text-emerald-600'}`}
+                className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${reposted ? 'text-emerald-600 dark:text-emerald-400' : 'hover:text-emerald-600 dark:hover:text-emerald-400'}`}
               >
                 <Repeat2 size={20} />
                 <span className="text-sm font-medium">{repostCount}</span>
@@ -1361,13 +1361,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               {showRepostMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowRepostMenu(false)} />
-                  <div className="absolute bottom-8 left-0 bg-white rounded-xl shadow-lg border border-slate-200 py-2 w-44 z-50">
+                  <div className="absolute bottom-8 left-0 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-slate-200 dark:border-gray-700 py-2 w-44 z-50">
                     <button
                       onClick={async () => {
                         await handleRepost()
                         setShowRepostMenu(false)
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 transition-colors text-slate-700 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
                       {reposted ? 'Undo repost' : 'Repost'}
                     </button>
@@ -1376,7 +1376,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         setShowRepostMenu(false)
                         setShowQuoteModal(true)
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 transition-colors text-slate-700 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
                       Quote
                     </button>
@@ -1391,25 +1391,25 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 aria-haspopup="menu"
                 aria-expanded={showShareMenu}
                 aria-label="Dalintis įrašu"
-                className="flex items-center gap-2 hover:text-emerald-600 transition-all duration-200 min-h-[44px] hover:scale-110"
+                className="flex items-center gap-2 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 min-h-[44px] hover:scale-110"
               >
                 <Share2 size={20} />
               </button>
               {showShareMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)} />
-                  <div className="absolute bottom-8 left-0 sm:left-1/2 sm:-translate-x-1/2 bg-white rounded-xl shadow-lg border border-slate-200 py-2 w-48 z-50">
+                  <div className="absolute bottom-8 left-0 sm:left-1/2 sm:-translate-x-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-slate-200 dark:border-gray-700 py-2 w-48 z-50">
                     <button
                       onClick={handleCopyLink}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 transition-colors text-slate-700 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
-                      {copied ? <Check size={16} className="text-emerald-500" /> : <LinkIcon size={16} />}
+                      {copied ? <Check size={16} className="text-emerald-500 dark:text-emerald-400" /> : <LinkIcon size={16} />}
                       {copied ? 'Copied!' : 'Copy link'}
                     </button>
                     {typeof navigator !== 'undefined' && 'share' in navigator && (
                       <button
                         onClick={handleShareNative}
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 transition-colors text-slate-700 min-h-[44px]"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                       >
                         <Share2 size={16} />
                         Share via...
@@ -1417,14 +1417,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     )}
                     <button
                       onClick={shareToTwitter}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 transition-colors text-slate-700 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                       Post on X
                     </button>
                     <button
                       onClick={shareToFacebook}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 transition-colors text-slate-700 min-h-[44px]"
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                       Share on Facebook
@@ -1442,7 +1442,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 title={bookmarked ? 'Pašalinti iš išsaugotų' : 'Išsaugoti įrašą'}
                 aria-label={bookmarked ? 'Pašalinti iš išsaugotų' : 'Išsaugoti įrašą'}
                 aria-pressed={bookmarked}
-                className={`flex items-center gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${bookmarked ? 'text-amber-500' : 'hover:text-amber-500'}`}
+                className={`flex items-center gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${bookmarked ? 'text-amber-500 dark:text-amber-400' : 'hover:text-amber-500 dark:hover:text-amber-400'}`}
               >
                 <Bookmark size={20} fill={bookmarked ? 'currentColor' : 'none'} />
               </button>
@@ -1452,7 +1452,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               <button
                 onClick={() => setShowReportModal(true)}
                 aria-label="Pranešti apie įrašą"
-                className="flex items-center gap-2 text-slate-400 hover:text-amber-500 transition-all duration-200 ml-auto min-h-[44px] hover:scale-110"
+                className="flex items-center gap-2 text-slate-400 dark:text-gray-500 hover:text-amber-500 dark:hover:text-amber-400 transition-all duration-200 ml-auto min-h-[44px] hover:scale-110"
               >
                 <AlertCircle size={18} />
               </button>
@@ -1461,24 +1461,24 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Comments section */}
           {showComments && (
-            <div className="mt-3 sm:mt-4 space-y-3 border-t border-slate-100 pt-3 sm:pt-4">
+            <div className="mt-3 sm:mt-4 space-y-3 border-t border-slate-100 dark:border-gray-800 pt-3 sm:pt-4">
               {loadingComments && comments.length === 0 ? (
                 <div className="space-y-2 py-2">
                   <div className="flex gap-2 animate-pulse">
-                    <div className="w-8 h-8 rounded-full bg-slate-200" />
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-gray-700" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-slate-200 rounded w-1/4" />
-                      <div className="h-3 bg-slate-200 rounded w-3/4" />
+                      <div className="h-3 bg-slate-200 dark:bg-gray-700 rounded w-1/4" />
+                      <div className="h-3 bg-slate-200 dark:bg-gray-700 rounded w-3/4" />
                     </div>
                   </div>
                 </div>
               ) : commentsError && comments.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-4 text-center">
-                  <p className="text-sm text-slate-500">Nepavyko įkelti komentarų.</p>
+                  <p className="text-sm text-slate-500 dark:text-gray-400">Nepavyko įkelti komentarų.</p>
                   <button
                     type="button"
                     onClick={loadComments}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 min-h-[36px] transition-all"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 min-h-[36px] transition-all"
                   >
                     Bandyti dar kartą
                   </button>
@@ -1489,8 +1489,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
                   {comments.length === 0 && (
                     <div className="text-center py-4">
-                      <MessageCircle size={24} className="mx-auto text-slate-300 mb-2" />
-                      <p className="text-sm text-slate-400">Komentarų dar nėra. Būkite pirmi!</p>
+                      <MessageCircle size={24} className="mx-auto text-slate-300 dark:text-gray-600 mb-2" />
+                      <p className="text-sm text-slate-400 dark:text-gray-500">Komentarų dar nėra. Būkite pirmi!</p>
                     </div>
                   )}
                   {commentsHasMore && (
@@ -1499,14 +1499,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         type="button"
                         onClick={loadMoreComments}
                         disabled={loadingMoreComments}
-                        className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60 min-h-[36px] transition-all"
+                        className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 disabled:opacity-60 min-h-[36px] transition-all"
                       >
                         {loadingMoreComments ? 'Kraunama...' : 'Rodyti daugiau komentarų'}
                       </button>
                     </div>
                   )}
                   {commentsError && comments.length > 0 && (
-                    <p className="text-center text-xs text-slate-400">Nepavyko įkelti daugiau komentarų. Bandykite dar kartą.</p>
+                    <p className="text-center text-xs text-slate-400 dark:text-gray-500">Nepavyko įkelti daugiau komentarų. Bandykite dar kartą.</p>
                   )}
                 </>
               )}
@@ -1514,7 +1514,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
               {currentUserId && (
                 <>
                   {replyingTo && (
-                    <div className="flex items-center justify-between gap-2 rounded-full bg-blue-50 px-3 sm:px-4 py-1.5 text-xs text-blue-700">
+                    <div className="flex items-center justify-between gap-2 rounded-full bg-blue-50 dark:bg-blue-900/30 px-3 sm:px-4 py-1.5 text-xs text-blue-700 dark:text-blue-400">
                       <span className="truncate">
                         Atsakoma {replyingTo.name ? `vartotojui ${replyingTo.name}` : 'į komentarą'}
                       </span>
@@ -1522,7 +1522,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         type="button"
                         onClick={cancelReply}
                         aria-label="Atšaukti atsakymą"
-                        className="text-blue-700 hover:text-blue-900 min-w-[24px] min-h-[24px] flex items-center justify-center shrink-0"
+                        className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 min-w-[24px] min-h-[24px] flex items-center justify-center shrink-0"
                       >
                         <X size={14} />
                       </button>
@@ -1537,7 +1537,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   >
                     <div className="flex-1 relative">
                       {commentError && (
-                        <p className="text-xs text-red-500 mb-1 px-3">{commentError}</p>
+                        <p className="text-xs text-red-500 dark:text-red-400 mb-1 px-3">{commentError}</p>
                       )}
                       <input
                         ref={commentInputRef}
@@ -1552,7 +1552,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                             cancelReply()
                           }
                         }}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 text-slate-800 min-h-[44px] placeholder:text-slate-400 transition-all"
+                        className="w-full bg-slate-50 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-full px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-400 dark:focus:border-blue-600 focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 text-slate-800 dark:text-gray-200 min-h-[44px] placeholder:text-slate-400 transition-all"
                         maxLength={500}
                         disabled={commentLoading}
                       />
@@ -1573,11 +1573,11 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Quote Modal */}
           {showQuoteModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowQuoteModal(false)}>
-              <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowQuoteModal(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg text-slate-900">Quote Post</h3>
-                  <button onClick={() => setShowQuoteModal(false)} className="text-slate-400 hover:text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">Quote Post</h3>
+                  <button onClick={() => setShowQuoteModal(false)} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
                     <X size={20} />
                   </button>
                 </div>
@@ -1585,21 +1585,21 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   value={quoteText}
                   onChange={(e) => setQuoteText(e.target.value)}
                   placeholder="Add your comment..."
-                  className="w-full border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-500/10 resize-none min-h-[110px] bg-slate-50 text-slate-800"
+                  className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 resize-none min-h-[110px] bg-slate-50 dark:bg-gray-800/50 text-slate-800 dark:text-gray-200"
                   maxLength={2000}
                 />
-                <div className="mt-3 rounded-xl border border-slate-200 p-3 bg-slate-50">
-                  <p className="text-xs text-slate-400 mb-1">
+                <div className="mt-3 rounded-xl border border-slate-200 dark:border-gray-700 p-3 bg-slate-50 dark:bg-gray-800/50">
+                  <p className="text-xs text-slate-400 dark:text-gray-500 mb-1">
                     @{post.profiles?.username}
                   </p>
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                  <p className="text-sm text-slate-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                     <ParsedContent content={post.content} />
                   </p>
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
                   <button
                     onClick={() => setShowQuoteModal(false)}
-                    className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-700 font-semibold min-h-[44px] hover:bg-slate-50 transition-colors"
+                    className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-semibold min-h-[44px] hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     Cancel
                   </button>
@@ -1617,11 +1617,11 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Edit Modal */}
           {showEditModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowEditModal(false)}>
-              <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowEditModal(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg text-slate-900">Redaguoti įrašą</h3>
-                  <button onClick={() => { setShowEditModal(false); setEditError('') }} className="text-slate-400 hover:text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">Redaguoti įrašą</h3>
+                  <button onClick={() => { setShowEditModal(false); setEditError('') }} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
                     <X size={20} />
                   </button>
                 </div>
@@ -1629,17 +1629,17 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   value={editedContent}
                   onChange={(e) => { setEditedContent(e.target.value); setEditError('') }}
                   placeholder="Ką galvojate?"
-                  className="w-full border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-500/10 resize-none min-h-[120px] bg-slate-50 text-slate-800"
+                  className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 resize-none min-h-[120px] bg-slate-50 dark:bg-gray-800/50 text-slate-800 dark:text-gray-200"
                   maxLength={2000}
                   autoFocus
                 />
                 {editError && (
-                  <p className="mt-2 text-sm text-red-500">{editError}</p>
+                  <p className="mt-2 text-sm text-red-500 dark:text-red-400">{editError}</p>
                 )}
                 <div className="mt-4 flex justify-end gap-3">
                   <button
                     onClick={() => { setShowEditModal(false); setEditError('') }}
-                    className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-700 font-semibold min-h-[44px] hover:bg-slate-50 transition-colors"
+                    className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-semibold min-h-[44px] hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     Atšaukti
                   </button>
@@ -1657,20 +1657,20 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Delete Confirmation Modal */}
           {showDeleteConfirm && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowDeleteConfirm(false)}>
-              <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-lg mb-2 text-slate-900">Ištrinti įrašą?</h3>
-                <p className="text-slate-500 text-sm mb-4 sm:mb-6">Šio veiksmo negalima atšaukti. Įrašas bus pašalintas.</p>
+            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-gray-100">Ištrinti įrašą?</h3>
+                <p className="text-slate-500 dark:text-gray-400 text-sm mb-4 sm:mb-6">Šio veiksmo negalima atšaukti. Įrašas bus pašalintas.</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 border border-slate-200 text-slate-700 py-2.5 rounded-full font-semibold hover:bg-slate-50 transition-colors min-h-[44px]"
+                    className="flex-1 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 py-2.5 rounded-full font-semibold hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors min-h-[44px]"
                   >
                     Atšaukti
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="flex-1 bg-red-500 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 transition-colors min-h-[44px]"
+                    className="flex-1 bg-red-500 dark:bg-red-600 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 dark:hover:bg-red-700 transition-colors min-h-[44px]"
                   >
                     Ištrinti
                   </button>
@@ -1681,29 +1681,29 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
 
           {/* Report Modal */}
           {showReportModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={() => setShowReportModal(false)}>
-              <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowReportModal(false)}>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg text-slate-900">Report Post</h3>
-                  <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">Report Post</h3>
+                  <button onClick={() => setShowReportModal(false)} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
                     <X size={20} />
                   </button>
                 </div>
                 {reportSent ? (
-                  <p className="text-emerald-600 font-bold text-center py-4">Report submitted. Thank you!</p>
+                  <p className="text-emerald-600 dark:text-emerald-400 font-bold text-center py-4">Report submitted. Thank you!</p>
                 ) : (
                   <>
                     <textarea
                       value={reportReason}
                       onChange={e => setReportReason(e.target.value)}
                       placeholder="Why are you reporting this post?"
-                      className="w-full border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-500/10 resize-none min-h-[100px] bg-slate-50 text-slate-800"
+                      className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-red-300 dark:focus:border-red-700 focus:ring-2 focus:ring-red-500/10 dark:focus:ring-red-500/20 resize-none min-h-[100px] bg-slate-50 dark:bg-gray-800/50 text-slate-800 dark:text-gray-200"
                       maxLength={500}
                     />
                     <button
                       onClick={handleReport}
                       disabled={!reportReason.trim()}
-                      className="mt-3 w-full bg-red-500 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 disabled:opacity-50 transition-colors min-h-[44px]"
+                      className="mt-3 w-full bg-red-500 dark:bg-red-600 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 dark:hover:bg-red-700 disabled:opacity-50 transition-colors min-h-[44px]"
                     >
                       Submit Report
                     </button>

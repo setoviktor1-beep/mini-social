@@ -27,8 +27,8 @@ export default function ProfileTabs({
   const activePosts = tab === 'posts' ? posts : tab === 'media' ? mediaPosts : repostedPosts
 
   return (
-    <div className="divide-y divide-slate-100 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
-      <div role="tablist" aria-label="Profilio skiltys" className="flex border-b border-slate-50">
+    <div className="divide-y divide-slate-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 dark:border-gray-800 overflow-hidden">
+      <div role="tablist" aria-label="Profilio skiltys" className="flex border-b border-slate-50 dark:border-gray-800">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -36,11 +36,11 @@ export default function ProfileTabs({
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
             className={`flex-1 py-3.5 text-center text-sm font-semibold transition-colors min-h-[44px] ${
-              tab === t.key ? 'text-slate-900 border-b-2 border-blue-500' : 'text-slate-400 hover:text-slate-600'
+              tab === t.key ? 'text-slate-900 dark:text-gray-100 border-b-2 border-blue-500 dark:border-blue-500' : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
           >
             {t.label}
-            <span className="ml-1.5 text-xs font-normal text-slate-400">{t.count}</span>
+            <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-gray-500">{t.count}</span>
           </button>
         ))}
       </div>
@@ -51,7 +51,7 @@ export default function ProfileTabs({
         ))}
         {activePosts.length === 0 && (
           <div className="p-10 sm:p-16 text-center">
-            <p className="text-slate-500 font-medium">
+            <p className="text-slate-500 dark:text-gray-400 font-medium">
               {tab === 'media' ? 'Medijos įrašų dar nėra.' : tab === 'reposts' ? 'Pakartotinių įrašų dar nėra.' : 'Šis vartotojas dar nieko nepaskelbė.'}
             </p>
           </div>

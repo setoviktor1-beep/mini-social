@@ -597,7 +597,7 @@ export default function PostComposer({ userId }: { userId: string }) {
   const canAddMore = files.length < MAX_ATTACHMENTS
 
   return (
-    <div className="border-b border-slate-100 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4">
+    <div className="border-b border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4">
       <input
         id={fileInputId}
         type="file"
@@ -624,17 +624,17 @@ export default function PostComposer({ userId }: { userId: string }) {
       />
 
       <div className="flex gap-3">
-        <div className="hidden sm:flex w-10 h-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-100 to-blue-50 ring-2 ring-white shadow-sm">
+        <div className="hidden sm:flex w-10 h-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-100 to-blue-50 ring-2 ring-white dark:ring-gray-900 shadow-sm">
           {avatar.path && avatarUrl ? (
             <Image src={avatarUrl} alt="" width={40} height={40} className="h-full w-full object-cover" unoptimized />
           ) : (
-            <span className="text-sm font-bold text-blue-600">{avatar.displayName?.charAt(0)?.toUpperCase() || '?'}</span>
+            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{avatar.displayName?.charAt(0)?.toUpperCase() || '?'}</span>
           )}
         </div>
 
         <div
           className={`relative flex-1 min-w-0 rounded-2xl border transition-colors ${
-            isDragActive ? 'border-dashed border-blue-400 bg-blue-50/50' : 'border-transparent'
+            isDragActive ? 'border-dashed border-blue-400 dark:border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent'
           }`}
           onDragOver={(e) => { e.preventDefault(); if (canAddMore) setIsDragActive(true) }}
           onDragLeave={() => setIsDragActive(false)}
@@ -691,7 +691,7 @@ export default function PostComposer({ userId }: { userId: string }) {
                 ? `${mentionListboxId}-option-${mentionActiveIndex}`
                 : undefined
             }
-            className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-slate-800 placeholder-slate-400 outline-none px-1"
+            className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-slate-800 dark:text-gray-200 placeholder-slate-400 dark:placeholder-gray-500 outline-none px-1"
           />
 
           {mentionTrigger && !mentionDismissed && (mentionLoading || mentionResults.length > 0) && (
@@ -699,10 +699,10 @@ export default function PostComposer({ userId }: { userId: string }) {
               id={mentionListboxId}
               role="listbox"
               aria-label="Vartotojų pasiūlymai"
-              className="absolute left-1 top-full z-20 mt-1 w-64 max-w-[calc(100%-0.5rem)] rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden"
+              className="absolute left-1 top-full z-20 mt-1 w-64 max-w-[calc(100%-0.5rem)] rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg overflow-hidden"
             >
               {mentionLoading && mentionResults.length === 0 ? (
-                <div className="px-3 py-2.5 text-sm text-slate-400">Ieškoma...</div>
+                <div className="px-3 py-2.5 text-sm text-slate-400 dark:text-gray-500">Ieškoma...</div>
               ) : (
                 mentionResults.map((user, index) => (
                   <button
@@ -716,10 +716,10 @@ export default function PostComposer({ userId }: { userId: string }) {
                     onMouseDown={(e) => { e.preventDefault(); selectMention(user) }}
                     onMouseEnter={() => setMentionActiveIndex(index)}
                     className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                      index === mentionActiveIndex ? 'bg-blue-50' : 'hover:bg-slate-50'
+                      index === mentionActiveIndex ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
                     }`}
                   >
-                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-100 to-blue-50 text-xs font-bold text-blue-600">
+                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-100 to-blue-50 text-xs font-bold text-blue-600 dark:text-blue-400">
                       {user.avatarPath ? (
                         <img
                           src={resolveSupabaseStorageUrl(
@@ -734,8 +734,8 @@ export default function PostComposer({ userId }: { userId: string }) {
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold text-slate-800">{user.displayName}</span>
-                      <span className="block truncate text-xs text-slate-400">@{user.username}</span>
+                      <span className="block truncate font-semibold text-slate-800 dark:text-gray-200">{user.displayName}</span>
+                      <span className="block truncate text-xs text-slate-400 dark:text-gray-500">@{user.username}</span>
                     </span>
                   </button>
                 ))
@@ -746,14 +746,14 @@ export default function PostComposer({ userId }: { userId: string }) {
           {files.length > 0 && (
             <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto -mx-1 px-1">
               {previews.map(({ file, url }, i) => (
-                <div key={i} className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
+                <div key={i} className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex-shrink-0 border border-slate-200 dark:border-gray-700 shadow-sm">
                   <Image src={url} alt="" fill sizes="80px" className="object-cover pointer-events-none" unoptimized />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <button
                     type="button"
                     onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
                     aria-label={`Pašalinti nuotrauką ${i + 1}`}
-                    className="absolute top-1 right-1 z-10 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-black/70 transition-colors"
+                    className="absolute top-1 right-1 z-10 bg-black/50 dark:bg-black/70 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-black/70 dark:hover:bg-black/80 transition-colors"
                   >
                     <X size={14} />
                   </button>
@@ -764,7 +764,7 @@ export default function PostComposer({ userId }: { userId: string }) {
 
           {videoFile && videoPreviewUrl && (
             <div className="mb-3 sm:mb-4">
-              <div className="group relative w-full max-w-xs aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-black">
+              <div className="group relative w-full max-w-xs aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-gray-700 shadow-sm bg-black">
                 <video
                   src={videoPreviewUrl}
                   className="h-full w-full object-contain"
@@ -777,7 +777,7 @@ export default function PostComposer({ userId }: { userId: string }) {
                   type="button"
                   onClick={() => setVideoFile(null)}
                   aria-label="Pašalinti vaizdo įrašą"
-                  className="absolute top-1 right-1 z-10 bg-black/50 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-black/70 transition-colors"
+                  className="absolute top-1 right-1 z-10 bg-black/50 dark:bg-black/70 text-white rounded-full p-0.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-black/70 dark:hover:bg-black/80 transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -786,19 +786,19 @@ export default function PostComposer({ userId }: { userId: string }) {
           )}
 
           {linkPreviewLoading && (
-            <div className="mb-3 sm:mb-4 flex items-center gap-3 rounded-xl border border-slate-200 p-3 animate-pulse">
-              <div className="h-14 w-14 flex-shrink-0 rounded-lg bg-slate-200" />
+            <div className="mb-3 sm:mb-4 flex items-center gap-3 rounded-xl border border-slate-200 dark:border-gray-700 p-3 animate-pulse">
+              <div className="h-14 w-14 flex-shrink-0 rounded-lg bg-slate-200 dark:bg-gray-700" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-2/3 rounded bg-slate-200" />
-                <div className="h-3 w-1/3 rounded bg-slate-200" />
+                <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-gray-700" />
+                <div className="h-3 w-1/3 rounded bg-slate-200 dark:bg-gray-700" />
               </div>
             </div>
           )}
 
           {!linkPreviewLoading && linkPreview && (
-            <div className="mb-3 sm:mb-4 group relative flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+            <div className="mb-3 sm:mb-4 group relative flex items-center gap-3 rounded-xl border border-slate-200 dark:border-gray-700 p-3 bg-slate-50/50 dark:bg-gray-800/30">
               {linkPreview.image ? (
-                <div className="relative h-14 w-14 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200">
+                <div className="relative h-14 w-14 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-gray-700">
                   {/* Remote OG images come from arbitrary third-party hosts,
                       so next/image's optimizer (which would need every host
                       allowlisted) is skipped here — same reasoning as
@@ -811,25 +811,25 @@ export default function PostComposer({ userId }: { userId: string }) {
                   />
                 </div>
               ) : (
-                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-400">
+                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-slate-200 dark:bg-gray-700 text-slate-400 dark:text-gray-500">
                   <LinkIcon size={20} />
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 {linkPreview.title && (
-                  <p className="text-sm font-semibold text-slate-800 truncate">{linkPreview.title}</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-gray-200 truncate">{linkPreview.title}</p>
                 )}
                 {linkPreview.description && (
-                  <p className="text-xs text-slate-500 line-clamp-1">{linkPreview.description}</p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 line-clamp-1">{linkPreview.description}</p>
                 )}
-                <p className="text-xs text-slate-400 truncate">{new URL(linkPreview.url).hostname}</p>
+                <p className="text-xs text-slate-400 dark:text-gray-500 truncate">{new URL(linkPreview.url).hostname}</p>
               </div>
               <button
                 type="button"
                 onClick={removeLinkPreview}
                 aria-label="Pašalinti nuorodos peržiūrą"
                 title="Pašalinti nuorodos peržiūrą"
-                className="absolute top-1 right-1 bg-white/90 text-slate-500 rounded-full p-1 min-w-[28px] min-h-[28px] flex items-center justify-center hover:bg-white hover:text-slate-700 shadow-sm transition-colors"
+                className="absolute top-1 right-1 bg-white/90 dark:bg-gray-900/90 text-slate-500 dark:text-gray-400 rounded-full p-1 min-w-[28px] min-h-[28px] flex items-center justify-center hover:bg-white dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300 shadow-sm transition-colors"
               >
                 <X size={14} />
               </button>
@@ -837,27 +837,27 @@ export default function PostComposer({ userId }: { userId: string }) {
           )}
 
           {!linkPreviewLoading && linkPreviewError && (
-            <p className="mb-3 sm:mb-4 text-xs text-slate-400">
+            <p className="mb-3 sm:mb-4 text-xs text-slate-400 dark:text-gray-500">
               Nepavyko įkelti nuorodos peržiūros — įrašas bus paskelbtas su paprasta nuoroda.
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-100 pt-3">
+      <div className="flex flex-col gap-3 border-t border-slate-100 dark:border-gray-800 pt-3">
         {postError && (
-        <p className="text-sm text-red-500 mb-2 bg-red-50 px-3 py-2 rounded-lg" role="alert">{postError}</p>
+        <p className="text-sm text-red-500 dark:text-red-400 mb-2 bg-red-50 dark:bg-red-900/10 px-3 py-2 rounded-lg" role="alert">{postError}</p>
         )}
         {videoError && (
-        <p className="text-sm text-red-500 mb-2 bg-red-50 px-3 py-2 rounded-lg" role="alert">{videoError}</p>
+        <p className="text-sm text-red-500 dark:text-red-400 mb-2 bg-red-50 dark:bg-red-900/10 px-3 py-2 rounded-lg" role="alert">{videoError}</p>
         )}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <label
             htmlFor={fileInputId}
             className={`flex w-fit min-h-[44px] items-center gap-2 text-sm px-2 rounded-lg transition-colors ${
               canAddMore
-                ? 'cursor-pointer text-blue-600 hover:text-blue-700 hover:bg-blue-50'
-                : 'cursor-not-allowed text-slate-300'
+                ? 'cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                : 'cursor-not-allowed text-slate-300 dark:text-gray-600'
             }`}
           >
             <ImageIcon size={18} />
@@ -867,8 +867,8 @@ export default function PostComposer({ userId }: { userId: string }) {
             htmlFor={videoInputId}
             className={`flex w-fit min-h-[44px] items-center gap-2 text-sm px-2 rounded-lg transition-colors ${
               files.length === 0 && !videoFile
-                ? 'cursor-pointer text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                : 'cursor-not-allowed text-slate-300'
+                ? 'cursor-pointer text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                : 'cursor-not-allowed text-slate-300 dark:text-gray-600'
             }`}
           >
             <Film size={18} />
@@ -889,7 +889,7 @@ export default function PostComposer({ userId }: { userId: string }) {
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
-              className="min-h-[44px] w-full border-b border-transparent bg-transparent text-slate-700 outline-none focus:border-purple-400 sm:w-40"
+              className="min-h-[44px] w-full border-b border-transparent bg-transparent text-slate-700 dark:text-gray-300 outline-none focus:border-purple-400 sm:w-40"
             />
           </div>
           <button
@@ -907,45 +907,45 @@ export default function PostComposer({ userId }: { userId: string }) {
         {showAiPanel && (
           <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-3 space-y-3">
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => handleAiAction('rewrite')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+              <button type="button" onClick={() => handleAiAction('rewrite')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
                 {aiLoading === 'rewrite' ? <Loader2 size={14} className="animate-spin" /> : null} Perrašyti
               </button>
-              <button type="button" onClick={() => handleAiAction('spelling')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+              <button type="button" onClick={() => handleAiAction('spelling')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
                 {aiLoading === 'spelling' ? <Loader2 size={14} className="animate-spin" /> : null} Taisyti rašybą
               </button>
-              <button type="button" onClick={() => handleAiAction('hashtags')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+              <button type="button" onClick={() => handleAiAction('hashtags')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
                 {aiLoading === 'hashtags' ? <Loader2 size={14} className="animate-spin" /> : null} #Hashtag&apos;ai
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <select value={aiTone} onChange={(e) => setAiTone(e.target.value)} className="min-h-[36px] rounded-full border border-violet-200 bg-white px-2 text-sm text-violet-700">
+              <select value={aiTone} onChange={(e) => setAiTone(e.target.value)} className="min-h-[36px] rounded-full border border-violet-200 bg-white dark:bg-gray-900 px-2 text-sm text-violet-700">
                 <option value="draugišką">draugišką</option>
                 <option value="formalų">formalų</option>
                 <option value="glaustą">glaustą</option>
                 <option value="entuziastingą">entuziastingą</option>
               </select>
-              <button type="button" onClick={() => handleAiAction('tone')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+              <button type="button" onClick={() => handleAiAction('tone')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
                 {aiLoading === 'tone' ? <Loader2 size={14} className="animate-spin" /> : null} Keisti toną
               </button>
-              <select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)} className="min-h-[36px] rounded-full border border-violet-200 bg-white px-2 text-sm text-violet-700">
+              <select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)} className="min-h-[36px] rounded-full border border-violet-200 bg-white dark:bg-gray-900 px-2 text-sm text-violet-700">
                 <option value="anglų">į anglų</option>
                 <option value="lietuvių">į lietuvių</option>
                 <option value="rusų">į rusų</option>
                 <option value="lenkų">į lenkų</option>
               </select>
-              <button type="button" onClick={() => handleAiAction('translate')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
+              <button type="button" onClick={() => handleAiAction('translate')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
                 {aiLoading === 'translate' ? <Loader2 size={14} className="animate-spin" /> : null} Versti
               </button>
             </div>
 
             {aiError && (
-              <p role="alert" className="text-sm text-red-600">{aiError}</p>
+              <p role="alert" className="text-sm text-red-600 dark:text-red-400">{aiError}</p>
             )}
 
             {aiSuggestion && (
-              <div className="rounded-xl border border-violet-200 bg-white p-3 space-y-2">
+              <div className="rounded-xl border border-violet-200 bg-white dark:bg-gray-900 p-3 space-y-2">
                 <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide">AI pasiūlymas — peržiūrėkite prieš naudodami</p>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap">{aiSuggestion}</p>
+                <p className="text-sm text-slate-700 dark:text-gray-300 whitespace-pre-wrap">{aiSuggestion}</p>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -954,7 +954,7 @@ export default function PostComposer({ userId }: { userId: string }) {
                   >
                     <Check size={14} /> Naudoti
                   </button>
-                  <button type="button" onClick={() => { setAiSuggestion(''); setAiSuggestionAction(null) }} className="min-h-[36px] px-4 rounded-full border border-slate-200 text-slate-600 text-sm hover:bg-slate-50">
+                  <button type="button" onClick={() => { setAiSuggestion(''); setAiSuggestionAction(null) }} className="min-h-[36px] px-4 rounded-full border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-400 text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50">
                     Atmesti
                   </button>
                 </div>
@@ -963,12 +963,12 @@ export default function PostComposer({ userId }: { userId: string }) {
           </div>
         )}
 
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-gray-500">
           Enter palieka naują eilutę. YouTube nuorodą galite dėti į atskirą lauką arba vieną pačią į posto tekstą. Nuotraukas taip pat galite tempti ir paleisti čia.
         </p>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className={`text-xs ${nearLimit ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
+            <span className={`text-xs ${nearLimit ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-400 dark:text-gray-500'}`}>
               {remainingChars}
             </span>
             {aiAssistedApplied && (
@@ -981,7 +981,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             type="button"
             onClick={handlePost}
             disabled={loading}
-            className="min-h-[44px] rounded-full bg-gradient-to-r from-[#1A1A2E] to-[#16213E] px-6 py-2 font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 disabled:opacity-50 flex items-center gap-2 transition-all hover:-translate-y-0.5"
+            className="min-h-[44px] rounded-full bg-gradient-to-r from-[#1A1A2E] to-[#16213E] px-6 py-2 font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 dark:hover:shadow-black/40 disabled:opacity-50 flex items-center gap-2 transition-all hover:-translate-y-0.5"
           >
             {loading ? (uploadStep || 'Skelbiama...') : <><Send size={16}/> Skelbti</>}
           </button>

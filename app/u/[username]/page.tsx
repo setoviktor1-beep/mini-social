@@ -302,7 +302,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Profile Header with Cover */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 dark:border-gray-800 overflow-hidden">
         {/* Cover Photo Gradient */}
         <div className="h-32 sm:h-48 bg-gradient-to-r from-[#1A1A2E] via-[#16213E] to-[#E94560] relative">
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -311,7 +311,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
         <div className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 -mt-12 sm:-mt-16 relative">
           <div className="flex flex-col md:flex-row items-start md:items-end gap-4 sm:gap-6">
             {/* Avatar */}
-            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-slate-100">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900 shadow-lg overflow-hidden flex-shrink-0 ring-2 ring-slate-100 dark:ring-gray-800">
               {profile.avatar_path ? (
                 <Image
                   src={`${process.env.NEXT_PUBLIC_S3_PUBLIC_URL}/post-images/${profile.avatar_path}`}
@@ -321,17 +321,17 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-3xl sm:text-4xl font-bold text-blue-600">
+                <span className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">
                   {profile.display_name?.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
             
             <div className="flex-1 min-w-0 pt-1">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 break-words">{profile.display_name}</h1>
-              <p className="text-slate-500 text-base sm:text-lg">@{profile.username}</p>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-gray-100 break-words">{profile.display_name}</h1>
+              <p className="text-slate-500 dark:text-gray-400 text-base sm:text-lg">@{profile.username}</p>
               {profile.bio && (
-                <p className="mt-2 text-slate-600 leading-relaxed max-w-md break-words text-sm sm:text-base">{profile.bio}</p>
+                <p className="mt-2 text-slate-600 dark:text-gray-400 leading-relaxed max-w-md break-words text-sm sm:text-base">{profile.bio}</p>
               )}
               <ProfileStats
                 profileId={profile.id}
@@ -346,14 +346,14 @@ export default async function ProfilePage(props: ProfilePageProps) {
                 <>
                   <Link
                     href="/settings"
-                    className="flex items-center gap-2 border-2 border-slate-200 text-slate-700 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 hover:border-slate-300 transition-all min-h-[44px] text-sm"
+                    className="flex items-center gap-2 border-2 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:border-slate-300 dark:hover:border-gray-600 transition-all min-h-[44px] text-sm"
                   >
                     <Settings size={16} />
                     Redaguoti profilį
                   </Link>
                   <Link
                     href="/bookmarks"
-                    className="flex items-center gap-2 border-2 border-slate-200 text-slate-700 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 hover:border-slate-300 transition-all min-h-[44px] text-sm"
+                    className="flex items-center gap-2 border-2 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 px-6 sm:px-8 py-2.5 rounded-full font-bold hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:border-slate-300 dark:hover:border-gray-600 transition-all min-h-[44px] text-sm"
                   >
                     <Bookmark size={16} />
                     Išsaugoti įrašai
@@ -365,8 +365,8 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   <button
                     className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 rounded-full font-bold transition-all min-h-[44px] text-sm ${
                       hasMuted
-                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        : 'border-2 border-slate-200 text-slate-700 hover:border-amber-200 hover:text-amber-600 hover:bg-amber-50'
+                        ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
+                        : 'border-2 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:border-amber-200 dark:hover:border-amber-800 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
                     }`}
                     title={hasMuted ? 'Nebenutildyti vartotojo' : 'Nutildyti vartotoją'}
                   >
@@ -380,8 +380,8 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   <button
                     className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 rounded-full font-bold transition-all min-h-[44px] text-sm ${
                       hasBlocked
-                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        : 'border-2 border-slate-200 text-slate-700 hover:border-red-200 hover:text-red-600 hover:bg-red-50'
+                        ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
+                        : 'border-2 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:border-red-200 dark:hover:border-red-800 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                     }`}
                     title={hasBlocked ? 'Atblokuoti vartotoją' : 'Užblokuoti vartotoją'}
                   >
@@ -412,22 +412,22 @@ export default async function ProfilePage(props: ProfilePageProps) {
           </div>
           
           {searchParams.muteError && (
-            <div role="alert" className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
+            <div role="alert" className="mt-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl p-3 text-sm text-red-700 dark:text-red-400">
               Nepavyko pakeisti nutildymo būsenos. Bandykite dar kartą.
             </div>
           )}
           {blockedBy && (
-            <div className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
+            <div className="mt-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl p-3 text-sm text-red-700 dark:text-red-400">
               Šiuo metu su šiuo vartotoju bendrauti negalite.
             </div>
           )}
           {hasBlocked && (
-            <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-3 text-sm text-slate-600">
+            <div className="mt-4 bg-slate-50 dark:bg-gray-800/50 border border-slate-100 dark:border-gray-800 rounded-2xl p-3 text-sm text-slate-600 dark:text-gray-400">
               Užblokavote šį vartotoją. Atblokuokite, jei norite sekti, pridėti prie draugų ar rašyti žinutes.
             </div>
           )}
           {currentUser?.id === profile.id && profile.is_private && pendingIncomingRequests > 0 && (
-            <div className="mt-4 bg-blue-50 border border-blue-100 rounded-2xl p-3 text-sm text-blue-700">
+            <div className="mt-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-900/40 rounded-2xl p-3 text-sm text-blue-700 dark:text-blue-400">
               {pendingIncomingRequests === 1
                 ? 'Turite 1 laukiančią sekimo užklausą.'
                 : `Turite ${pendingIncomingRequests} laukiančias sekimo užklausas.`}{' '}
@@ -437,7 +437,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
             </div>
           )}
           {!canViewContent && followRequestStatus === 'pending' && (
-            <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-3 text-sm text-slate-600">
+            <div className="mt-4 bg-slate-50 dark:bg-gray-800/50 border border-slate-100 dark:border-gray-800 rounded-2xl p-3 text-sm text-slate-600 dark:text-gray-400">
               Sekimo užklausa išsiųsta. Įrašus matysite, kai {profile.display_name} ją priims.
             </div>
           )}
@@ -456,14 +456,14 @@ export default async function ProfilePage(props: ProfilePageProps) {
           currentUserRole={currentUserRole}
         />
       ) : (
-        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden p-10 sm:p-16 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 dark:border-gray-800 overflow-hidden p-10 sm:p-16 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-gray-800 flex items-center justify-center">
+            <svg className="w-8 h-8 text-slate-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <p className="text-slate-700 font-bold">Šis profilis yra privatus</p>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-700 dark:text-gray-300 font-bold">Šis profilis yra privatus</p>
+          <p className="text-slate-400 dark:text-gray-500 text-sm mt-1">
             Sekite {profile.display_name}, kad matytumėte jo įrašus, mediją ir atsakymus.
           </p>
         </div>
