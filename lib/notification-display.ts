@@ -3,6 +3,8 @@ export type NotificationType =
   | 'reaction'
   | 'comment'
   | 'follow'
+  | 'follow_request'
+  | 'follow_request_accepted'
   | 'new_post'
   | 'mention'
   | 'share'
@@ -43,6 +45,10 @@ export function formatNotificationText(notification: NotificationRow) {
       return `${name} pakomentavo jūsų įrašą`
     case 'follow':
       return `${name} pradėjo jus sekti`
+    case 'follow_request':
+      return `${name} nori jus sekti`
+    case 'follow_request_accepted':
+      return `${name} priėmė jūsų sekimo užklausą`
     case 'new_post':
       return `${name} paskelbė naują įrašą`
     case 'mention':

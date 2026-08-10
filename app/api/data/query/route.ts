@@ -22,6 +22,7 @@ const allowedTables = new Set([
   'discussion_replies',
   'discussions',
   'financial_settings',
+  'follow_requests',
   'follows',
   'friend_requests',
   'likes',

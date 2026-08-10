@@ -1137,4 +1137,378 @@ test.describe('Social features (authenticated)', () => {
       await expect(card.getByPlaceholder('Parašykite atsakymą...')).toHaveValue(replyText);
     });
   });
+
+  test.describe('private accounts (db/migrations/0013_private_accounts.sql)', () => {
+    // Server-enforced gating: every check here goes through the actual
+    // RLS-protected /api/data/query path (same one the UI uses), not a
+    // client-side filter — a stranger who bypasses the UI entirely (direct
+    // fetch, direct post URL) must still be blocked by Postgres itself.
+    test.describe.configure({ timeout: 180000 });
+
+    // These tests chain many navigations per page (profile, notifications,
+    // settings) on top of the shared login() cache, which only snapshots
+    // cookies once, right after the initial /home load — a later rotation
+    // of the session cookie during one of those navigations would leave the
+    // cache holding a now-invalid cookie for the *next* test that reuses it.
+    // Resyncing after each test's activity keeps the shared cache correct
+    // for whichever test runs next, without touching login() itself (used
+    // by every other checkpoint's tests).
+    async function resyncAuthCache(context: BrowserContext, user: { email: string; password: string }) {
+      authCookieCache.set(user.email, await context.cookies());
+    }
+
+    // Setup/teardown for every test *except* the dedicated settings-page
+    // test below goes through this direct API call rather than the /settings
+    // UI: it's the same underlying mutation the toggle performs
+    // (profiles.is_private), but avoids an extra full-page navigation per
+    // call. With up to 4 of these per test across 6 tests sharing one
+    // worker on a loaded host, the UI round-trips were occasionally landing
+    // on a stale /auth/login redirect (see the dedicated UI test for the
+    // one place this file actually exercises the toggle end-to-end).
+    async function setPrivateApi(page: Page, userId: string, isPrivate: boolean) {
+      const res = await apiQuery(page, { table: 'profiles', method: 'PATCH', body: { is_private: isPrivate }, filters: [['id', 'eq.' + userId]], order: [] });
+      expect(res.error).toBeFalsy();
+    }
+
+    async function apiQuery<T>(page: Page, spec: Record<string, unknown>): Promise<{ data: T; error: unknown; status: number }> {
+      return page.evaluate(async (s) => {
+        const res = await fetch('/api/data/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(s),
+        });
+        const json = await res.json();
+        return { ...json, status: res.status };
+      }, spec);
+    }
+
+    async function getUserId(page: Page, user: { email: string; password: string }): Promise<string> {
+      // Same shared-host flakiness as getUsername below: get-session has
+      // occasionally come back without a user on the very first call right
+      // after login(), under load. A back-to-back retry lands in the same
+      // dip, so back off briefly between attempts to give it time to clear.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) await page.waitForTimeout(1000);
+        const id = await page.evaluate(async () => (await (await fetch('/api/auth/get-session')).json())?.user?.id);
+        if (id) return id;
+      }
+      // Still nothing after 5 tries: the cached cookie itself may be the
+      // problem (see gotoAuthed's comment on the same class of issue).
+      // Force one real, fresh login and try once more before giving up.
+      authCookieCache.delete(user.email);
+      await login(page, user);
+      const id = await page.evaluate(async () => (await (await fetch('/api/auth/get-session')).json())?.user?.id);
+      if (id) return id;
+      throw new Error('getUserId: no session user id after retries');
+    }
+
+    async function getUsername(page: Page, userId: string): Promise<string> {
+      // This harness shares the VPS with the live production stack, so a
+      // single request has occasionally come back with a transient null
+      // under host load (same class of flakiness documented elsewhere in
+      // this file, e.g. createPost's reload-on-timeout) — retry once
+      // before treating it as a real failure.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) await page.waitForTimeout(1000);
+        const res = await apiQuery<{ username: string } | null>(page, { table: 'profiles', method: 'GET', filters: [['id', 'eq.' + userId]], order: [], select: 'username', single: 'single' });
+        if (res.data) return res.data.username;
+      }
+      throw new Error(`getUsername: no profile row for ${userId} after retries`);
+    }
+
+    // Same "shared, occasionally slow host" class of flakiness as
+    // createPost()'s reload-on-timeout: navigating straight to /notifications
+    // right after the request/notification insert has occasionally raced
+    // ahead of the server settling, leaving the actionable button briefly
+    // missing. One reload-and-retry resolves it without masking a real bug
+    // (a genuine bug would still fail after the reload).
+    // A navigation to an auth-required page has occasionally bounced to
+    // /auth/login despite an already-valid session (the header even renders
+    // authenticated while the page content shows the login form — a stale
+    // client-side auth cache racing a server-side session check under host
+    // load). Re-authenticating fresh and retrying resolves it without
+    // masking a real auth bug: a genuine bug would still fail afterwards.
+    async function gotoAuthed(page: Page, user: { email: string; password: string }, url: string) {
+      await page.goto(url);
+      if (/\/auth\/login/.test(page.url())) {
+        authCookieCache.delete(user.email);
+        await login(page, user);
+        await page.goto(url);
+      }
+    }
+
+    async function gotoNotificationsAndFindButton(page: Page, name: string) {
+      await page.goto('/notifications');
+      const button = page.getByRole('button', { name }).first();
+      try {
+        await expect(button).toBeVisible({ timeout: 15000 });
+      } catch {
+        await page.reload();
+        await expect(button).toBeVisible({ timeout: 30000 });
+      }
+      return button;
+    }
+
+    // follows RLS only lets the follower themselves delete a follows row
+    // (follows_owner: follower_id = auth.uid()) — deleting "B follows A"
+    // must run as pageB, not pageA, or it silently no-ops (0 rows match the
+    // RLS-filtered USING clause, no error) and leaves the row in place.
+    async function cleanupRelationship(pageA: Page, pageB: Page, aId: string, bId: string) {
+      await apiQuery(pageB, { table: 'follows', method: 'DELETE', filters: [['follower_id', 'eq.' + bId], ['following_id', 'eq.' + aId]], order: [] });
+      await apiQuery(pageA, { table: 'follows', method: 'DELETE', filters: [['follower_id', 'eq.' + aId], ['following_id', 'eq.' + bId]], order: [] });
+      await apiQuery(pageA, { table: 'follow_requests', method: 'DELETE', filters: [['requester_id', 'eq.' + bId], ['target_id', 'eq.' + aId]], order: [] });
+      await apiQuery(pageA, { table: 'blocks', method: 'DELETE', filters: [['blocker_id', 'eq.' + aId], ['blocked_id', 'eq.' + bId]], order: [] });
+    }
+
+    test('stranger cannot see a private profile\'s posts; direct follow of a private account is rejected server-side', async ({ browser }) => {
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+        await login(pageA, USER_A);
+        await login(pageB, USER_B);
+
+        const idA = await getUserId(pageA, USER_A);
+        const idB = await getUserId(pageB, USER_B);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+        const usernameA = await getUsername(pageA, idA);
+
+        const unique = `private-post-${Date.now()}`;
+        await createPost(pageA, unique);
+        await setPrivateApi(pageA, idA, true);
+
+        // Direct API call as a stranger (not just UI): must come back empty.
+        const strangerRead = await apiQuery(pageB, { table: 'posts', method: 'GET', filters: [['user_id', 'eq.' + idA]], order: [], select: 'id,content' });
+        expect((strangerRead.data as unknown[]).length).toBe(0);
+
+        // A direct follows insert (bypassing the request flow) must be
+        // rejected by the enforce_follow_request trigger.
+        const directFollow = await apiQuery(pageB, { table: 'follows', method: 'POST', body: { follower_id: idB, following_id: idA }, filters: [], order: [] });
+        expect(directFollow.error).toBeTruthy();
+
+        // Profile page shows the honest "private" gate, not the post feed.
+        await pageB.goto(`/u/${usernameA}`);
+        await expect(pageB.getByText('Šis profilis yra privatus').first()).toBeVisible({ timeout: 10000 });
+        await expect(pageB.getByText(unique)).toBeHidden();
+
+        await setPrivateApi(pageA, idA, false);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+      } finally {
+        await resyncAuthCache(contextA, USER_A);
+        await resyncAuthCache(contextB, USER_B);
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('anonymous visitor cannot see a private profile\'s posts', async ({ browser }) => {
+      const contextA = await browser.newContext();
+      const anonContext = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        await login(pageA, USER_A);
+        const idA = await getUserId(pageA, USER_A);
+        const usernameA = await getUsername(pageA, idA);
+        await setPrivateApi(pageA, idA, true);
+
+        const anonPage = await anonContext.newPage();
+        await anonPage.goto('/');
+        const anonRead = await apiQuery(anonPage, { table: 'posts', method: 'GET', filters: [['user_id', 'eq.' + idA]], order: [], select: 'id,content' });
+        expect((anonRead.data as unknown[] | null) ?? []).toEqual([]);
+
+        await anonPage.goto(`/u/${usernameA}`);
+        await expect(anonPage.getByText('Šis profilis yra privatus').first()).toBeVisible({ timeout: 10000 });
+
+        await setPrivateApi(pageA, idA, false);
+      } finally {
+        await resyncAuthCache(contextA, USER_A);
+        await contextA.close();
+        await anonContext.close();
+      }
+    });
+
+    test('follow request flow: request, notify, accept, then the follower can see private posts', async ({ browser }) => {
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+        await login(pageA, USER_A);
+        await login(pageB, USER_B);
+
+        const idA = await getUserId(pageA, USER_A);
+        const idB = await getUserId(pageB, USER_B);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+        const usernameA = await getUsername(pageA, idA);
+
+        const unique = `request-flow-post-${Date.now()}`;
+        await createPost(pageA, unique);
+        await setPrivateApi(pageA, idA, true);
+
+        // B requests to follow A via the real profile UI.
+        await pageB.goto(`/u/${usernameA}`);
+        const requestButton = pageB.getByRole('button', { name: 'Prašyti sekti' }).first();
+        await expect(requestButton).toBeVisible({ timeout: 10000 });
+        await requestButton.click();
+        await expect(pageB.getByRole('button', { name: 'Atšaukti sekimo užklausą' }).first()).toBeVisible({ timeout: 10000 });
+
+        // A sees the request as an actionable notification and accepts it.
+        // Scoped to the first "Priimti" button: earlier test runs can leave
+        // behind already-responded-to (read, non-actionable) notifications
+        // with the same "nori jus sekti" text, but only the new, unread
+        // request renders an actionable Priimti/Atmesti pair.
+        const acceptButton = await gotoNotificationsAndFindButton(pageA, 'Priimti');
+        // Don't assert the button unmounts via toBeHidden: under host load
+        // this page has occasionally double-rendered its content (the same
+        // duplicate-DOM class of flakiness documented elsewhere in this
+        // file for the composer), which would leave a second, never-clicked
+        // copy of the button permanently visible. Waiting for the actual
+        // PATCH response and then verifying server-side state is
+        // deterministic regardless of how many DOM copies exist.
+        const acceptResponse = pageA.waitForResponse((res) => Boolean(res.request().postData()?.includes('"follow_requests"') && res.request().postData()?.includes('"accepted"')));
+        await acceptButton.click();
+        await acceptResponse;
+
+        // The follows row is real (server-materialized by the trigger),
+        // so B can now see A's private post — via API and via the UI.
+        const followerRead = await apiQuery(pageB, { table: 'posts', method: 'GET', filters: [['user_id', 'eq.' + idA]], order: [], select: 'id,content' });
+        expect((followerRead.data as { content: string }[]).some((p) => p.content === unique)).toBe(true);
+
+        await pageB.goto(`/u/${usernameA}`);
+        await expect(pageB.getByText(unique)).toBeVisible({ timeout: 10000 });
+        await expect(pageB.getByRole('button', { name: 'Nebesekti' }).first()).toBeVisible();
+
+        await setPrivateApi(pageA, idA, false);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+      } finally {
+        await resyncAuthCache(contextA, USER_A);
+        await resyncAuthCache(contextB, USER_B);
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('follow request flow: reject leaves the requester without access', async ({ browser }) => {
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+        await login(pageA, USER_A);
+        await login(pageB, USER_B);
+
+        const idA = await getUserId(pageA, USER_A);
+        const idB = await getUserId(pageB, USER_B);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+        const usernameA = await getUsername(pageA, idA);
+        await setPrivateApi(pageA, idA, true);
+
+        await pageB.goto(`/u/${usernameA}`);
+        await pageB.getByRole('button', { name: 'Prašyti sekti' }).first().click();
+        await expect(pageB.getByRole('button', { name: 'Atšaukti sekimo užklausą' }).first()).toBeVisible({ timeout: 10000 });
+
+        const rejectButton = await gotoNotificationsAndFindButton(pageA, 'Atmesti sekimo užklausą');
+        // See the acceptButton comment above: wait for the real network
+        // response instead of a DOM-unmount assertion, which is fragile
+        // under this host's occasional duplicate-render behavior.
+        const rejectResponse = pageA.waitForResponse((res) => Boolean(res.request().postData()?.includes('"follow_requests"') && res.request().postData()?.includes('"rejected"')));
+        await rejectButton.click();
+        await rejectResponse;
+
+        const rejectedRead = await apiQuery(pageB, { table: 'follows', method: 'GET', filters: [['follower_id', 'eq.' + idB], ['following_id', 'eq.' + idA]], order: [], select: 'follower_id' });
+        expect((rejectedRead.data as unknown[]).length).toBe(0);
+
+        await pageB.reload();
+        await expect(pageB.getByText('Šis profilis yra privatus').first()).toBeVisible({ timeout: 10000 });
+
+        await setPrivateApi(pageA, idA, false);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+      } finally {
+        await resyncAuthCache(contextA, USER_A);
+        await resyncAuthCache(contextB, USER_B);
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('blocking overrides an existing accepted follow: the blocked follower loses access', async ({ browser }) => {
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+        await login(pageA, USER_A);
+        await login(pageB, USER_B);
+
+        const idA = await getUserId(pageA, USER_A);
+        const idB = await getUserId(pageB, USER_B);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+        const usernameA = await getUsername(pageA, idA);
+
+        const unique = `block-override-post-${Date.now()}`;
+        await createPost(pageA, unique);
+        await setPrivateApi(pageA, idA, true);
+
+        await pageB.goto(`/u/${usernameA}`);
+        await pageB.getByRole('button', { name: 'Prašyti sekti' }).first().click();
+        const acceptButton = await gotoNotificationsAndFindButton(pageA, 'Priimti');
+        const acceptResponse = pageA.waitForResponse((res) => Boolean(res.request().postData()?.includes('"follow_requests"') && res.request().postData()?.includes('"accepted"')));
+        await acceptButton.click();
+        await acceptResponse;
+
+        const beforeBlock = await apiQuery(pageB, { table: 'posts', method: 'GET', filters: [['user_id', 'eq.' + idA]], order: [], select: 'id' });
+        expect((beforeBlock.data as unknown[]).length).toBeGreaterThan(0);
+
+        await apiQuery(pageA, { table: 'blocks', method: 'POST', body: { blocker_id: idA, blocked_id: idB }, filters: [], order: [] });
+
+        const afterBlock = await apiQuery(pageB, { table: 'posts', method: 'GET', filters: [['user_id', 'eq.' + idA]], order: [], select: 'id' });
+        expect((afterBlock.data as unknown[] | null) ?? []).toEqual([]);
+
+        await apiQuery(pageA, { table: 'blocks', method: 'DELETE', filters: [['blocker_id', 'eq.' + idA], ['blocked_id', 'eq.' + idB]], order: [] });
+        await setPrivateApi(pageA, idA, false);
+        await cleanupRelationship(pageA, pageB, idA, idB);
+      } finally {
+        await resyncAuthCache(contextA, USER_A);
+        await resyncAuthCache(contextB, USER_B);
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('the account owner always sees their own private content', async ({ page }) => {
+      await login(page, USER_A);
+      const idA = await getUserId(page, USER_A);
+      const usernameA = await getUsername(page, idA);
+      const unique = `owner-view-post-${Date.now()}`;
+      await createPost(page, unique);
+      await setPrivateApi(page, idA, true);
+
+      await page.goto(`/u/${usernameA}`);
+      await expect(page.getByText(unique)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText('Šis profilis yra privatus').first()).toBeHidden();
+
+      await setPrivateApi(page, idA, false);
+    });
+
+    test('settings page: the privacy toggle actually flips profiles.is_private', async ({ page }) => {
+      await login(page, USER_A);
+      const idA = await getUserId(page, USER_A);
+      await setPrivateApi(page, idA, false);
+
+      await gotoAuthed(page, USER_A, '/settings');
+      const toggle = page.getByRole('switch', { name: 'Privati paskyra' });
+      await expect(toggle).toHaveAttribute('aria-checked', 'false', { timeout: 10000 });
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', 'true', { timeout: 10000 });
+
+      const afterOn = await apiQuery<{ is_private: boolean }>(page, { table: 'profiles', method: 'GET', filters: [['id', 'eq.' + idA]], order: [], select: 'is_private', single: 'single' });
+      expect(afterOn.data.is_private).toBe(true);
+
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', 'false', { timeout: 10000 });
+      const afterOff = await apiQuery<{ is_private: boolean }>(page, { table: 'profiles', method: 'GET', filters: [['id', 'eq.' + idA]], order: [], select: 'is_private', single: 'single' });
+      expect(afterOff.data.is_private).toBe(false);
+    });
+  });
 });

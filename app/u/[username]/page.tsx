@@ -92,6 +92,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
 
   // 3. Check follow status and counts
   let isFollowing = false
+  let followRequestStatus: 'none' | 'pending' | 'rejected' = 'none'
   if (currentUser && currentUser.id !== profile.id) {
     const { data: followData } = await supabase
       .from('follows')
@@ -100,6 +101,30 @@ export default async function ProfilePage(props: ProfilePageProps) {
       .eq('following_id', profile.id)
       .maybeSingle()
     isFollowing = !!followData
+
+    if (!isFollowing && profile.is_private) {
+      const { data: requestData } = await supabase
+        .from('follow_requests')
+        .select('status')
+        .eq('requester_id', currentUser.id)
+        .eq('target_id', profile.id)
+        .maybeSingle()
+      if (requestData?.status === 'pending') followRequestStatus = 'pending'
+      else if (requestData?.status === 'rejected') followRequestStatus = 'rejected'
+    }
+  }
+
+  // Pending incoming follow requests — shown to the owner only, as a
+  // simple count-and-link banner (managed on /notifications, where
+  // accept/reject already lives).
+  let pendingIncomingRequests = 0
+  if (currentUser && currentUser.id === profile.id && profile.is_private) {
+    const { count } = await supabase
+      .from('follow_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('target_id', profile.id)
+      .eq('status', 'pending')
+    pendingIncomingRequests = count || 0
   }
 
   // 3b. Check block status (both directions)
@@ -123,6 +148,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
     hasBlocked = !!blockRow
     blockedBy = !!blockedByRow
   }
+  const isBlockedEitherWay = hasBlocked || blockedBy
 
   // 3c. Check mute status (one direction only — muting is private and does
   // not restrict the muted user's ability to interact with you)
@@ -178,6 +204,20 @@ export default async function ProfilePage(props: ProfilePageProps) {
     currentUserRole = curProfile?.role
   }
 
+  // Mirrors db/migrations/0013_private_accounts.sql's
+  // can_view_profile_content() for UI messaging only — the posts/
+  // post_media/comments queries above are already RLS-filtered
+  // server-side regardless of this flag, so an unauthorized viewer's
+  // postsWithLikeStatus/repostedPosts are genuinely empty already. This
+  // just decides whether to show "no posts yet" or "this account is
+  // private" for that empty result.
+  const isAdminViewer = currentUserRole === 'admin' || currentUserRole === 'moderator'
+  const canViewContent =
+    !profile.is_private ||
+    currentUser?.id === profile.id ||
+    isAdminViewer ||
+    (isFollowing && !isBlockedEitherWay)
+
   const postsWithLikeStatus = posts?.map(post => ({
     ...post,
     feed_key: `post-${post.id}`,
@@ -208,8 +248,6 @@ export default async function ProfilePage(props: ProfilePageProps) {
       }
     })
     .filter(Boolean)
-
-  const isBlockedEitherWay = hasBlocked || blockedBy
 
   const toggleBlock = async () => {
     'use server'
@@ -360,6 +398,8 @@ export default async function ProfilePage(props: ProfilePageProps) {
                   currentUserId={currentUser?.id}
                   isFollowing={isFollowing}
                   initialFollowersCount={followersCount || 0}
+                  isPrivate={Boolean(profile.is_private)}
+                  initialRequestStatus={followRequestStatus}
                 />
                   <FriendButton profileId={profile.id} currentUserId={currentUser?.id} />
                   {currentUser && currentUser.id !== profile.id && (
@@ -386,16 +426,48 @@ export default async function ProfilePage(props: ProfilePageProps) {
               Užblokavote šį vartotoją. Atblokuokite, jei norite sekti, pridėti prie draugų ar rašyti žinutes.
             </div>
           )}
+          {currentUser?.id === profile.id && profile.is_private && pendingIncomingRequests > 0 && (
+            <div className="mt-4 bg-blue-50 border border-blue-100 rounded-2xl p-3 text-sm text-blue-700">
+              {pendingIncomingRequests === 1
+                ? 'Turite 1 laukiančią sekimo užklausą.'
+                : `Turite ${pendingIncomingRequests} laukiančias sekimo užklausas.`}{' '}
+              <Link href="/notifications" className="font-semibold underline">
+                Peržiūrėti
+              </Link>
+            </div>
+          )}
+          {!canViewContent && followRequestStatus === 'pending' && (
+            <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-3 text-sm text-slate-600">
+              Sekimo užklausa išsiųsta. Įrašus matysite, kai {profile.display_name} ją priims.
+            </div>
+          )}
         </div>
       </div>
 
-      {/* User Posts / Media / Reposts */}
-      <ProfileTabs
-        posts={postsWithLikeStatus}
-        repostedPosts={repostedPosts}
-        currentUserId={currentUser?.id}
-        currentUserRole={currentUserRole}
-      />
+      {/* User Posts / Media / Reposts — RLS already restricts the
+          underlying queries above for a private account the viewer can't
+          see; this branch only decides which honest empty-state message
+          to show for that (already-enforced) empty result. */}
+      {canViewContent ? (
+        <ProfileTabs
+          posts={postsWithLikeStatus}
+          repostedPosts={repostedPosts}
+          currentUserId={currentUser?.id}
+          currentUserRole={currentUserRole}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden p-10 sm:p-16 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <p className="text-slate-700 font-bold">Šis profilis yra privatus</p>
+          <p className="text-slate-400 text-sm mt-1">
+            Sekite {profile.display_name}, kad matytumėte jo įrašus, mediją ir atsakymus.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

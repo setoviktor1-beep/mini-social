@@ -25,6 +25,7 @@ interface Profile {
   business_description: string | null
   phone: string | null
   created_at: string
+  is_private?: boolean
 }
 
 interface FormErrors {
@@ -109,6 +110,8 @@ export default function SettingsPage() {
   const [businessCategory, setBusinessCategory] = useState('')
   const [businessDescription, setBusinessDescription] = useState('')
   const [phone, setPhone] = useState('')
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [savingPrivacy, setSavingPrivacy] = useState(false)
 
   // UI state
   const [saving, setSaving] = useState(false)
@@ -169,6 +172,7 @@ export default function SettingsPage() {
       setBusinessCategory(profileData.business_category || '')
       setBusinessDescription(profileData.business_description || '')
       setPhone(profileData.phone || '')
+      setIsPrivate(Boolean(profileData.is_private))
       setLoading(false)
     }
     loadProfile()
@@ -207,6 +211,22 @@ export default function SettingsPage() {
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null
     return supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
+  }
+
+  const handleTogglePrivate = async () => {
+    if (!profile || savingPrivacy) return
+    const next = !isPrivate
+    setSavingPrivacy(true)
+    setIsPrivate(next) // optimistic
+    const { error } = await supabase.from('profiles').update({ is_private: next }).eq('id', profile.id)
+    if (error) {
+      setIsPrivate(!next) // rollback
+      setErrorMessage('Nepavyko pakeisti privatumo nustatymo. Bandykite dar kartą.')
+    } else {
+      setSuccessMessage(next ? 'Paskyra dabar privati.' : 'Paskyra dabar vieša.')
+      router.refresh()
+    }
+    setSavingPrivacy(false)
   }
 
   const handleUnblock = async (blockId: string) => {
@@ -1077,6 +1097,39 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ==================== PRIVACY SECTION ==================== */}
+      <div id="privacy" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <h2 className="text-xl font-bold text-slate-900">Privatumas</h2>
+          <p className="mt-0.5 text-sm text-slate-500">Valdykite, kas mato jūsų įrašus</p>
+        </div>
+        <div className="p-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-slate-800">Privati paskyra</p>
+            <p className="text-sm text-slate-500 mt-0.5 max-w-md">
+              Kai paskyra privati, jūsų įrašus, mediją ir atsakymus matys tik patvirtinti sekėjai. Esami sekėjai nepašalinami.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isPrivate}
+            aria-label="Privati paskyra"
+            onClick={handleTogglePrivate}
+            disabled={savingPrivacy}
+            className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+              isPrivate ? 'bg-blue-600' : 'bg-slate-200'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                isPrivate ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
