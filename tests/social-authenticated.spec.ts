@@ -629,6 +629,152 @@ test.describe('Social features (authenticated)', () => {
     });
   });
 
+  test.describe('mention autocomplete', () => {
+    test('keyboard selection: type @, navigate suggestions, select with Enter, and it notifies the mentioned user', async ({ browser }) => {
+      // Two isolated contexts, not one page reused for both users — a
+      // page already authenticated as USER_A that navigates to
+      // /auth/login for USER_B hits an auth-redirect-while-mid-fill race
+      // (already-logged-in visits to the login route bounce back to
+      // /home), which is what actually caused this test's original
+      // flakiness, not anything mention-related.
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+
+        await login(pageA, USER_A);
+        await pageA.goto('/home');
+
+        const composer = pageA.getByPlaceholder('Ką galvojate?').first();
+        await composer.click();
+        await composer.pressSequentially('Hey @tester_b');
+
+        const listbox = pageA.getByRole('listbox', { name: 'Vartotojų pasiūlymai' });
+        await expect(listbox).toBeVisible({ timeout: 10000 });
+        const option = listbox.getByRole('option').first();
+        await expect(option).toContainText('tester_b', { ignoreCase: true });
+        await expect(option).toHaveAttribute('aria-selected', 'true');
+
+        await pageA.keyboard.press('Enter');
+        await expect(listbox).toBeHidden();
+        // Selection replaced the partial "@tester_b" with the full,
+        // exact username (plus a trailing space) without touching "Hey ".
+        await expect(composer).toHaveValue(/^Hey @tester_b\w+ $/);
+
+        const unique = ` mention-notif-${Date.now()}`;
+        await composer.pressSequentially(unique.trim());
+        await pageA.getByRole('button', { name: 'Skelbti', exact: true }).first().click();
+        const card = pageA.getByTestId('post-card').filter({ hasText: 'Hey @tester_b' }).first();
+        try {
+          await expect(card).toBeVisible({ timeout: 15000 });
+        } catch {
+          await pageA.reload();
+          await expect(card).toBeVisible({ timeout: 30000 });
+        }
+
+        // The existing mention-notification path (lib/mentions.ts,
+        // independent of autocomplete) must still fire for USER_B.
+        await login(pageB, USER_B);
+        await pageB.goto('/notifications');
+        await expect(pageB.getByText(/paminėjo|mention/i).first()).toBeVisible({ timeout: 15000 });
+      } finally {
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('Escape cancels the suggestion list without altering the typed text', async ({ page }) => {
+      await login(page, USER_A);
+      await page.goto('/home');
+
+      const composer = page.getByPlaceholder('Ką galvojate?').first();
+      await composer.click();
+      await composer.pressSequentially('cc @tester_b');
+
+      const listbox = page.getByRole('listbox', { name: 'Vartotojų pasiūlymai' });
+      await expect(listbox).toBeVisible({ timeout: 10000 });
+
+      await page.keyboard.press('Escape');
+      await expect(listbox).toBeHidden();
+      await expect(composer).toHaveValue('cc @tester_b');
+
+      // Moving the cursor away from the mention (e.g. to the very start)
+      // and back is a different trigger occurrence — dismissal is scoped
+      // to the specific trigger span the user cancelled, not "never show
+      // suggestions again for the rest of the session".
+      await page.keyboard.press('Home');
+      await page.keyboard.press('End');
+      await expect(listbox).toBeVisible({ timeout: 10000 });
+    });
+
+    test('a blocked user is excluded from suggestions even when their username is typed exactly', async ({ browser }) => {
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+
+        await login(pageB, USER_B);
+        await pageB.goto('/home');
+
+        await login(pageA, USER_A);
+        const profileHref = await pageA.evaluate(async () => {
+          const res = await fetch('/api/auth/get-session');
+          const session = await res.json();
+          return session?.user?.id;
+        });
+        expect(profileHref).toBeTruthy();
+
+        // Block USER_B via their profile page (existing, already-tested UI).
+        await pageA.goto('/search');
+        await pageA.getByPlaceholder('Ieškokite žmonių arba įrašų...').fill('tester_b');
+        await expect(pageA.getByText('Tester B', { exact: true })).toBeVisible({ timeout: 10000 });
+        await pageA.getByText('Tester B', { exact: true }).click();
+        await pageA.waitForURL(/\/u\//);
+        const userBProfileUrl = pageA.url();
+        const blockButton = pageA.getByRole('button', { name: 'Užblokuoti', exact: true });
+        const alreadyBlocked = await pageA.getByRole('button', { name: 'Atblokuoti', exact: true }).isVisible().catch(() => false);
+        if (!alreadyBlocked) {
+          await blockButton.click();
+          await pageA.waitForURL(/\/u\//);
+        }
+
+        await pageA.goto('/home');
+        const composer = pageA.getByPlaceholder('Ką galvojate?').first();
+        await composer.click();
+        // Wait for the actual debounced network response rather than a
+        // fixed sleep — deterministic, and only as slow as the real
+        // request takes.
+        const searchResponse = pageA.waitForResponse((res) => res.url().includes('/api/mentions/search'));
+        await composer.pressSequentially('@tester_b');
+        const response = await searchResponse;
+        const body = await response.json();
+        expect(body.results?.some((r: { username: string }) => r.username.startsWith('tester_b'))).toBe(false);
+
+        const listbox = pageA.getByRole('listbox', { name: 'Vartotojų pasiūlymai' });
+        const isListboxVisible = await listbox.isVisible().catch(() => false);
+        if (isListboxVisible) {
+          await expect(listbox.getByText('tester_b', { exact: false })).toHaveCount(0);
+        }
+
+        // Unblock so this test doesn't leak state into later tests reusing USER_A/USER_B.
+        await pageA.goto(userBProfileUrl);
+        const unblockButton = pageA.getByRole('button', { name: 'Atblokuoti', exact: true });
+        await expect(unblockButton).toBeVisible({ timeout: 10000 });
+        await unblockButton.click();
+      } finally {
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('mention search API: unauthorized request is rejected (401)', async ({ request }) => {
+      const response = await request.get('/api/mentions/search?q=test');
+      expect(response.status()).toBe(401);
+    });
+  });
+
   test('follow and unfollow', async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();

@@ -9,6 +9,26 @@ interface NotifyMentionsParams {
   excludeUserIds?: string[]
 }
 
+export interface MentionTrigger {
+  start: number // index of '@' in content
+  end: number // cursor position (exclusive) — the span [start, end) is replaced on selection
+  query: string
+}
+
+// Finds the @-mention trigger the cursor is currently inside, if any.
+// Walks backward from the cursor over word characters to find an '@' that
+// isn't itself preceded by a word character, so "user@example.com" doesn't
+// trigger mid-word — only an '@' at the start of a word does.
+export function detectMentionTrigger(text: string, cursor: number): MentionTrigger | null {
+  if (cursor < 0 || cursor > text.length) return null
+  let i = cursor - 1
+  while (i >= 0 && /[A-Za-z0-9_]/.test(text[i])) i--
+  if (i < 0 || text[i] !== '@') return null
+  const precedingChar = i > 0 ? text[i - 1] : ''
+  if (/[A-Za-z0-9_]/.test(precedingChar)) return null
+  return { start: i, end: cursor, query: text.slice(i + 1, cursor) }
+}
+
 export function extractMentionUsernames(content: string): string[] {
   if (!content) return []
 

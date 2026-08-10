@@ -1,11 +1,18 @@
 'use client'
-import { useState, useEffect, useMemo, useId, useCallback } from 'react'
+import { useState, useEffect, useMemo, useId, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Video, Film, Send, X, Sparkles, Loader2, Check, Link as LinkIcon } from 'lucide-react'
 import Image from 'next/image'
-import { notifyMentions } from '@/lib/mentions'
+import { notifyMentions, detectMentionTrigger, type MentionTrigger } from '@/lib/mentions'
 import { extractYoutubeId, normalizeYoutubeUrl, resolveSupabaseStorageUrl, extractFirstPreviewableUrl } from '@/lib/media'
+
+interface MentionSuggestion {
+  id: string
+  username: string
+  displayName: string
+  avatarPath: string | null
+}
 
 const MAX_ATTACHMENTS = 5
 const MAX_CONTENT_LENGTH = 2000
@@ -104,6 +111,14 @@ export default function PostComposer({ userId }: { userId: string }) {
   // immediately refetch it while the user is still editing text around
   // the same link. Cleared if the content no longer contains that URL.
   const [dismissedPreviewUrl, setDismissedPreviewUrl] = useState<string | null>(null)
+  const [mentionTrigger, setMentionTrigger] = useState<MentionTrigger | null>(null)
+  const [mentionResults, setMentionResults] = useState<MentionSuggestion[]>([])
+  const [mentionLoading, setMentionLoading] = useState(false)
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0)
+  const [mentionDismissed, setMentionDismissed] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const mentionAbortRef = useRef<AbortController | null>(null)
+  const mentionListboxId = useId()
   const [loading, setLoading] = useState(false)
   const [postError, setPostError] = useState('')
   const [uploadStep, setUploadStep] = useState('')
@@ -133,6 +148,9 @@ export default function PostComposer({ userId }: { userId: string }) {
     setLinkPreview(null)
     setLinkPreviewError(false)
     setDismissedPreviewUrl(null)
+    setMentionTrigger(null)
+    setMentionResults([])
+    setMentionDismissed(false)
     setPostError('')
     setLoading(false)
     setAiAssistedApplied(false)
@@ -265,6 +283,78 @@ export default function PostComposer({ userId }: { userId: string }) {
     if (linkPreview) setDismissedPreviewUrl(linkPreview.url)
     setLinkPreview(null)
     setLinkPreviewError(false)
+  }
+
+  // Recomputes the @-mention trigger from the textarea's current cursor
+  // position. Called after every content change and every cursor
+  // movement (click, arrow keys, selection change) — a mention trigger is
+  // about cursor position within the text, not just the text itself.
+  const updateMentionState = useCallback((text: string, cursor: number) => {
+    const trigger = detectMentionTrigger(text, cursor)
+    setMentionTrigger((prev) => {
+      const changed = !trigger || !prev || prev.start !== trigger.start || prev.query !== trigger.query
+      if (changed) setMentionDismissed(false)
+      return trigger
+    })
+  }, [])
+
+  // Debounced, cancellable mention search. mentionAbortRef ensures a
+  // slow earlier request can never overwrite the results of a faster
+  // later one (aborting it outright, not just ignoring its response).
+  useEffect(() => {
+    mentionAbortRef.current?.abort()
+    if (!mentionTrigger || mentionTrigger.query.length === 0 || mentionDismissed) {
+      setMentionResults([])
+      setMentionLoading(false)
+      return
+    }
+
+    setMentionLoading(true)
+    const controller = new AbortController()
+    mentionAbortRef.current = controller
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/mentions/search?q=${encodeURIComponent(mentionTrigger.query)}`, {
+          signal: controller.signal,
+        })
+        if (!res.ok) {
+          setMentionResults([])
+          return
+        }
+        const data = await res.json()
+        setMentionResults(data.results || [])
+        setMentionActiveIndex(0)
+      } catch (err) {
+        if ((err as Error)?.name !== 'AbortError') setMentionResults([])
+      } finally {
+        if (!controller.signal.aborted) setMentionLoading(false)
+      }
+    }, 250)
+
+    return () => {
+      clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [mentionTrigger, mentionDismissed])
+
+  const selectMention = (user: MentionSuggestion) => {
+    if (!mentionTrigger) return
+    const before = content.slice(0, mentionTrigger.start)
+    const after = content.slice(mentionTrigger.end)
+    const insertion = `@${user.username} `
+    const nextContent = `${before}${insertion}${after}`.slice(0, MAX_CONTENT_LENGTH)
+    setContent(nextContent)
+    setMentionTrigger(null)
+    setMentionResults([])
+    const cursorPos = before.length + insertion.length
+    // Composer works normally even if this fails for any reason — the
+    // mention text itself was already inserted above regardless.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(cursorPos, cursorPos)
+    })
   }
 
   const handleAiAction = async (action: 'rewrite' | 'tone' | 'translate' | 'spelling' | 'hashtags') => {
@@ -489,6 +579,9 @@ export default function PostComposer({ userId }: { userId: string }) {
     setLinkPreview(null)
     setLinkPreviewError(false)
     setDismissedPreviewUrl(null)
+    setMentionTrigger(null)
+    setMentionResults([])
+    setMentionDismissed(false)
     setFiles([])
     setUploadStep('')
     setLoading(false)
@@ -540,7 +633,7 @@ export default function PostComposer({ userId }: { userId: string }) {
         </div>
 
         <div
-          className={`flex-1 min-w-0 rounded-2xl border transition-colors ${
+          className={`relative flex-1 min-w-0 rounded-2xl border transition-colors ${
             isDragActive ? 'border-dashed border-blue-400 bg-blue-50/50' : 'border-transparent'
           }`}
           onDragOver={(e) => { e.preventDefault(); if (canAddMore) setIsDragActive(true) }}
@@ -548,12 +641,107 @@ export default function PostComposer({ userId }: { userId: string }) {
           onDrop={handleDrop}
         >
           <textarea
+            ref={textareaRef}
             value={content}
-            onChange={e => { setContent(e.target.value.slice(0, MAX_CONTENT_LENGTH)); setAiAssistedApplied(false) }}
+            onChange={e => {
+              const value = e.target.value.slice(0, MAX_CONTENT_LENGTH)
+              setContent(value)
+              setAiAssistedApplied(false)
+              updateMentionState(value, e.target.selectionStart ?? value.length)
+            }}
+            onClick={e => updateMentionState(content, e.currentTarget.selectionStart ?? 0)}
+            onKeyUp={e => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return
+              updateMentionState(content, e.currentTarget.selectionStart ?? 0)
+            }}
+            onKeyDown={(e) => {
+              if (!mentionTrigger || mentionDismissed) return
+              // Escape must work even while results are still loading (the
+              // dropdown is already visible at that point, showing a
+              // loading state) — gating it on mentionResults.length > 0
+              // like the navigation keys below meant an Escape pressed
+              // before the debounced search resolved was silently
+              // swallowed, and the dropdown reappeared moments later when
+              // results arrived, looking like Escape had no effect at all.
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                setMentionDismissed(true)
+                return
+              }
+              if (mentionResults.length === 0) return
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setMentionActiveIndex(i => (i + 1) % mentionResults.length)
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setMentionActiveIndex(i => (i - 1 + mentionResults.length) % mentionResults.length)
+              } else if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault()
+                selectMention(mentionResults[mentionActiveIndex])
+              }
+            }}
             placeholder="Ką galvojate?"
             maxLength={MAX_CONTENT_LENGTH}
+            role="combobox"
+            aria-expanded={Boolean(mentionTrigger && !mentionDismissed && (mentionLoading || mentionResults.length > 0))}
+            aria-controls={mentionListboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={
+              mentionTrigger && !mentionDismissed && mentionResults[mentionActiveIndex]
+                ? `${mentionListboxId}-option-${mentionActiveIndex}`
+                : undefined
+            }
             className="w-full min-h-[86px] resize-none bg-transparent text-base sm:text-lg text-slate-800 placeholder-slate-400 outline-none px-1"
           />
+
+          {mentionTrigger && !mentionDismissed && (mentionLoading || mentionResults.length > 0) && (
+            <div
+              id={mentionListboxId}
+              role="listbox"
+              aria-label="Vartotojų pasiūlymai"
+              className="absolute left-1 top-full z-20 mt-1 w-64 max-w-[calc(100%-0.5rem)] rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden"
+            >
+              {mentionLoading && mentionResults.length === 0 ? (
+                <div className="px-3 py-2.5 text-sm text-slate-400">Ieškoma...</div>
+              ) : (
+                mentionResults.map((user, index) => (
+                  <button
+                    key={user.id}
+                    id={`${mentionListboxId}-option-${index}`}
+                    type="button"
+                    role="option"
+                    aria-selected={index === mentionActiveIndex}
+                    // onMouseDown (not onClick) fires before the textarea's
+                    // onBlur would otherwise close this dropdown first.
+                    onMouseDown={(e) => { e.preventDefault(); selectMention(user) }}
+                    onMouseEnter={() => setMentionActiveIndex(index)}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                      index === mentionActiveIndex ? 'bg-blue-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-100 to-blue-50 text-xs font-bold text-blue-600">
+                      {user.avatarPath ? (
+                        <img
+                          src={resolveSupabaseStorageUrl(
+                            (path) => supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl,
+                            user.avatarPath
+                          ) || ''}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        user.displayName?.charAt(0)?.toUpperCase() || '?'
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-slate-800">{user.displayName}</span>
+                      <span className="block truncate text-xs text-slate-400">@{user.username}</span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
 
           {files.length > 0 && (
             <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto -mx-1 px-1">
