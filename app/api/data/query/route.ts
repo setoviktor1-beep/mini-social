@@ -54,8 +54,10 @@ const allowedTables = new Set([
 const allowedRpc = new Set([
   'check_and_increment_ai_usage',
   'credit_wallet_and_complete_transaction',
+  'get_follow_suggestions',
   'get_nearby_post_ids',
   'get_or_create_conversation',
+  'get_trending_hashtags',
   'update_profile_location',
 ])
 

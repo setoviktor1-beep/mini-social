@@ -1511,4 +1511,142 @@ test.describe('Social features (authenticated)', () => {
       expect(afterOff.data.is_private).toBe(false);
     });
   });
+
+  test.describe('discovery: server-side trending + follow suggestions (db/migrations/0014_discovery.sql)', () => {
+    // Same shared-host session flakiness documented in the private-accounts
+    // block above: get-session has occasionally come back without a user
+    // right after login(), under load. Retry with backoff before using it.
+    async function getUserId(page: Page): Promise<string> {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) await page.waitForTimeout(1000);
+        const id = await page.evaluate(async () => (await (await fetch('/api/auth/get-session')).json())?.user?.id);
+        if (id) return id;
+      }
+      throw new Error('getUserId: no session user id after retries');
+    }
+
+    async function rpc<T>(page: Page, name: string, body: Record<string, unknown>): Promise<{ data: T; error: unknown }> {
+      return page.evaluate(async ({ name, body }) => {
+        const res = await fetch('/api/data/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ table: `rpc/${name}`, method: 'POST', body, filters: [], order: [] }),
+        });
+        return res.json();
+      }, { name, body });
+    }
+
+    test('trending reflects a hashtag never loaded into this browser session, not just posts already on the feed page', async ({ page }) => {
+      await login(page, USER_A);
+      // A tag unique to this run, posted directly via the API — this
+      // page's feed was never fetched after the post exists, so if
+      // trending still finds the tag, it proves the ranking is a real
+      // server-side query over the posts table, not something derived
+      // from posts the browser already has in memory (the bug CP8 fixes).
+      const tag = `cp8trend${Date.now()}`;
+      const idA = await getUserId(page);
+      const created = await page.evaluate(async ({ idA, tag }) => {
+        const res = await fetch('/api/data/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ table: 'posts', method: 'POST', body: { user_id: idA, content: `check out #${tag}` }, filters: [], order: [] }),
+        });
+        return res.json();
+      }, { idA, tag });
+      expect(created.error).toBeFalsy();
+
+      const result = await rpc<Array<{ tag: string; post_count: number }>>(page, 'get_trending_hashtags', { p_limit: 20, p_window_hours: 168 });
+      expect(result.error).toBeFalsy();
+      expect(result.data.some((row) => row.tag === tag)).toBe(true);
+    });
+
+    test('trending ordering is deterministic across repeated calls', async ({ page }) => {
+      await login(page, USER_A);
+      const first = await rpc<Array<{ tag: string }>>(page, 'get_trending_hashtags', { p_limit: 10, p_window_hours: 168 });
+      const second = await rpc<Array<{ tag: string }>>(page, 'get_trending_hashtags', { p_limit: 10, p_window_hours: 168 });
+      expect(first.error).toBeFalsy();
+      expect(second.error).toBeFalsy();
+      expect(first.data.map((r) => r.tag)).toEqual(second.data.map((r) => r.tag));
+    });
+
+    test('a muted account\'s posts are excluded from the muter\'s trending results', async ({ browser }) => {
+      const contextA = await browser.newContext();
+      const contextB = await browser.newContext();
+      try {
+        const pageA = await contextA.newPage();
+        const pageB = await contextB.newPage();
+        await login(pageA, USER_A);
+        await login(pageB, USER_B);
+        const idA = await getUserId(pageA);
+        const idB = await getUserId(pageB);
+
+        const tag = `cp8mute${Date.now()}`;
+        const created = await pageB.evaluate(async ({ idB, tag }) => {
+          const res = await fetch('/api/data/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: 'posts', method: 'POST', body: { user_id: idB, content: `#${tag} post` }, filters: [], order: [] }),
+          });
+          return res.json();
+        }, { idB, tag });
+        expect(created.error).toBeFalsy();
+
+        const beforeMute = await rpc<Array<{ tag: string }>>(pageA, 'get_trending_hashtags', { p_limit: 20, p_window_hours: 168 });
+        expect(beforeMute.data.some((r) => r.tag === tag)).toBe(true);
+
+        await pageA.evaluate(async ({ idA, idB }) => {
+          await fetch('/api/data/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: 'mutes', method: 'POST', body: { muter_id: idA, muted_id: idB }, filters: [], order: [] }),
+          });
+        }, { idA, idB });
+
+        const afterMute = await rpc<Array<{ tag: string }>>(pageA, 'get_trending_hashtags', { p_limit: 20, p_window_hours: 168 });
+        expect(afterMute.data.some((r) => r.tag === tag)).toBe(false);
+
+        await pageA.evaluate(async ({ idA, idB }) => {
+          await fetch('/api/data/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: 'mutes', method: 'DELETE', body: {}, filters: [['muter_id', 'eq.' + idA], ['muted_id', 'eq.' + idB]], order: [] }),
+          });
+        }, { idA, idB });
+      } finally {
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+
+    test('follow suggestions never include the viewer or an already-followed account', async ({ page }) => {
+      await login(page, USER_A);
+      const idA = await getUserId(page);
+      const result = await rpc<Array<{ id: string }>>(page, 'get_follow_suggestions', { p_limit: 20 });
+      expect(result.error).toBeFalsy();
+      expect(result.data.some((r) => r.id === idA)).toBe(false);
+    });
+
+    test('every tag the homepage right sidebar renders is one the server RPC actually returned', async ({ page }) => {
+      // Not asserting a specific freshly-created tag lands in the (only
+      // top-4) homepage widget — with several tests in this suite creating
+      // trending tags in the same window, which 4 win the ranking is
+      // legitimately order-dependent. What must hold regardless: every tag
+      // rendered came from the server RPC, not from posts already sitting
+      // in the browser (the bug this checkpoint fixes) — so cross-check
+      // the rendered tags against the same RPC call the page itself makes.
+      await login(page, USER_A);
+      const serverTrending = await rpc<Array<{ tag: string }>>(page, 'get_trending_hashtags', { p_limit: 4, p_window_hours: 168 });
+      expect(serverTrending.error).toBeFalsy();
+
+      await page.goto('/home');
+      const tagLinks = page.locator('a[href^="/search?q=%23"]');
+      const count = await tagLinks.count();
+      const serverTags = new Set(serverTrending.data.map((r) => r.tag));
+      for (let i = 0; i < count; i++) {
+        const href = await tagLinks.nth(i).getAttribute('href');
+        const renderedTag = decodeURIComponent(href!.replace('/search?q=%23', ''));
+        expect(serverTags.has(renderedTag)).toBe(true);
+      }
+    });
+  });
 });

@@ -21,41 +21,6 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-function buildTrendingFromPosts(posts: any[]) {
-  const counts: Record<string, number> = {}
-
-  for (const post of posts) {
-    const text = [post?.content || '', post?.quoted_post?.content || ''].join('\n')
-    const tags: Record<string, boolean> = {}
-    const parts = text.split(/\s+/)
-
-    for (const part of parts) {
-      const cleaned = part.replace(/^[^#]*#/, '#').replace(/[^\w#]/g, '')
-      if (!cleaned.startsWith('#')) continue
-      const tag = cleaned.slice(1).toLowerCase()
-      if (tag.length < 2 || tag.length > 40) continue
-      tags[tag] = true
-    }
-
-    Object.keys(tags).forEach((tag) => {
-      counts[tag] = (counts[tag] || 0) + 1
-    })
-  }
-
-  const sorted = Object.entries(counts)
-    .sort((a, b) => {
-      if (b[1] !== a[1]) return b[1] - a[1]
-      return a[0].localeCompare(b[0])
-    })
-    .slice(0, 4)
-    .map(([tag, count]) => ({
-      tag,
-      posts: `${count} ${count === 1 ? 'įrašas' : 'įrašai'}`,
-    }))
-
-  return sorted
-}
-
 export default async function Home(props: { searchParams?: Promise<{ tab?: string }> }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -87,29 +52,28 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
 
   const postsWithLikeStatus = await attachUserInteractionFlags(supabase, user?.id, rawPosts)
   const userRole = profile?.role
-  let suggestionsQuery = supabase
-    .from('profiles')
-    .select('id, username, display_name, avatar_path')
 
-  if (user) {
-    suggestionsQuery = suggestionsQuery.neq('id', user.id)
-  }
+  // Both computed server-side against the full posts/profiles tables (not
+  // derived from whatever page of the feed the browser already loaded) —
+  // see db/migrations/0014_discovery.sql. Both already exclude blocked and
+  // muted accounts, and posts/profiles RLS already excludes private
+  // accounts the viewer can't see, so no further client-side filtering is
+  // needed here.
+  const [{ data: trendingRaw }, { data: suggestionsRaw }] = await Promise.all([
+    supabase.rpc('get_trending_hashtags', { p_limit: 4, p_window_hours: 168 }),
+    supabase.rpc('get_follow_suggestions', { p_limit: 3 }),
+  ])
 
-  const { data: suggestionsRaw } = await suggestionsQuery.limit(3)
+  const trendingRows = (trendingRaw || []) as Array<{ tag: string; post_count: number }>
+  const trending: Array<{ tag: string; posts: string }> = trendingRows.map((item) => ({
+    tag: item.tag,
+    posts: `${item.post_count} ${item.post_count === 1 ? 'įrašas' : 'įrašai'}`,
+  }))
 
   const suggestions = suggestionsRaw || []
-  const suggestionIds = suggestions.map((item) => item.id)
-  const followedSuggestionIds = user && suggestionIds.length > 0
-    ? new Set(
-        ((await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', user.id)
-          .in('following_id', suggestionIds)).data || []).map((row: any) => row.following_id)
-      )
-    : new Set<string>()
-
-  const trending = buildTrendingFromPosts(postsWithLikeStatus)
+  // get_follow_suggestions already excludes accounts the viewer follows,
+  // so every suggestion returned is, by construction, not-yet-followed.
+  const followedSuggestionIds = new Set<string>()
   const showRightSidebar = trending.length > 0 || suggestions.length > 0
 
   return (
