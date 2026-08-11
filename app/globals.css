@@ -18,6 +18,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* .dark class is applied to <html> by the theme toggle (darkMode: 'class'
+   in tailwind.config) — without this, the base page background stays the
+   light #F8F9FA everywhere, since it's plain CSS rather than a Tailwind
+   utility class that dark: variants could target directly. */
+html.dark {
+  background-color: #0b1120;
+}
+
+.dark body {
+  color: #e5e7eb;
+  background-color: #0b1120;
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;

@@ -109,3 +109,12 @@ mutation is confirmed instant and correct via direct `curl` calls to
 and `actionTimeout` for this reason. If a test still times out twice in a
 row on an otherwise-idle machine, treat it as a real regression, not
 environment noise.
+
+## Nested replies are a separate backend blocker
+
+The current `comments` table is intentionally flat. Its schema does not
+include `parent_comment_id`, so the client must not select, filter, or insert
+that column. Reply controls and nested-reply tests remain disabled until a
+reviewed database migration and matching backend/RLS behavior are available;
+flat comment loading, pagination, creation, editing, deletion, reporting, and
+retry states continue to be supported.

@@ -25,6 +25,7 @@ interface Profile {
   business_description: string | null
   phone: string | null
   created_at: string
+  is_private?: boolean
 }
 
 interface FormErrors {
@@ -109,6 +110,8 @@ export default function SettingsPage() {
   const [businessCategory, setBusinessCategory] = useState('')
   const [businessDescription, setBusinessDescription] = useState('')
   const [phone, setPhone] = useState('')
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [savingPrivacy, setSavingPrivacy] = useState(false)
 
   // UI state
   const [saving, setSaving] = useState(false)
@@ -169,6 +172,7 @@ export default function SettingsPage() {
       setBusinessCategory(profileData.business_category || '')
       setBusinessDescription(profileData.business_description || '')
       setPhone(profileData.phone || '')
+      setIsPrivate(Boolean(profileData.is_private))
       setLoading(false)
     }
     loadProfile()
@@ -207,6 +211,22 @@ export default function SettingsPage() {
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null
     return supabase.storage.from('post-images').getPublicUrl(path).data.publicUrl
+  }
+
+  const handleTogglePrivate = async () => {
+    if (!profile || savingPrivacy) return
+    const next = !isPrivate
+    setSavingPrivacy(true)
+    setIsPrivate(next) // optimistic
+    const { error } = await supabase.from('profiles').update({ is_private: next }).eq('id', profile.id)
+    if (error) {
+      setIsPrivate(!next) // rollback
+      setErrorMessage('Nepavyko pakeisti privatumo nustatymo. Bandykite dar kartą.')
+    } else {
+      setSuccessMessage(next ? 'Paskyra dabar privati.' : 'Paskyra dabar vieša.')
+      router.refresh()
+    }
+    setSavingPrivacy(false)
   }
 
   const handleUnblock = async (blockId: string) => {
@@ -532,7 +552,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     )
   }
@@ -554,30 +574,30 @@ export default function SettingsPage() {
         </div>
       )}
       {errorMessage && (
-        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-2">
-          <AlertCircle size={18} className="text-red-600 shrink-0" />
+        <div role="alert" className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-2xl flex items-center gap-2">
+          <AlertCircle size={18} className="text-red-600 dark:text-red-400 shrink-0" />
           <span className="text-sm font-medium">{errorMessage}</span>
         </div>
       )}
 
       {/* ==================== PROFILE SECTION ==================== */}
-      <div id="profile" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-50">
-          <h2 className="font-bold text-xl text-gray-900">Profilis</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Jūsų viešo profilio informacija</p>
+      <div id="profile" className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-50 dark:border-gray-800">
+          <h2 className="font-bold text-xl text-gray-900 dark:text-gray-100">Profilis</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Jūsų viešo profilio informacija</p>
         </div>
         <div className="p-6 space-y-6">
 
           {/* Avatar Upload */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-3">Profilio nuotrauka</label>
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-3">Profilio nuotrauka</label>
             <div className="flex items-center gap-5">
               <div className="relative">
-                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 relative">
+                <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700 relative">
                   {displayAvatarSrc ? (
                     <Image src={displayAvatarSrc} alt="Avatar" fill sizes="80px" className="object-cover" unoptimized />
                   ) : (
-                    <span className="text-2xl font-bold text-blue-200">
+                    <span className="text-2xl font-bold text-blue-200 dark:text-blue-500">
                       {displayName?.charAt(0)?.toUpperCase() || 'U'}
                     </span>
                   )}
@@ -588,7 +608,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors shadow-sm"
                   >
                     <Camera size={16} />
                     Įkelti nuotrauką
@@ -597,16 +617,16 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={handleRemoveAvatar}
-                      className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 text-sm font-bold rounded-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-bold rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-colors"
                     >
                       <Trash2 size={16} />
                       Pašalinti
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-gray-400">JPG, PNG, GIF arba WebP. Iki 5 MB.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, GIF arba WebP. Iki 5 MB.</p>
                 {errors.avatar && (
-                  <p className="text-xs text-red-500 font-medium">{errors.avatar}</p>
+                  <p className="text-xs text-red-500 dark:text-red-400 font-medium">{errors.avatar}</p>
                 )}
               </div>
               <input
@@ -621,7 +641,7 @@ export default function SettingsPage() {
 
           {/* Display Name */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">Vardas</label>
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Vardas</label>
             <input
               type="text"
               value={displayName}
@@ -629,29 +649,29 @@ export default function SettingsPage() {
                 setDisplayName(e.target.value)
                 if (errors.displayName) setErrors(prev => ({ ...prev, displayName: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors text-slate-900 bg-white ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none transition-colors text-slate-900 dark:text-gray-100 bg-white dark:bg-gray-900 ${
                 errors.displayName
-                  ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
-                  : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
+                  ? 'border-red-300 dark:border-red-800 focus:border-red-400 dark:focus:border-red-600 focus:ring-1 focus:ring-red-100 dark:focus:ring-red-500/20'
+                  : 'border-gray-200 dark:border-gray-700 focus:border-blue-300 dark:focus:border-blue-700 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-500/20'
               }`}
               maxLength={50}
               placeholder="Jūsų vardas"
             />
             <div className="flex justify-between mt-1">
               {errors.displayName ? (
-                <p className="text-xs text-red-500 font-medium">{errors.displayName}</p>
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium">{errors.displayName}</p>
               ) : (
                 <span />
               )}
-              <p className="text-xs text-gray-400">{displayName.length}/50</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{displayName.length}/50</p>
             </div>
           </div>
 
           {/* Username */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">Vartotojo vardas</label>
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Vartotojo vardas</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">@</span>
               <input
                 type="text"
                 value={username}
@@ -660,72 +680,72 @@ export default function SettingsPage() {
                   setUsername(val)
                   if (errors.username) setErrors(prev => ({ ...prev, username: undefined }))
                 }}
-                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors text-slate-900 bg-white ${
+                className={`w-full border rounded-xl pl-8 pr-10 py-2.5 outline-none transition-colors text-slate-900 dark:text-gray-100 bg-white dark:bg-gray-900 ${
                   errors.username
-                    ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
-                    : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
+                    ? 'border-red-300 dark:border-red-800 focus:border-red-400 dark:focus:border-red-600 focus:ring-1 focus:ring-red-100 dark:focus:ring-red-500/20'
+                    : 'border-gray-200 dark:border-gray-700 focus:border-blue-300 dark:focus:border-blue-700 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-500/20'
                 }`}
                 placeholder="username"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {checkingUsername && (
-                  <Loader2 size={16} className="animate-spin text-gray-400" />
+                  <Loader2 size={16} className="animate-spin text-gray-400 dark:text-gray-500" />
                 )}
                 {!checkingUsername && usernameAvailable === true && (
                   <Check size={16} className="text-green-500" />
                 )}
                 {!checkingUsername && usernameAvailable === false && (
-                  <AlertCircle size={16} className="text-red-500" />
+                  <AlertCircle size={16} className="text-red-500 dark:text-red-400" />
                 )}
               </div>
             </div>
             <div className="flex justify-between mt-1">
               {errors.username ? (
-                <p className="text-xs text-red-500 font-medium">{errors.username}</p>
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium">{errors.username}</p>
               ) : usernameAvailable === true ? (
                 <p className="text-xs text-green-600 font-medium">Vartotojo vardas laisvas</p>
               ) : usernameAvailable === false ? (
-                <p className="text-xs text-red-500 font-medium">Vartotojo vardas jau užimtas</p>
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium">Vartotojo vardas jau užimtas</p>
               ) : (
-                <p className="text-xs text-gray-400">Tik mažosios raidės, skaičiai ir _. Min 3 simboliai.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Tik mažosios raidės, skaičiai ir _. Min 3 simboliai.</p>
               )}
             </div>
           </div>
 
           {/* Bio */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">Aprašymas</label>
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Aprašymas</label>
             <textarea
               value={bio}
               onChange={e => {
                 setBio(e.target.value)
                 if (errors.bio) setErrors(prev => ({ ...prev, bio: undefined }))
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors text-slate-900 bg-white ${
+              className={`w-full border rounded-xl px-4 py-2.5 outline-none resize-none min-h-[100px] transition-colors text-slate-900 dark:text-gray-100 bg-white dark:bg-gray-900 ${
                 errors.bio
-                  ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
-                  : 'border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-100'
+                  ? 'border-red-300 dark:border-red-800 focus:border-red-400 dark:focus:border-red-600 focus:ring-1 focus:ring-red-100 dark:focus:ring-red-500/20'
+                  : 'border-gray-200 dark:border-gray-700 focus:border-blue-300 dark:focus:border-blue-700 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-500/20'
               }`}
               maxLength={160}
               placeholder="Papasakokite apie save"
             />
             <div className="flex justify-between mt-1">
               {errors.bio ? (
-                <p className="text-xs text-red-500 font-medium">{errors.bio}</p>
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium">{errors.bio}</p>
               ) : (
                 <span />
               )}
-              <p className={`text-xs ${bio.length > 150 ? 'text-orange-500' : 'text-gray-400'}`}>
+              <p className={`text-xs ${bio.length > 150 ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
                 {bio.length}/160
               </p>
             </div>
           </div>
 
           {/* Location & Pro Features Section */}
-          <div className="pt-4 border-t border-gray-50 space-y-6">
+          <div className="pt-4 border-t border-gray-50 dark:border-gray-800 space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                <MapPin size={18} className="text-blue-500" />
+              <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <MapPin size={18} className="text-blue-500 dark:text-blue-400" />
                 Vietovė ir paskyros tipas
               </h3>
               <InviteButton />
@@ -733,30 +753,30 @@ export default function SettingsPage() {
 
             {/* Subscription-controlled account role */}
             <div>
-              <label className="text-sm font-bold text-gray-700 block mb-1.5">Paskyros tipas</label>
+              <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Paskyros tipas</label>
               {['pro', 'master', 'admin'].includes(profile?.role || '') ? (
-                <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
+                <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl">
                   <span>💼</span>
-                  <span className="font-bold text-sm text-emerald-700">
+                  <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">
                     {profile?.role === 'admin'
                       ? 'Administratorius'
                       : profile?.role === 'master'
                         ? 'Verslo paskyra'
                         : 'Pro planas'}
                   </span>
-                  <span className="ml-auto text-xs text-emerald-600">Aktyvi</span>
+                  <span className="ml-auto text-xs text-emerald-600 dark:text-emerald-400">Aktyvi</span>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-900/30 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-bold text-blue-900">Kaimyno paskyra</p>
-                    <p className="mt-1 text-xs text-blue-700">
+                    <p className="mt-1 text-xs text-blue-700 dark:text-blue-400">
                       Verslo funkcijos aktyvuojamos saugiai per prenumeratą.
                     </p>
                   </div>
                   <Link
                     href="/pricing"
-                    className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+                    className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 dark:hover:bg-blue-500"
                   >
                     Peržiūrėti planus
                   </Link>
@@ -766,8 +786,8 @@ export default function SettingsPage() {
 
             {/* Address - editable to get coordinates */}
             <div>
-              <label className="text-sm font-bold text-gray-700 block mb-1.5">
-                <MapPin size={14} className="inline mr-1 text-blue-500" />
+              <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
+                <MapPin size={14} className="inline mr-1 text-blue-500 dark:text-blue-400" />
                 Tavo adresas
               </label>
               <AddressAutocomplete
@@ -783,45 +803,45 @@ export default function SettingsPage() {
                   }
                 }}
                 placeholder="Pvz.: Gedimino pr. 1, Vilnius"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-500/20 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm min-h-[44px]"
               />
               {addressText && !addressLat && (
-                <p className="text-xs text-amber-600 mt-1">⚠ Koordinatės nerasta — naudok adresų paiešką, kad paslaugos veiktų pagal lokaciją.</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠ Koordinatės nerasta — naudok adresų paiešką, kad paslaugos veiktų pagal lokaciją.</p>
               )}
               {addressLat && (
                 <p className="text-xs text-green-600 mt-1">✓ Koordinatės rastos</p>
               )}
-              <p className="text-xs text-gray-400 mt-1">Naudok automatinę paiešką koordinatėms gauti. Kelionėms naudok Travel Mode žemiau.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Naudok automatinę paiešką koordinatėms gauti. Kelionėms naudok Travel Mode žemiau.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-bold text-gray-700 block mb-1.5">Miestas</label>
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Miestas</label>
                 <input
                   type="text"
                   value={city}
                   onChange={e => setCity(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-500/20 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm min-h-[44px]"
                   placeholder="Lentvaris"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-gray-700 block mb-1.5">Šalis</label>
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Šalis</label>
                 <input
                   type="text"
                   value={country}
                   onChange={e => setCountry(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-500/20 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm min-h-[44px]"
                   placeholder="Lietuva"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-gray-700 block mb-1.5">Pašto kodas</label>
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">Pašto kodas</label>
                 <input
                   type="text"
                   value={postalCode}
                   onChange={e => setPostalCode(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100 bg-white text-gray-900 text-sm min-h-[44px]"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-500/20 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm min-h-[44px]"
                   placeholder="LT-25100"
                 />
               </div>
@@ -829,9 +849,9 @@ export default function SettingsPage() {
 
             {/* Radius Slider */}
             <div>
-              <label className="text-sm font-bold text-gray-700 block mb-1.5">
+              <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
                 Matomumo spindulys
-                <span className="ml-2 text-blue-500 font-black">
+                <span className="ml-2 text-blue-500 dark:text-blue-400 font-black">
                   {userRadiusKm < 1 ? `${Math.round(userRadiusKm * 1000)} m` : `${userRadiusKm} km`}
                 </span>
               </label>
@@ -844,13 +864,13 @@ export default function SettingsPage() {
                 onChange={e => setUserRadiusKm(parseFloat(e.target.value))}
                 className="w-full accent-blue-500"
               />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
                 <span>100 m</span>
                 <span>1 km</span>
                 <span>2.5 km</span>
                 <span>5 km</span>
               </div>
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                 Matysi postus ir paslaugas tik iš vartotojų per {userRadiusKm < 1 ? `${Math.round(userRadiusKm * 1000)} m` : `${userRadiusKm} km`} nuo tavęs.
               </p>
             </div>
@@ -862,7 +882,7 @@ export default function SettingsPage() {
                   <span className="text-2xl">✈️</span>
                   <div>
                     <p className="text-sm font-bold text-gray-800">Kelionės režimas</p>
-                    <p className="text-xs text-gray-500">Paslaugos rodomos iš kelionės vietos. Feed nesikeičia.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Paslaugos rodomos iš kelionės vietos. Feed nesikeičia.</p>
                   </div>
                 </div>
                 <button
@@ -870,13 +890,13 @@ export default function SettingsPage() {
                   onClick={() => setTravelMode(v => !v)}
                   className={`relative w-12 h-6 rounded-full transition-colors ${travelMode ? 'bg-blue-500' : 'bg-gray-300'}`}
                 >
-                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${travelMode ? 'translate-x-7' : 'translate-x-1'}`} />
+                  <span className={`absolute top-1 w-4 h-4 bg-white dark:bg-gray-900 rounded-full shadow transition-transform ${travelMode ? 'translate-x-7' : 'translate-x-1'}`} />
                 </button>
               </div>
 
               {travelMode && (
                 <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2">
-                  <label className="text-sm font-bold text-gray-700 block">Kelionės vieta</label>
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block">Kelionės vieta</label>
                   <AddressAutocomplete
                     value={travelAddressText}
                     onChange={(addr, lat, lng) => {
@@ -889,7 +909,7 @@ export default function SettingsPage() {
                     placeholder="Pvz.: Kaunas, Lietuva"
                   />
                   {travelLat && (
-                    <p className="text-xs text-blue-500 font-medium">
+                    <p className="text-xs text-blue-500 dark:text-blue-400 font-medium">
                       ✓ Vieta nustatyta — paslaugos rodomos iš šios vietos
                     </p>
                   )}
@@ -900,28 +920,28 @@ export default function SettingsPage() {
             {/* Business details are available only to managed business roles. */}
             {['pro', 'master', 'admin'].includes(profile?.role || '') && (
               <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2">
-                <h4 className="font-bold text-emerald-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                <h4 className="font-bold text-emerald-700 dark:text-emerald-400 text-sm uppercase tracking-wider flex items-center gap-2">
                   <Briefcase size={16} />
                   Tavo Verslo Informacija
                 </h4>
                 
                 <div>
-                  <label className="text-xs font-bold text-gray-600 block mb-1">Verslo pavadinimas / Vardas Pavardė</label>
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400 block mb-1">Verslo pavadinimas / Vardas Pavardė</label>
                   <input
                     type="text"
                     value={businessName}
                     onChange={e => setBusinessName(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-slate-900 dark:text-gray-100 bg-transparent outline-none focus:border-emerald-300 dark:focus:border-emerald-700 transition-colors placeholder:text-gray-400"
                     placeholder="Pvz.: Santechnikas Jonas"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-600 block mb-1">Veiklos sritis (Kategorija)</label>
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400 block mb-1">Veiklos sritis (Kategorija)</label>
                   <select
                     value={businessCategory}
                     onChange={e => setBusinessCategory(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-slate-900 dark:text-gray-100 bg-transparent outline-none focus:border-emerald-300 dark:focus:border-emerald-700 transition-colors"
                   >
                     <option value="">Pasirinkite kategoriją...</option>
                     <option value="Maistas">Maistas</option>
@@ -934,27 +954,27 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-600 block mb-1">Paslaugos aprašymas</label>
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400 block mb-1">Paslaugos aprašymas</label>
                   <textarea
                     value={businessDescription}
                     onChange={e => setBusinessDescription(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors resize-none min-h-[80px] placeholder:text-gray-400"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-slate-900 dark:text-gray-100 bg-transparent outline-none focus:border-emerald-300 dark:focus:border-emerald-700 transition-colors resize-none min-h-[80px] placeholder:text-gray-400"
                     placeholder="Trumpai apibūdinkite, kokias paslaugas teikiate (pvz., 'Taisau kranus, keičiu radiatorius, greitai atvykstu į vietą')."
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-600 block mb-1">Kontaktinis telefonas</label>
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400 block mb-1">Kontaktinis telefonas</label>
                   <input
                     type="text"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 text-slate-900 bg-transparent outline-none focus:border-emerald-300 transition-colors placeholder:text-gray-400"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 text-slate-900 dark:text-gray-100 bg-transparent outline-none focus:border-emerald-300 dark:focus:border-emerald-700 transition-colors placeholder:text-gray-400"
                     placeholder="+370 600 00000"
                   />
                 </div>
 
-                <p className="text-[10px] text-gray-400 italic">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">
                   Šie duomenys bus matomi kaimynams, kai jie ieškos tavo kategorijos paslaugų.
                 </p>
               </div>
@@ -964,14 +984,14 @@ export default function SettingsPage() {
           {/* Save Button */}
           <div className="pt-2">
             {(successMessage || errorMessage) && (
-              <div className={`mb-3 rounded-xl px-4 py-3 text-sm font-medium ${successMessage ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              <div className={`mb-3 rounded-xl px-4 py-3 text-sm font-medium ${successMessage ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'}`}>
                 {successMessage || errorMessage}
               </div>
             )}
             <button
               onClick={handleSave}
               disabled={saving}
-              className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-blue-200 flex items-center gap-2"
+              className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold hover:bg-blue-700 dark:hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-blue-200 flex items-center gap-2"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
               {saving ? 'Išsaugoma...' : 'Išsaugoti profilį'}
@@ -981,16 +1001,16 @@ export default function SettingsPage() {
       </div>
 
       {/* ==================== ACCOUNT SECTION ==================== */}
-      <div id="account" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-50">
-          <h2 className="font-bold text-xl text-gray-900">Paskyros nustatymai</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Tvarkykite savo paskyros nustatymus</p>
+      <div id="account" className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-50 dark:border-gray-800">
+          <h2 className="font-bold text-xl text-gray-900 dark:text-gray-100">Paskyros nustatymai</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Tvarkykite savo paskyros nustatymus</p>
         </div>
         <div className="p-6 space-y-6">
 
           {/* Email (readonly) */}
           <div>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
               <span className="flex items-center gap-2">
                 <Mail size={16} />
                 El. pašto adresas
@@ -1000,22 +1020,22 @@ export default function SettingsPage() {
               type="email"
               value={userEmail}
               disabled
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 text-gray-500 cursor-not-allowed"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 cursor-not-allowed"
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               Norėdami keisti el. pašto adresą, susisiekite su palaikymo komanda.
             </p>
           </div>
 
           {/* Change Password */}
           <form onSubmit={handlePasswordChange}>
-            <label className="text-sm font-bold text-gray-700 block mb-1.5">
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
               <span className="flex items-center gap-2">
                 <KeyRound size={16} />
                 Keisti slaptažodį
               </span>
             </label>
-            <p className="mb-3 text-sm text-gray-500">
+            <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
               Pakeitus slaptažodį, kitos aktyvios sesijos bus atjungtos.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -1026,7 +1046,7 @@ export default function SettingsPage() {
                 autoComplete="current-password"
                 placeholder="Dabartinis slaptažodis"
                 required
-                className="min-h-[44px] rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-blue-400"
+                className="min-h-[44px] rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 outline-none focus:border-blue-400 dark:focus:border-blue-600"
               />
               <input
                 type="password"
@@ -1036,7 +1056,7 @@ export default function SettingsPage() {
                 placeholder="Naujas slaptažodis"
                 minLength={8}
                 required
-                className="min-h-[44px] rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-blue-400"
+                className="min-h-[44px] rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 outline-none focus:border-blue-400 dark:focus:border-blue-600"
               />
               <input
                 type="password"
@@ -1046,24 +1066,24 @@ export default function SettingsPage() {
                 placeholder="Pakartokite slaptažodį"
                 minLength={8}
                 required
-                className="min-h-[44px] rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-blue-400"
+                className="min-h-[44px] rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 outline-none focus:border-blue-400 dark:focus:border-blue-600"
               />
             </div>
             <button
               type="submit"
               disabled={passwordChanging}
-              className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border-2 border-gray-200 px-6 py-2.5 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border-2 border-gray-200 dark:border-gray-700 px-6 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {passwordChanging && <Loader2 size={16} className="animate-spin" />}
               {passwordChanging ? 'Keičiama...' : 'Pakeisti slaptažodį'}
             </button>
           </form>
 
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+          <div className="rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-sm font-bold text-red-800">Ištrinti paskyrą</h3>
-                <p className="mt-1 text-sm text-red-700">
+                <h3 className="text-sm font-bold text-red-800 dark:text-red-400">Ištrinti paskyrą</h3>
+                <p className="mt-1 text-sm text-red-700 dark:text-red-400">
                   Paskyra ir su ja susieti profilio duomenys bus pašalinti visam laikui.
                 </p>
               </div>
@@ -1080,23 +1100,56 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* ==================== PRIVACY SECTION ==================== */}
+      <div id="privacy" className="overflow-hidden rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <div className="border-b border-slate-200 dark:border-gray-700 px-6 py-5">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100">Privatumas</h2>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">Valdykite, kas mato jūsų įrašus</p>
+        </div>
+        <div className="p-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-slate-800 dark:text-gray-200">Privati paskyra</p>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mt-0.5 max-w-md">
+              Kai paskyra privati, jūsų įrašus, mediją ir atsakymus matys tik patvirtinti sekėjai. Esami sekėjai nepašalinami.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isPrivate}
+            aria-label="Privati paskyra"
+            onClick={handleTogglePrivate}
+            disabled={savingPrivacy}
+            className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+              isPrivate ? 'bg-blue-600' : 'bg-slate-200 dark:bg-gray-700'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform ${
+                isPrivate ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
       {/* ==================== BLOCKED USERS SECTION ==================== */}
-      <div id="blocked" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-5">
-          <h2 className="text-xl font-bold text-slate-900">Užblokuoti vartotojai</h2>
-          <p className="mt-0.5 text-sm text-slate-500">Jūsų užblokuoti vartotojai nerodomi sraute ir žinutėse</p>
+      <div id="blocked" className="overflow-hidden rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <div className="border-b border-slate-200 dark:border-gray-700 px-6 py-5">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100">Užblokuoti vartotojai</h2>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">Jūsų užblokuoti vartotojai nerodomi sraute ir žinutėse</p>
         </div>
         <div className="p-6">
           {loadingBlockedUsers ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
             </div>
           ) : blockedUsers.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-14 h-14 bg-gray-100 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 bg-slate-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Ban size={22} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-sm font-semibold text-slate-500">Nėra užblokuotų vartotojų</p>
+              <p className="text-sm font-semibold text-slate-500 dark:text-gray-400">Nėra užblokuotų vartotojų</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Galite blokuoti vartotoją iš jo profilio puslapio</p>
             </div>
           ) : (
@@ -1107,7 +1160,7 @@ export default function SettingsPage() {
                 return (
                   <div
                     key={b.id}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:gap-4"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 sm:gap-4"
                   >
                     <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                       {avatarUrl ? (
@@ -1119,16 +1172,16 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-slate-900 sm:text-base">
+                      <p className="truncate text-sm font-bold text-slate-900 dark:text-gray-100 sm:text-base">
                         {u?.display_name || 'Unknown user'}
                       </p>
-                      <p className="truncate text-xs text-slate-500 sm:text-sm">
+                      <p className="truncate text-xs text-slate-500 dark:text-gray-400 sm:text-sm">
                         @{u?.username || 'unknown'}
                       </p>
                     </div>
                     <button
                       onClick={() => handleUnblock(b.id)}
-                      className="min-h-[44px] rounded-full border-2 border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
+                      className="min-h-[44px] rounded-full border-2 border-slate-200 dark:border-gray-700 px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-gray-400 transition-colors hover:bg-slate-50 dark:hover:bg-gray-800/50"
                     >
                       Atblokuoti
                     </button>
@@ -1141,22 +1194,22 @@ export default function SettingsPage() {
       </div>
 
       {/* ==================== MUTED USERS SECTION ==================== */}
-      <div id="muted" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-5">
-          <h2 className="text-xl font-bold text-slate-900">Nutildyti vartotojai</h2>
-          <p className="mt-0.5 text-sm text-slate-500">Nutildytų vartotojų įrašai nerodomi jūsų sraute, bet jie gali toliau jus sekti ir rašyti žinutes</p>
+      <div id="muted" className="overflow-hidden rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <div className="border-b border-slate-200 dark:border-gray-700 px-6 py-5">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100">Nutildyti vartotojai</h2>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">Nutildytų vartotojų įrašai nerodomi jūsų sraute, bet jie gali toliau jus sekti ir rašyti žinutes</p>
         </div>
         <div className="p-6">
           {loadingMutedUsers ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
             </div>
           ) : mutedUsers.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-14 h-14 bg-gray-100 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 bg-slate-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
                 <BellOff size={22} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-sm font-semibold text-slate-500">Nėra nutildytų vartotojų</p>
+              <p className="text-sm font-semibold text-slate-500 dark:text-gray-400">Nėra nutildytų vartotojų</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Galite nutildyti vartotoją iš jo profilio puslapio</p>
             </div>
           ) : (
@@ -1167,7 +1220,7 @@ export default function SettingsPage() {
                 return (
                   <div
                     key={m.muted_id}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:gap-4"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 sm:gap-4"
                   >
                     <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                       {avatarUrl ? (
@@ -1179,16 +1232,16 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-slate-900 sm:text-base">
+                      <p className="truncate text-sm font-bold text-slate-900 dark:text-gray-100 sm:text-base">
                         {u?.display_name || 'Unknown user'}
                       </p>
-                      <p className="truncate text-xs text-slate-500 sm:text-sm">
+                      <p className="truncate text-xs text-slate-500 dark:text-gray-400 sm:text-sm">
                         @{u?.username || 'unknown'}
                       </p>
                     </div>
                     <button
                       onClick={() => handleUnmute(m.muted_id)}
-                      className="min-h-[44px] rounded-full border-2 border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50"
+                      className="min-h-[44px] rounded-full border-2 border-slate-200 dark:border-gray-700 px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-gray-400 transition-colors hover:bg-slate-50 dark:hover:bg-gray-800/50"
                     >
                       Nebenutildyti
                     </button>

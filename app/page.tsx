@@ -21,41 +21,6 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-function buildTrendingFromPosts(posts: any[]) {
-  const counts: Record<string, number> = {}
-
-  for (const post of posts) {
-    const text = [post?.content || '', post?.quoted_post?.content || ''].join('\n')
-    const tags: Record<string, boolean> = {}
-    const parts = text.split(/\s+/)
-
-    for (const part of parts) {
-      const cleaned = part.replace(/^[^#]*#/, '#').replace(/[^\w#]/g, '')
-      if (!cleaned.startsWith('#')) continue
-      const tag = cleaned.slice(1).toLowerCase()
-      if (tag.length < 2 || tag.length > 40) continue
-      tags[tag] = true
-    }
-
-    Object.keys(tags).forEach((tag) => {
-      counts[tag] = (counts[tag] || 0) + 1
-    })
-  }
-
-  const sorted = Object.entries(counts)
-    .sort((a, b) => {
-      if (b[1] !== a[1]) return b[1] - a[1]
-      return a[0].localeCompare(b[0])
-    })
-    .slice(0, 4)
-    .map(([tag, count]) => ({
-      tag,
-      posts: `${count} ${count === 1 ? 'įrašas' : 'įrašai'}`,
-    }))
-
-  return sorted
-}
-
 export default async function Home(props: { searchParams?: Promise<{ tab?: string }> }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -87,33 +52,32 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
 
   const postsWithLikeStatus = await attachUserInteractionFlags(supabase, user?.id, rawPosts)
   const userRole = profile?.role
-  let suggestionsQuery = supabase
-    .from('profiles')
-    .select('id, username, display_name, avatar_path')
 
-  if (user) {
-    suggestionsQuery = suggestionsQuery.neq('id', user.id)
-  }
+  // Both computed server-side against the full posts/profiles tables (not
+  // derived from whatever page of the feed the browser already loaded) —
+  // see db/migrations/0014_discovery.sql. Both already exclude blocked and
+  // muted accounts, and posts/profiles RLS already excludes private
+  // accounts the viewer can't see, so no further client-side filtering is
+  // needed here.
+  const [{ data: trendingRaw }, { data: suggestionsRaw }] = await Promise.all([
+    supabase.rpc('get_trending_hashtags', { p_limit: 4, p_window_hours: 168 }),
+    supabase.rpc('get_follow_suggestions', { p_limit: 3 }),
+  ])
 
-  const { data: suggestionsRaw } = await suggestionsQuery.limit(3)
+  const trendingRows = (trendingRaw || []) as Array<{ tag: string; post_count: number }>
+  const trending: Array<{ tag: string; posts: string }> = trendingRows.map((item) => ({
+    tag: item.tag,
+    posts: `${item.post_count} ${item.post_count === 1 ? 'įrašas' : 'įrašai'}`,
+  }))
 
   const suggestions = suggestionsRaw || []
-  const suggestionIds = suggestions.map((item) => item.id)
-  const followedSuggestionIds = user && suggestionIds.length > 0
-    ? new Set(
-        ((await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', user.id)
-          .in('following_id', suggestionIds)).data || []).map((row: any) => row.following_id)
-      )
-    : new Set<string>()
-
-  const trending = buildTrendingFromPosts(postsWithLikeStatus)
+  // get_follow_suggestions already excludes accounts the viewer follows,
+  // so every suggestion returned is, by construction, not-yet-followed.
+  const followedSuggestionIds = new Set<string>()
   const showRightSidebar = trending.length > 0 || suggestions.length > 0
 
   return (
-    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[calc(100dvh-6rem)] w-screen bg-[#F8F9FA] text-slate-800">
+    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[calc(100dvh-6rem)] w-screen bg-[#F8F9FA] dark:bg-[#0b1120] text-slate-800 dark:text-gray-200">
       <div className="mx-auto max-w-7xl px-3 sm:px-4 pb-24 md:pb-8">
         <div className={`grid grid-cols-1 gap-4 ${
           showRightSidebar
@@ -122,7 +86,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
         }`}>
           {/* LEFT SIDEBAR */}
           <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)]">
-            <nav className="space-y-1 rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm">
+            <nav className="space-y-1 rounded-2xl border border-slate-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm">
               {[
                 { href: homeHref, icon: HomeIcon, label: 'Pagrindinis', show: true },
                 { href: '/services', icon: Store, label: 'Paslaugos', show: true },
@@ -139,8 +103,8 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                   href={item.href}
                   className={`flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-200 hover:translate-x-1 ${
                     item.href === homeHref
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                      : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'
                   }`}
                 >
                   <item.icon size={18} strokeWidth={item.href === homeHref ? 2.5 : 1.5} />
@@ -152,13 +116,13 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
 
           {/* MAIN FEED */}
           <main className="min-w-0">
-            <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-slate-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
               {user ? (
                 <div id="post-composer" className="scroll-mt-20">
                   <PostComposer userId={user.id} />
                 </div>
               ) : (
-                <div className="border-b border-slate-100 p-4 text-sm text-blue-600 bg-blue-50/50">
+                <div className="border-b border-slate-100 dark:border-gray-800 p-4 text-sm text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20">
                   <Link href="/auth/login" className="font-medium hover:underline">
                     Prisijunkite
                   </Link>{' '}
@@ -167,7 +131,7 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
               )}
 
               {user && (
-                <div className="flex border-b border-slate-100">
+                <div className="flex border-b border-slate-100 dark:border-gray-800">
                   {([
                     { key: 'for_you' as const, label: 'Tau' },
                     { key: 'following' as const, label: 'Sekami' },
@@ -178,8 +142,8 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                       <Link
                         key={t.key}
                         href={`/home?tab=${t.key}`}
-                        className={`relative flex-1 py-3 text-center text-sm font-medium transition-colors hover:bg-slate-50 ${
-                          active ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
+                        className={`relative flex-1 py-3 text-center text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-gray-800/50 ${
+                          active ? 'text-slate-900 dark:text-gray-100' : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
                         }`}
                       >
                         {t.label}
@@ -202,8 +166,8 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
           {/* RIGHT SIDEBAR */}
           {showRightSidebar && <aside className="hidden lg:block sticky top-20 h-[calc(100vh-90px)] overflow-y-auto">
             {/* Trending */}
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider">
+            <div className="rounded-2xl border border-slate-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-gray-100 uppercase tracking-wider">
                 <TrendingUp size={16} className="text-[#E94560]" />
                 Tendencijos
               </h3>
@@ -212,21 +176,21 @@ export default async function Home(props: { searchParams?: Promise<{ tab?: strin
                   <Link 
                     key={item.tag} 
                     href={`/search?q=%23${encodeURIComponent(item.tag)}`} 
-                    className="group block rounded-xl px-3 py-2 hover:bg-slate-50 transition-all duration-200 cursor-pointer"
+                    className="group block rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-all duration-200 cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#E94560]" />
-                      <span className="text-sm font-semibold text-slate-800 group-hover:text-[#E94560] transition-colors">#{item.tag}</span>
+                      <span className="text-sm font-semibold text-slate-800 dark:text-gray-200 group-hover:text-[#E94560] transition-colors">#{item.tag}</span>
                     </div>
-                    <div className="text-xs text-slate-400 ml-3.5">{item.posts}</div>
+                    <div className="text-xs text-slate-400 dark:text-gray-500 ml-3.5">{item.posts}</div>
                   </Link>
                 ))}
               </div>
             </div>
 
             {/* Who to follow */}
-            <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-bold text-slate-900 uppercase tracking-wider">Ką sekti</h3>
+            <div className="mt-4 rounded-2xl border border-slate-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
+              <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-gray-100 uppercase tracking-wider">Ką sekti</h3>
               <div className="space-y-3">
                 {suggestions.map((s: any) => (
                   <WhoToFollowRow

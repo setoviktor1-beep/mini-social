@@ -14,7 +14,7 @@ type FeedQueryOptions = {
 const BASE_SELECT = `
   *,
   profiles:user_id(username, display_name, avatar_path),
-  post_media(storage_path),
+  post_media(storage_path,media_type),
   quoted_post:quoted_post_id(
     id,
     content,
@@ -22,7 +22,7 @@ const BASE_SELECT = `
     created_at,
     status,
     profiles:user_id(username, display_name, avatar_path),
-    post_media(storage_path)
+    post_media(storage_path,media_type)
   ),
   reactions(count),
   comments(count),
@@ -35,7 +35,7 @@ const REPOST_SELECT = `
   post:posts!reposts_post_id_fkey(
     *,
     profiles:user_id(username, display_name, avatar_path),
-    post_media(storage_path),
+    post_media(storage_path,media_type),
     quoted_post:quoted_post_id(
       id,
       content,
@@ -43,7 +43,7 @@ const REPOST_SELECT = `
       created_at,
       status,
       profiles:user_id(username, display_name, avatar_path),
-      post_media(storage_path)
+      post_media(storage_path,media_type)
     ),
     reactions(count),
     comments(count),

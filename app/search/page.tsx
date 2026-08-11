@@ -43,6 +43,7 @@ export default function SearchPage() {
   const [posts, setPosts] = useState<PostResult[]>([])
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [searchError, setSearchError] = useState(false)
 
   useEffect(() => {
     const q = (searchParams.get('q') || '').trim()
@@ -83,6 +84,7 @@ export default function SearchPage() {
 
     setLoading(true)
     setHasSearched(true)
+    setSearchError(false)
 
     try {
       if (activeTab === 'users') {
@@ -92,11 +94,8 @@ export default function SearchPage() {
           .or(`username.ilike.%${debouncedQuery}%,display_name.ilike.%${debouncedQuery}%`)
           .limit(20)
 
-        if (!error && data) {
-          setUsers(data)
-        } else {
-          setUsers([])
-        }
+        if (error) throw error
+        setUsers(data || [])
       } else {
         const { data, error } = await supabase
           .from('posts')
@@ -106,15 +105,13 @@ export default function SearchPage() {
           .order('created_at', { ascending: false })
           .limit(20)
 
-        if (!error && data) {
-          setPosts(data as PostResult[])
-        } else {
-          setPosts([])
-        }
+        if (error) throw error
+        setPosts((data as PostResult[]) || [])
       }
     } catch {
       setUsers([])
       setPosts([])
+      setSearchError(true)
     } finally {
       setLoading(false)
     }
@@ -199,8 +196,21 @@ export default function SearchPage() {
           </div>
         )}
 
+        {/* Error state */}
+        {!loading && searchError && (
+          <div role="alert" className="p-10 sm:p-16 text-center">
+            <p className="text-base sm:text-lg font-semibold text-gray-500 dark:text-gray-400 mb-3">Nepavyko atlikti paieškos.</p>
+            <button
+              onClick={performSearch}
+              className="px-5 py-2.5 rounded-full font-semibold text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 min-h-[44px] transition-all"
+            >
+              Bandyti dar kartą
+            </button>
+          </div>
+        )}
+
         {/* Users results */}
-        {!loading && hasSearched && activeTab === 'users' && (
+        {!loading && !searchError && hasSearched && activeTab === 'users' && (
           <>
             {users.length > 0 ? (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -246,7 +256,7 @@ export default function SearchPage() {
         )}
 
         {/* Posts results */}
-        {!loading && hasSearched && activeTab === 'posts' && (
+        {!loading && !searchError && hasSearched && activeTab === 'posts' && (
           <>
             {posts.length > 0 ? (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">

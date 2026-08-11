@@ -65,6 +65,27 @@ export function isOnlyYoutubeUrl(value?: string | null) {
   )
 }
 
+// First non-YouTube http(s) URL in free text, for the generic link-preview
+// feature. YouTube links are excluded since they already get their own
+// dedicated embed (see getYoutubeEmbedUrl) — showing both would be
+// redundant and visually confusing.
+export function extractFirstPreviewableUrl(value?: string | null): string | null {
+  if (!value) return null
+  const matches = value.match(/https?:\/\/[^\s<>"']+/gi)
+  if (!matches) return null
+  for (const raw of matches) {
+    const candidate = raw.replace(/[).,!?;:]+$/, '') // trailing punctuation from prose
+    if (extractYoutubeId(candidate)) continue
+    try {
+      const parsed = new URL(candidate)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return candidate
+    } catch {
+      continue
+    }
+  }
+  return null
+}
+
 export function resolveSupabaseStorageUrl(
   getPublicUrl: (path: string) => string,
   storagePath?: string | null

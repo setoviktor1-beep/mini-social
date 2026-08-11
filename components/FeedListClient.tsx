@@ -8,6 +8,36 @@ import { SkeletonCard } from '@/components/Skeleton'
 
 type TabKey = 'for_you' | 'following' | 'latest'
 
+function dedupePosts(items: any[]) {
+  const seenIds = new Set<string>()
+  const seenFeedKeys = new Set<string>()
+
+  return items.filter((post) => {
+    const id = typeof post?.id === 'string' ? post.id : ''
+    const feedKey = typeof post?.feed_key === 'string' ? post.feed_key : ''
+    if ((id && seenIds.has(id)) || (feedKey && seenFeedKeys.has(feedKey))) return false
+    if (id) seenIds.add(id)
+    if (feedKey) seenFeedKeys.add(feedKey)
+    return true
+  })
+}
+
+function appendUniquePosts(existing: any[], incoming: any[]) {
+  const result = [...existing]
+  const seenIds = new Set(existing.map((post) => post?.id).filter(Boolean))
+  const seenFeedKeys = new Set(existing.map((post) => post?.feed_key).filter(Boolean))
+
+  for (const post of incoming) {
+    if (post?.id && seenIds.has(post.id)) continue
+    if (post?.feed_key && seenFeedKeys.has(post.feed_key)) continue
+    if (post?.id) seenIds.add(post.id)
+    if (post?.feed_key) seenFeedKeys.add(post.feed_key)
+    result.push(post)
+  }
+
+  return result
+}
+
 export default function FeedListClient(props: {
   initialPosts: any[]
   tab: TabKey
@@ -15,7 +45,7 @@ export default function FeedListClient(props: {
   currentUserRole?: string
 }) {
   const { initialPosts, tab, currentUserId, currentUserRole } = props
-  const [posts, setPosts] = useState<any[]>(initialPosts || [])
+  const [posts, setPosts] = useState<any[]>(() => dedupePosts(initialPosts || []))
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState((initialPosts || []).length === 20)
@@ -27,7 +57,7 @@ export default function FeedListClient(props: {
   const controllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    setPosts(initialPosts || [])
+    setPosts(dedupePosts(initialPosts || []))
     setPage(0)
     setHasMore((initialPosts || []).length === 20)
     setLoading(false)
@@ -78,7 +108,7 @@ export default function FeedListClient(props: {
       })
       if (!res.ok) throw new Error('Failed to fetch feed')
       const json = await res.json()
-      const freshPosts = json.posts || []
+      const freshPosts = dedupePosts(json.posts || [])
       setPosts(freshPosts)
       setPage(0)
       setHasMore(Boolean(json.hasMore))
@@ -104,8 +134,8 @@ export default function FeedListClient(props: {
       })
       if (!res.ok) throw new Error('Failed to fetch feed')
       const json = await res.json()
-      const newPosts = json.posts || []
-      setPosts((prev) => [...prev, ...newPosts])
+      const newPosts = dedupePosts(json.posts || [])
+      setPosts((prev) => appendUniquePosts(prev, newPosts))
       setPage(nextPage)
       setHasMore(Boolean(json.hasMore))
     } catch (e) {
@@ -129,16 +159,16 @@ export default function FeedListClient(props: {
   }, [loadMore])
 
   return (
-    <div className="divide-y divide-slate-100 bg-transparent" role="feed" aria-busy={loading}>
+    <div className="divide-y divide-slate-100 dark:divide-gray-800 bg-transparent" role="feed" aria-busy={loading}>
       {isOffline && (
-        <div className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2.5 text-xs sm:text-sm font-medium text-amber-700">
+        <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-900/10 px-4 py-2.5 text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">
           <WifiOff size={14} />
           Nėra interneto ryšio. Rodomi anksčiau įkelti įrašai.
         </div>
       )}
 
       {newPostAvailable && (
-        <div className="sticky top-20 z-40 flex justify-center py-3">
+        <div role="status" className="sticky top-20 z-40 flex justify-center py-3">
           <button
             onClick={reloadFeed}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm bg-[#1A1A2E] hover:bg-[#16213E] text-white shadow-lg transition-all active:scale-95 animate-in slide-in-from-top-2 duration-300"
@@ -154,19 +184,19 @@ export default function FeedListClient(props: {
 
       {posts.length === 0 && (
         <div className="p-8 sm:p-10 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-gray-800 flex items-center justify-center">
+            <svg className="w-8 h-8 text-slate-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
           </div>
-          <p className="text-slate-500 text-sm sm:text-base font-medium mb-1">
+          <p className="text-slate-500 dark:text-gray-400 text-sm sm:text-base font-medium mb-1">
             {tab === 'following'
               ? 'Sekami žmonės dar nieko nepaskelbė.'
               : tab === 'for_you'
                 ? 'Per pastarąsias 48 valandas populiarių įrašų dar nėra.'
                 : 'Įrašų dar nėra. Pradėkite pokalbį!'}
           </p>
-          <p className="text-slate-400 text-xs sm:text-sm">Pasidalinkite kuo nors įdomiu pirmieji.</p>
+          <p className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm">Pasidalinkite kuo nors įdomiu pirmieji.</p>
         </div>
       )}
 
@@ -178,11 +208,11 @@ export default function FeedListClient(props: {
       )}
 
       {!loading && loadError && (
-        <div className="flex flex-col items-center gap-3 p-6 sm:p-8 text-center">
-          <p className="text-sm text-slate-500">Nepavyko įkelti įrašų. Patikrinkite ryšį ir bandykite dar kartą.</p>
+        <div role="alert" className="flex flex-col items-center gap-3 p-6 sm:p-8 text-center">
+          <p className="text-sm text-slate-500 dark:text-gray-400">Nepavyko įkelti įrašų. Patikrinkite ryšį ir bandykite dar kartą.</p>
           <button
             onClick={posts.length === 0 ? reloadFeed : loadMore}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 min-h-[44px] transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 min-h-[44px] transition-all"
           >
             <RotateCw size={16} />
             Bandyti dar kartą
@@ -196,14 +226,14 @@ export default function FeedListClient(props: {
           {!loadError && (hasMore ? (
             <button
               onClick={loadMore}
-              className="px-6 py-2.5 rounded-full font-semibold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 min-h-[44px] transition-all hover:shadow-sm"
+              className="px-6 py-2.5 rounded-full font-semibold text-sm bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 min-h-[44px] transition-all hover:shadow-sm"
             >
               Rodyti daugiau
             </button>
           ) : (
             <div className="py-4">
-              <div className="w-12 h-px bg-slate-200 mx-auto mb-3" />
-              <p className="text-xs sm:text-sm text-slate-400">Peržiūrėjote visus įrašus.</p>
+              <div className="w-12 h-px bg-slate-200 dark:bg-gray-700 mx-auto mb-3" />
+              <p className="text-xs sm:text-sm text-slate-400 dark:text-gray-500">Peržiūrėjote visus įrašus.</p>
             </div>
           ))}
         </div>
