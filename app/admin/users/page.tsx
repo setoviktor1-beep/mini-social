@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/backend-client'
 import StatusBadge from '@/components/admin/StatusBadge'
 import Pagination from '@/components/admin/Pagination'
@@ -9,7 +9,7 @@ import { ExternalLink } from 'lucide-react'
 const PER_PAGE = 20
 
 export default function AdminUsersPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [users, setUsers] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -29,7 +29,7 @@ export default function AdminUsersPage() {
         setCurrentUserRole(profile?.role || '')
       }
     })
-  }, [])
+  }, [supabase])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -49,7 +49,7 @@ export default function AdminUsersPage() {
     setUsers(data || [])
     setTotal(count || 0)
     setLoading(false)
-  }, [page, search, roleFilter, statusFilter])
+  }, [supabase, page, search, roleFilter, statusFilter])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 

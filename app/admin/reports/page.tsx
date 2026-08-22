@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/backend-client'
 import StatusBadge from '@/components/admin/StatusBadge'
 import Pagination from '@/components/admin/Pagination'
@@ -8,7 +8,7 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog'
 const PER_PAGE = 20
 
 export default function AdminReportsPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [reports, setReports] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -27,7 +27,7 @@ export default function AdminReportsPage() {
     supabase.from('profiles').select('id, username').in('role', ['admin', 'moderator']).then(({ data }) => {
       setMods(data || [])
     })
-  }, [])
+  }, [supabase])
 
   const logAction = async (action: string, targetType: string, targetId: string, details?: any) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -49,7 +49,7 @@ export default function AdminReportsPage() {
     setReports(data || [])
     setTotal(count || 0)
     setLoading(false)
-  }, [page, statusFilter, typeFilter])
+  }, [supabase, page, statusFilter, typeFilter])
 
   useEffect(() => { fetchReports() }, [fetchReports])
 

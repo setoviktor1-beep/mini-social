@@ -44,7 +44,7 @@ const DAY_LT = ['Pr','An','Tr','Kt','Pn','Št','Sk'];
 const EMPTY_FORM = { title: '', description: '', time_start: '', time_end: '', color: 'blue' };
 
 export default function ProCalendar({ proId }: { proId: string }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -80,7 +80,7 @@ export default function ProCalendar({ proId }: { proId: string }) {
       setLoading(false);
     }
     load();
-  }, [proId]);
+  }, [supabase, proId]);
 
   // Group requests by date
   const requestsByDate = useMemo(() => {

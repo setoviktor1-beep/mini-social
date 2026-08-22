@@ -45,7 +45,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'ENTERPRISE_REQUIRED' }, { status: 403 })
     }
 
-    const { imageBase64, mimeType = 'image/jpeg' } = await request.json()
+    const body = await request.json().catch(() => null)
+    const imageBase64 = typeof body?.imageBase64 === 'string' ? body.imageBase64 : null
+    const mimeType = typeof body?.mimeType === 'string' ? body.mimeType : 'image/jpeg'
     if (!imageBase64) return NextResponse.json({ error: 'MISSING_IMAGE' }, { status: 400 })
 
     let sanitized

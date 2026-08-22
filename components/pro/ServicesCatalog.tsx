@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/backend-client';
 import { Plus, Pencil, Trash2, Check, X, Tag, Loader2 } from 'lucide-react';
 
@@ -22,7 +22,7 @@ const PRICE_TYPE_LABELS: Record<PriceType, string> = {
 };
 
 export default function ServicesCatalog({ proId }: { proId: string }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [services, setServices] = useState<ProService[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,11 +35,7 @@ export default function ServicesCatalog({ proId }: { proId: string }) {
   const [price, setPrice] = useState('');
   const [priceType, setPriceType] = useState<PriceType>('fixed');
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
-
-  async function fetchServices() {
+  const fetchServices = useCallback(async () => {
     const { data } = await supabase
       .from('pro_services')
       .select('*')
@@ -47,7 +43,11 @@ export default function ServicesCatalog({ proId }: { proId: string }) {
       .order('created_at', { ascending: true });
     setServices(data || []);
     setLoading(false);
-  }
+  }, [supabase, proId]);
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
 
   function openNew() {
     setEditingId(null);

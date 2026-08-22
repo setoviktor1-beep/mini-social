@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/backend-client'
 import StatusBadge from '@/components/admin/StatusBadge'
 import Pagination from '@/components/admin/Pagination'
@@ -11,7 +11,7 @@ const PER_PAGE = 20
 type Tab = 'posts' | 'discussions' | 'comments'
 
 export default function AdminContentPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [tab, setTab] = useState<Tab>('posts')
   const [items, setItems] = useState<any[]>([])
   const [total, setTotal] = useState(0)
@@ -54,7 +54,7 @@ export default function AdminContentPage() {
     setItems(data || [])
     setTotal(count || 0)
     setLoading(false)
-  }, [tab, page, statusFilter, search, categoryFilter])
+  }, [supabase, tab, page, statusFilter, search, categoryFilter])
 
   useEffect(() => { fetchItems() }, [fetchItems])
   useEffect(() => { setPage(1); setStatusFilter('all'); setSearch(''); setCategoryFilter('all') }, [tab])

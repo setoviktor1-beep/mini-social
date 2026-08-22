@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/backend-client';
 import { Plus, Trash2, Copy, Check, MessageSquare, Loader2, X } from 'lucide-react';
 
@@ -11,7 +11,7 @@ interface QuickReply {
 }
 
 export default function QuickReplies({ proId }: { proId: string }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [replies, setReplies] = useState<QuickReply[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,11 +27,7 @@ export default function QuickReplies({ proId }: { proId: string }) {
     { label: 'Patvirtinu laiką', body: 'Patvirtinu susitikimą nurodytu laiku. Iki pasimatymo!' },
   ];
 
-  useEffect(() => {
-    fetchReplies();
-  }, []);
-
-  async function fetchReplies() {
+  const fetchReplies = useCallback(async () => {
     const { data } = await supabase
       .from('quick_reply_templates')
       .select('*')
@@ -39,7 +35,11 @@ export default function QuickReplies({ proId }: { proId: string }) {
       .order('created_at', { ascending: true });
     setReplies(data || []);
     setLoading(false);
-  }
+  }, [supabase, proId]);
+
+  useEffect(() => {
+    fetchReplies();
+  }, [fetchReplies]);
 
   async function addTemplate(tmpl: { label: string; body: string }) {
     setSaving(true);

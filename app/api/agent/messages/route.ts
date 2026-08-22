@@ -23,7 +23,11 @@ export async function PATCH(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
 
-  const { id } = await request.json()
+  const body = await request.json().catch(() => null)
+  const id = typeof body?.id === 'string' ? body.id : null
+  if (!id) {
+    return NextResponse.json({ error: 'INVALID_REQUEST' }, { status: 400 })
+  }
 
   if (id === 'all') {
     await supabase

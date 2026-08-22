@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/backend-client';
 import { Clock, MapPin, Loader2, Check, Lock } from 'lucide-react';
 
@@ -45,7 +45,7 @@ const PLAN_LABELS: Record<number, string> = {
 };
 
 export default function ProSettings({ proId, maxRadius = 5 }: { proId: string; maxRadius?: number }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -72,7 +72,7 @@ export default function ProSettings({ proId, maxRadius = 5 }: { proId: string; m
       setLoading(false);
     }
     load();
-  }, [proId, maxRadius]);
+  }, [supabase, proId, maxRadius]);
 
   function toggleDay(key: string) {
     setHours(prev => ({

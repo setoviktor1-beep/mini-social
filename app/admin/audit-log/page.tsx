@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/backend-client'
 import Pagination from '@/components/admin/Pagination'
 
@@ -42,7 +42,7 @@ const actionColors: Record<string, string> = {
 }
 
 export default function AdminAuditLogPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [actions, setActions] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -55,7 +55,7 @@ export default function AdminAuditLogPage() {
     supabase.from('profiles').select('id, username').in('role', ['admin', 'moderator']).then(({ data }) => {
       setActors(data || [])
     })
-  }, [])
+  }, [supabase])
 
   const fetchActions = useCallback(async () => {
     setLoading(true)
@@ -69,7 +69,7 @@ export default function AdminAuditLogPage() {
     setActions(data || [])
     setTotal(count || 0)
     setLoading(false)
-  }, [page, actionFilter, actorFilter])
+  }, [supabase, page, actionFilter, actorFilter])
 
   useEffect(() => { fetchActions() }, [fetchActions])
 

@@ -8,8 +8,11 @@ import {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', pathname)
+
   const response = NextResponse.next({
-    request: { headers: request.headers },
+    request: { headers: requestHeaders },
   })
   response.headers.set('x-pathname', pathname)
 

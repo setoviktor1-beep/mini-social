@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/backend-client'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Send } from 'lucide-react'
@@ -15,7 +15,7 @@ const categoryOptions = [
 ]
 
 export default function NewDiscussionPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   const [userId, setUserId] = useState<string | null>(null)
@@ -35,7 +35,7 @@ export default function NewDiscussionPage() {
       }
       setCheckingAuth(false)
     })
-  }, [])
+  }, [supabase, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -26,17 +26,13 @@ const POST_SELECT = `
 export default async function PostPermalinkPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const supabase = createClient()
-  const [{ data: authData }, { data: post }, { data: profile }] = await Promise.all([
-    supabase.auth.getUser(),
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const [{ data: post }, { data: profile }] = await Promise.all([
     supabase.from('posts').select(POST_SELECT).eq('id', params.id).eq('status', 'active').single(),
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return { data: null }
-      return supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single()
-    }),
+    user
+      ? supabase.from('profiles').select('role').eq('id', user.id).single()
+      : Promise.resolve({ data: null }),
   ])
 
   if (!post) {
@@ -45,7 +41,7 @@ export default async function PostPermalinkPage(props: { params: Promise<{ id: s
 
   const [postWithFlags] = await attachUserInteractionFlags(
     supabase,
-    authData.user?.id,
+    user?.id,
     [post],
   )
 
@@ -54,7 +50,7 @@ export default async function PostPermalinkPage(props: { params: Promise<{ id: s
       <div className="overflow-hidden rounded-2xl border border-gray-800/60 bg-gray-900/40">
         <PostCard
           post={postWithFlags}
-          currentUserId={authData.user?.id}
+          currentUserId={user?.id}
           currentUserRole={profile?.role}
         />
       </div>

@@ -90,7 +90,6 @@ export default function ServicesPage() {
         if (lat && lng) {
           setUserLat(lat);
           setUserLng(lng);
-          await fetchAll(lat, lng, radius, "Visi", activeLocation.usesTravel ? homeLat : null, activeLocation.usesTravel ? homeLng : null);
         } else {
           setIsLoading(false);
         }
@@ -99,13 +98,14 @@ export default function ServicesPage() {
       }
     };
     fetchProfile();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (userLat && userLng) {
       const activeLocation = getActiveProfileLocation(profile);
       fetchAll(userLat, userLng, userRadiusKm, activeCategory, activeLocation.usesTravel ? homeLat : null, activeLocation.usesTravel ? homeLng : null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory, userLat, userLng, userRadiusKm, profile, homeLat, homeLng]);
 
   const fetchAll = async (lat: number, lng: number, radiusKm: number, category: string, hLat?: number | null, hLng?: number | null) => {

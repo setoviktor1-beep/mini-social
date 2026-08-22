@@ -3,7 +3,6 @@ import { Pool } from 'pg'
 
 declare global {
   // Reuse the pool during local hot reloads.
-  // eslint-disable-next-line no-var
   var __miniSocialPgPool: Pool | undefined
 }
 

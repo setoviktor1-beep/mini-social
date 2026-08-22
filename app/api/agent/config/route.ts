@@ -42,7 +42,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'ENTERPRISE_REQUIRED' }, { status: 403 })
   }
 
-  const body = await request.json()
+  const body = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'INVALID_REQUEST' }, { status: 400 })
+  }
   const { is_enabled, agent_name, personality, report_frequency, report_day, report_hour, triggers } = body
 
   const { error } = await supabase
