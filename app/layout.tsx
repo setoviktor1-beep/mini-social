@@ -8,6 +8,8 @@ import { I18nProvider } from '@/lib/i18n'
 import SiteFooter from '@/components/SiteFooter'
 import CookieNotice from '@/components/CookieNotice'
 
+import AIFloatingLauncher from '@/components/ai/AIFloatingLauncher'
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 // Pages depend on authenticated, request-scoped data.
@@ -77,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 md:pb-8" style={{ maxWidth: 'var(--content-max)' }}>{children}</main>
           <SiteFooter />
           <BottomNav />
+          <AIFloatingLauncher />
           <CookieNotice />
         </ThemeProvider>
         </I18nProvider>

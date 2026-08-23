@@ -20,6 +20,7 @@ import {
   CheckCheck,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { AVAILABLE_AI_MODELS, DEFAULT_AI_MODEL_ID } from '@/lib/ai/constants'
 
 interface Thread {
   id: string
@@ -49,6 +50,7 @@ export default function AIChatClient() {
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_AI_MODEL_ID)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -137,6 +139,7 @@ export default function AIChatClient() {
         body: JSON.stringify({
           threadId: activeThreadId,
           message: text,
+          model: selectedModel,
         }),
       })
 
@@ -380,9 +383,28 @@ export default function AIChatClient() {
                 </span>
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('ai.chat_subtitle', 'Privatus asistentas su Gemini & NVIDIA modeliais')}
+                {t('ai.chat_subtitle', 'Privatus asistentas')}
               </p>
             </div>
+          </div>
+
+          {/* Model Selector */}
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline-flex text-xs text-gray-500 dark:text-gray-400 font-medium">
+              Modelis:
+            </span>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              aria-label="Pasirinkti AI modelį"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+            >
+              {AVAILABLE_AI_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.badge})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -446,7 +468,14 @@ export default function AIChatClient() {
                       : 'bg-gray-100 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100 rounded-tl-sm border border-gray-200/60 dark:border-gray-700/60'
                   }`}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant'
+                    ? msg.content
+                        .replace(/`{3,}(?:tool_call|tool_code|function_call|tool)[\s\S]*?`{3,}/gi, '')
+                        .replace(/`{3,}(?:json)?\s*\{\s*["'](?:tool|function|action)["']\s*:\s*["'][^"']+["'][\s\S]*?\}\s*`{3,}/gi, '')
+                        .replace(/<(?:tool_call|tool_code|function_call|tool)>[\s\S]*?<\/(?:tool_call|tool_code|function_call|tool)>/gi, '')
+                        .replace(/<\/?(?:tool_call|tool_code|function_call|tool)[^>]*>/gi, '')
+                        .trim() || t('ai.generic_error', 'Atsiprašome, įvyko klaida.')
+                    : msg.content}
                 </div>
 
                 {msg.role === 'assistant' && (
