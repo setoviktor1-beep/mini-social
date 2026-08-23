@@ -23,7 +23,7 @@ function startCleanupTimer() {
   cleanupTimerStarted = true;
 
   if (typeof setInterval !== 'undefined') {
-    setInterval(() => {
+    const timer = setInterval(() => {
       const now = Date.now();
       store.forEach((entry, key) => {
         if (entry.resetTime <= now) {
@@ -31,6 +31,9 @@ function startCleanupTimer() {
         }
       });
     }, 5 * 60 * 1000);
+    if (timer && typeof timer.unref === 'function') {
+      timer.unref();
+    }
   }
 }
 

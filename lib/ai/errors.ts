@@ -62,9 +62,9 @@ function defaultStatusForCode(code: AiErrorCode): number {
 function defaultUserMessage(code: AiErrorCode): string {
   switch (code) {
     case 'AI_UNAVAILABLE':
-      return 'AI paslauga šiuo metu nepasiekiama.'
+      return 'AI šiuo metu nepasiekiamas.'
     case 'AI_RATE_LIMITED':
-      return 'Per daug užklausų. Bandykite šiek tiek vėliau.'
+      return 'AI šiuo metu pasiekė užklausų limitą. Bandykite netrukus.'
     case 'AI_QUOTA_EXCEEDED':
       return 'Pasiektas AI naudojimo limitas.'
     case 'AI_FORBIDDEN':
@@ -74,7 +74,7 @@ function defaultUserMessage(code: AiErrorCode): string {
     case 'AI_INVALID_REQUEST':
       return 'Neteisinga užklausa.'
     case 'AI_TIMEOUT':
-      return 'AI užklausa užtruko per ilgai. Bandykite dar kartą.'
+      return 'AI atsakymas užtruko per ilgai.'
     case 'AI_PROVIDER_ERROR':
       return 'Klaida bendraujant su AI tiekėju.'
     case 'AI_INTERNAL_ERROR':

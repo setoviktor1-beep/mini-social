@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     const threadId = typeof body?.threadId === 'string' ? body.threadId : undefined
     const message = typeof body?.message === 'string' ? body.message : ''
     const includeBusiness = Boolean(body?.includeBusiness)
+    const model = typeof body?.model === 'string' ? body.model : undefined
 
     if (!message.trim()) {
       return NextResponse.json(
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
       message,
       ip,
       includeBusiness,
+      model,
     })
 
     return NextResponse.json(result)
