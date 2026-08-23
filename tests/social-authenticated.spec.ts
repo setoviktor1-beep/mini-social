@@ -443,7 +443,7 @@ test.describe('Social features (authenticated)', () => {
       // Client-side preview appears before posting.
       await expect(page.getByLabel('Pasirinkto vaizdo įrašo peržiūra')).toBeVisible();
       // Selecting a video disables the image picker (mutually exclusive).
-      await expect(page.locator(`#${await page.locator('label:has-text("Nuotraukos")').first().getAttribute('for')}`)).toBeDisabled();
+      await expect(page.locator('input[accept*="image"]').first()).toBeDisabled();
 
       await page.getByRole('button', { name: 'Skelbti', exact: true }).first().click();
 

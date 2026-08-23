@@ -10,7 +10,7 @@ export default defineConfig({
   // file up and evaluates it while scanning — node:test then runs those
   // tests too as a side effect of module evaluation, duplicating output.
   // Keep the two runners cleanly separated.
-  testIgnore: ['**/unit/**'],
+  testIgnore: ['**/unit/**', '**/integration/**'],
   timeout: 60000,
   expect: {
     // Default 5s is tight on a shared/contended host (e.g. this VPS also

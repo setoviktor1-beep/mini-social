@@ -1,18 +1,21 @@
 // Unit tests for the parts of lib/ai/openrouter.ts that don't require a
-// live OPENROUTER_API_KEY (none is configured in this environment yet —
-// see docs/ai-composer.md). Covers the "AI unavailable" fallback path,
+// live API key. Covers the "AI unavailable" fallback path,
 // which every route/UI consumer depends on to degrade gracefully.
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-test('isAiConfigured() is false when OPENROUTER_API_KEY is unset', async () => {
+test('isAiConfigured() is false when OMNIROUTER_API_KEY or OMNIROUTER_BASE_URL is unset', async () => {
+  delete process.env.OMNIROUTER_API_KEY
+  delete process.env.OMNIROUTER_BASE_URL
   delete process.env.OPENROUTER_API_KEY
   const { isAiConfigured } = await import('../../lib/ai/openrouter')
   assert.equal(isAiConfigured(), false)
 })
 
 test('chatCompletion() throws AiUnavailableError (not a raw network error) when unconfigured', async () => {
+  delete process.env.OMNIROUTER_API_KEY
+  delete process.env.OMNIROUTER_BASE_URL
   delete process.env.OPENROUTER_API_KEY
   const { chatCompletion, AiUnavailableError } = await import('../../lib/ai/openrouter')
   await assert.rejects(
@@ -29,15 +32,16 @@ test('getModelName() defaults to the configured Nemotron slug when OPENROUTER_MO
 
 test('getModelName() respects an OPENROUTER_MODEL override', async () => {
   process.env.OPENROUTER_MODEL = 'some/other-model:free'
-  // Re-import isn't needed — getModelName() reads process.env at call time.
   const { getModelName } = await import('../../lib/ai/openrouter')
   assert.equal(getModelName(), 'some/other-model:free')
   delete process.env.OPENROUTER_MODEL
 })
 
-test('isAiConfigured() is true once OPENROUTER_API_KEY is set', async () => {
-  process.env.OPENROUTER_API_KEY = 'test-key-for-unit-test'
+test('isAiConfigured() is true once OMNIROUTER_API_KEY and OMNIROUTER_BASE_URL are set', async () => {
+  process.env.OMNIROUTER_API_KEY = 'test-key-for-unit-test'
+  process.env.OMNIROUTER_BASE_URL = 'https://api.omnirouter.ai/v1'
   const { isAiConfigured } = await import('../../lib/ai/openrouter')
   assert.equal(isAiConfigured(), true)
-  delete process.env.OPENROUTER_API_KEY
+  delete process.env.OMNIROUTER_API_KEY
+  delete process.env.OMNIROUTER_BASE_URL
 })

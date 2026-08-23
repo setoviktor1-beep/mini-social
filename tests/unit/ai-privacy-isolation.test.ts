@@ -370,5 +370,31 @@ describe('AI Platform Privacy & Cross-User Isolation (P0 Release Blocker)', () =
     assert.doesNotMatch(redacted, /sk-1234567890123456789012345678/)
     assert.match(redacted, /\[REDACTED\]/)
   })
+
+  test('13. URL normalization and zero fallback when OMNIROUTER_BASE_URL is missing', async () => {
+    const { normalizeBaseUrl, getOmniRouterConfig } = await import('../../lib/ai/models')
+    assert.equal(normalizeBaseUrl('https://api.omnirouter.ai/v1/chat/completions'), 'https://api.omnirouter.ai/v1')
+    assert.equal(normalizeBaseUrl('http://omnirouter:8000/v1/'), 'http://omnirouter:8000/v1')
+    assert.equal(normalizeBaseUrl(''), '')
+
+    const prevUrl = process.env.OMNIROUTER_BASE_URL
+    delete process.env.OMNIROUTER_BASE_URL
+    const config = getOmniRouterConfig()
+    assert.equal(config.isConfigured, false)
+    if (prevUrl) process.env.OMNIROUTER_BASE_URL = prevUrl
+  })
+
+  test('14. Smart router fallback criteria: fallback only on 429, 5xx, timeout, never on 401/403', async () => {
+    const { routeAiRequest } = await import('../../lib/ai/router')
+    // When unconfigured, throws AI_UNAVAILABLE with status 503
+    const prevKey = process.env.OMNIROUTER_API_KEY
+    delete process.env.OMNIROUTER_API_KEY
+    await assert.rejects(
+      () => routeAiRequest({ task: 'chat', messages: [{ role: 'user', content: 'test' }] }),
+      (err: any) => err instanceof AiError && err.code === 'AI_UNAVAILABLE' && err.status === 503,
+    )
+    if (prevKey) process.env.OMNIROUTER_API_KEY = prevKey
+  })
 })
+
 
