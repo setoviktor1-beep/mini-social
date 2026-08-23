@@ -85,3 +85,34 @@ export async function getMyOrders(userId: string, supabase: any, limit = 10) {
     })),
   }
 }
+
+/**
+ * Prepares a proposed service draft for user confirmation.
+ * Write actions NEVER automatically execute without explicit user approval.
+ */
+export async function prepareCreateService(
+  userId: string,
+  params: { name?: string; price?: number; priceType?: string; description?: string },
+) {
+  const cleanName = (params.name || '').trim().slice(0, 100)
+  if (!cleanName) {
+    return { error: 'Paslaugos pavadinimas yra privalomas' }
+  }
+  const numericPrice = typeof params.price === 'number' && params.price >= 0 ? params.price : 0
+  const priceType = params.priceType === 'fixed' || params.priceType === 'hourly' || params.priceType === 'from'
+    ? params.priceType
+    : 'from'
+
+  return {
+    action: 'create_service',
+    status: 'draft',
+    requiresConfirmation: true,
+    draft: {
+      name: cleanName,
+      price: numericPrice,
+      price_type: priceType,
+      description: (params.description || '').trim().slice(0, 500),
+    },
+    message: `Paruoštas pasiūlymas sukurti paslaugą: "${cleanName}" (${priceType === 'from' ? 'nuo ' : ''}€${numericPrice}). Reikalingas vartotojo patvirtinimas.`,
+  }
+}

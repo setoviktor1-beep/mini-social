@@ -76,7 +76,7 @@ export async function chatCompletion({
       isPrivate,
     })
 
-    return { text: res.content, model: res.model }
+    return { text: res.content || '', model: res.model }
   } catch (error) {
     if (error instanceof AiError) {
       if (error.code === 'AI_UNAVAILABLE') throw new AiUnavailableError(error.message)
