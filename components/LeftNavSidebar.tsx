@@ -11,6 +11,7 @@ import {
   Briefcase,
   Store,
   Bookmark,
+  Bot,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 
@@ -24,6 +25,7 @@ export default function LeftNavSidebar({ userRole, homeHref }: LeftNavSidebarPro
 
   const navItems = [
     { href: homeHref, icon: HomeIcon, label: t('sidebar.home', 'Pagrindinis'), show: true },
+    { href: '/ai', icon: Bot, label: t('sidebar.ai', 'AI Asistentas'), show: true },
     { href: '/services', icon: Store, label: t('sidebar.services', 'Paslaugos'), show: true },
     {
       href: ['pro', 'master', 'admin'].includes(userRole ?? '') ? '/pro' : '/pricing',

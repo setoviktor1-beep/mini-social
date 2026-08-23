@@ -15,6 +15,7 @@ interface UsageInfo {
 
 export default function ProAIChat() {
   const [messages, setMessages] = useState<Message[]>([])
+  const [threadId, setThreadId] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
@@ -25,13 +26,13 @@ export default function ProAIChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  async function send() {
-    const text = input.trim()
+  async function send(textToSend?: string) {
+    const text = (textToSend || input).trim()
     if (!text || loading) return
 
     const userMsg: Message = { role: 'user', text }
-    const history = [...messages, userMsg]
-    setMessages(history)
+    const updated = [...messages, userMsg]
+    setMessages(updated)
     setInput('')
     setLoading(true)
     setError(null)
@@ -42,7 +43,7 @@ export default function ProAIChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          history: messages,
+          threadId: threadId || undefined,
         }),
       })
       const data = await res.json()
@@ -53,17 +54,19 @@ export default function ProAIChat() {
         } else if (data.error === 'SUBSCRIPTION_REQUIRED') {
           setError('AI chat prieinamas tik Pro ir Enterprise planams.')
         } else {
-          setError('Įvyko klaida. Bandykite dar kartą.')
+          setError(data.message || 'Įvyko klaida. Bandykite dar kartą.')
         }
-        setMessages(messages) // revert
         return
       }
 
-      setMessages([...history, { role: 'assistant', text: data.reply }])
+      if (data.threadId && !threadId) {
+        setThreadId(data.threadId)
+      }
+
+      setMessages([...updated, { role: 'assistant', text: data.reply }])
       if (data.usage) setUsage(data.usage)
     } catch {
       setError('Nepavyko prisijungti. Patikrinkite interneto ryšį.')
-      setMessages(messages)
     } finally {
       setLoading(false)
     }
@@ -130,7 +133,10 @@ export default function ProAIChat() {
               ].map((prompt) => (
                 <button
                   key={prompt}
-                  onClick={() => { setInput(prompt) }}
+                  onClick={() => {
+                    setInput(prompt)
+                    send(prompt)
+                  }}
                   className="text-left text-xs text-gray-400 bg-gray-800/60 hover:bg-gray-800 rounded-xl px-3 py-2 transition-colors border border-gray-700/50"
                 >
                   {prompt}
@@ -142,21 +148,24 @@ export default function ProAIChat() {
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-              msg.role === 'user'
-                ? 'bg-blue-500/20'
-                : 'bg-emerald-500/20'
-            }`}>
-              {msg.role === 'user'
-                ? <User size={14} className="text-blue-400" />
-                : <Bot size={14} className="text-emerald-400" />
-              }
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                msg.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
+              }`}
+            >
+              {msg.role === 'user' ? (
+                <User size={14} className="text-blue-400" />
+              ) : (
+                <Bot size={14} className="text-emerald-400" />
+              )}
             </div>
-            <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-              msg.role === 'user'
-                ? 'bg-blue-600 text-white rounded-tr-sm'
-                : 'bg-gray-800/80 text-gray-100 rounded-tl-sm'
-            }`}>
+            <div
+              className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                msg.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-tr-sm'
+                  : 'bg-gray-800/80 text-gray-100 rounded-tl-sm'
+              }`}
+            >
               {msg.text}
             </div>
           </div>
@@ -196,7 +205,7 @@ export default function ProAIChat() {
           style={{ maxHeight: '120px', overflowY: 'auto' }}
         />
         <button
-          onClick={send}
+          onClick={() => send()}
           disabled={!input.trim() || loading}
           className="w-11 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0 self-end"
         >

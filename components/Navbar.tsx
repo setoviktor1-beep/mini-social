@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/backend-client'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase, ClipboardList, Bookmark } from 'lucide-react'
+import { Shield, MessageSquare, MessagesSquare, Search, Menu, X, Settings, Briefcase, ClipboardList, Bookmark, Sparkles } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
 import PushNotificationToggle from './PushNotificationToggle'
@@ -166,6 +166,9 @@ export default function Navbar() {
             <>
               {!isFeedPage && (
                 <>
+                  <Link href="/ai" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/ai') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.ai', 'AI Asistentas')} aria-label={t('nav.ai', 'AI Asistentas')}>
+                    <Sparkles size={20} strokeWidth={isActive('/ai') ? 2.5 : 1.5} />
+                  </Link>
                   <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.discussions', 'Diskusijos')} aria-label={t('nav.discussions', 'Diskusijos')}>
                     <MessageSquare size={20} strokeWidth={isActive('/discussions') ? 2.5 : 1.5} />
                   </Link>
@@ -256,6 +259,10 @@ export default function Navbar() {
           <div className="max-w-2xl mx-auto px-4 py-3 space-y-1">
             {user ? (
               <>
+                <Link href="/ai" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
+                  <Sparkles size={20} className="text-blue-600 dark:text-blue-400" />
+                  {t('nav.ai', 'AI Asistentas')}
+                </Link>
                 <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <MessageSquare size={20} />
                   {t('nav.discussions', 'Diskusijos')}
