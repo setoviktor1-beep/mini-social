@@ -108,7 +108,7 @@ export class MiniSocialAiGateway {
       includeBusiness,
     })
 
-    // Execute model request via OmniRouter
+    // Execute model request strictly via OmniRouter
     const response = await routeAiRequest({
       task: 'chat',
       messages: builtContext.messages,
@@ -118,36 +118,46 @@ export class MiniSocialAiGateway {
 
     const reply = response.content
 
-    // Persist user and assistant messages into DB with user_id
+    // Persist user and assistant messages into DB with user_id & RLS compliance
+    const { error: insertErr } = await supabase.from('ai_messages').insert([
+      {
+        conversation_id: verified.threadId,
+        user_id: userId,
+        role: 'user',
+        content: cleanMessage,
+        tokens_used: response.usage.promptTokens,
+      },
+      {
+        conversation_id: verified.threadId,
+        user_id: userId,
+        role: 'assistant',
+        content: reply,
+        model: response.model,
+        provider: response.provider,
+        tokens_used: response.usage.completionTokens,
+        input_tokens: response.usage.promptTokens,
+        output_tokens: response.usage.completionTokens,
+      },
+    ])
+
+    if (insertErr) {
+      console.error('Failed to persist AI messages to DB:', insertErr)
+      throw new AiError(
+        'AI_PROVIDER_ERROR',
+        'Nepavyko išsaugoti pokalbio žinučių duomenų bazėje',
+        { status: 500, details: insertErr.message },
+      )
+    }
+
+    // Update thread timestamp
+    await supabase
+      .from('ai_conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', verified.threadId)
+      .eq('user_id', userId)
+
+    // Log usage audit (non-fatal)
     try {
-      await supabase.from('ai_messages').insert([
-        {
-          conversation_id: verified.threadId,
-          user_id: userId,
-          role: 'user',
-          content: cleanMessage,
-          tokens_used: response.usage.promptTokens,
-        },
-        {
-          conversation_id: verified.threadId,
-          user_id: userId,
-          role: 'assistant',
-          content: reply,
-          model: response.model,
-          provider: response.provider,
-          tokens_used: response.usage.completionTokens,
-          input_tokens: response.usage.promptTokens,
-          output_tokens: response.usage.completionTokens,
-        },
-      ])
-
-      // Update thread timestamp
-      await supabase
-        .from('ai_conversations')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', verified.threadId)
-
-      // Log usage for analytics / quotas
       await supabase.from('ai_usage_logs').insert({
         user_id: userId,
         thread_id: verified.threadId,
@@ -157,11 +167,11 @@ export class MiniSocialAiGateway {
         input_tokens: response.usage.promptTokens,
         output_tokens: response.usage.completionTokens,
       })
-    } catch (dbErr) {
-      console.error('Failed to log AI message to DB:', dbErr)
+    } catch (logErr) {
+      console.warn('AI usage log insert error (non-fatal):', logErr)
     }
 
-    // Lightweight async memory fact extraction
+    // Async per-user memory fact extraction
     this.extractAndSaveMemoryBackground({
       userId,
       supabase,
@@ -180,6 +190,7 @@ export class MiniSocialAiGateway {
 
   /**
    * Unified Post Composer AI transformations.
+   * Treats user drafts as strictly private with X-OmniRoute-No-Cache: 1.
    */
   async compose(params: ComposeParams): Promise<ComposeResult> {
     const { supabase, userId, action, text, tone, targetLanguage, ip = 'anonymous' } = params
@@ -250,10 +261,10 @@ export class MiniSocialAiGateway {
         { role: 'user', content: cleanText },
       ],
       maxTokens: 600,
-      isPrivate: false,
+      isPrivate: true,
     })
 
-    // Log usage
+    // Log usage audit
     try {
       await supabase.from('ai_usage_logs').insert({
         user_id: userId,
@@ -287,7 +298,7 @@ export class MiniSocialAiGateway {
     assertValidUserId(userId)
 
     if (!isOmniRouterConfigured()) {
-      throw new AiError('AI_UNAVAILABLE', 'AI paslauga šiuo metu nepasiekiami.', { status: 503 })
+      throw new AiError('AI_UNAVAILABLE', 'AI paslauga šiuo metu nepasiekiama.', { status: 503 })
     }
 
     let systemPrompt = ''
@@ -321,7 +332,7 @@ export class MiniSocialAiGateway {
         { role: 'user', content: input.slice(0, 2000) },
       ],
       maxTokens: 500,
-      isPrivate: false,
+      isPrivate: true,
     })
 
     return {
@@ -338,7 +349,6 @@ export class MiniSocialAiGateway {
     assistantReply: string
   }): Promise<void> {
     const { userId, supabase, userMessage, assistantReply } = params
-    // Only attempt memory extraction if user message is meaningful length
     if (userMessage.length < 20) return
 
     try {

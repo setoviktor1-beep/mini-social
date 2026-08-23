@@ -24,11 +24,12 @@ export async function GET(
       return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
     }
 
-    // Verify ownership
+    // Verify ownership with defense in depth
     const { data: thread, error: threadError } = await supabase
       .from('ai_conversations')
       .select('id, title, user_id, created_at, updated_at')
       .eq('id', id)
+      .eq('user_id', user.id)
       .maybeSingle()
 
     if (threadError || !thread || thread.user_id !== user.id) {

@@ -39,6 +39,7 @@ export async function verifyOrGetThreadOwnership(params: {
       .from('ai_conversations')
       .select('id, user_id, title')
       .eq('id', threadId)
+      .eq('user_id', userId)
       .maybeSingle()
 
     if (error || !thread) {

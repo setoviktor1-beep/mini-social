@@ -36,9 +36,6 @@ export function resolveModelSlug(slug: string): string {
   ) {
     return 'nvidia/nemotron-3-ultra-550b-a55b:free'
   }
-  if (normalized === 'mistral' || normalized === 'ministral') {
-    return 'ministral-3b-latest'
-  }
   return slug.trim()
 }
 
@@ -46,9 +43,6 @@ export function getOmniRouterConfig() {
   const apiKey =
     process.env.OMNIROUTER_API_KEY ||
     process.env.OPENROUTER_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.MISTRAL_API_KEY ||
-    process.env.NVIDIA_API_KEY ||
     ''
 
   const baseUrl =
@@ -69,11 +63,6 @@ export function getOmniRouterConfig() {
 
   return {
     apiKey,
-    openRouterKey: process.env.OPENROUTER_API_KEY || '',
-    omniRouterKey: process.env.OMNIROUTER_API_KEY || '',
-    geminiKey: process.env.GEMINI_API_KEY || '',
-    mistralKey: process.env.MISTRAL_API_KEY || '',
-    nvidiaKey: process.env.NVIDIA_API_KEY || '',
     baseUrl: baseUrl.replace(/\/+$/, ''),
     isConfigured: Boolean(apiKey),
     primaryModel,
@@ -86,18 +75,15 @@ export function getModelConfig(modelId: string): ModelConfig {
   const resolved = resolveModelSlug(modelId)
   const isNemotron = resolved.includes('nemotron')
   const isGemini = resolved.includes('gemini')
-  const isMistral = resolved.includes('mistral')
 
   return {
     id: resolved,
-    provider: isNemotron ? 'nvidia' : isGemini ? 'google' : isMistral ? 'mistral' : 'omnirouter',
+    provider: isNemotron ? 'nvidia' : isGemini ? 'google' : 'omnirouter',
     displayName: isNemotron
       ? 'NVIDIA Nemotron (Free)'
       : isGemini
         ? 'Gemini 3.5 Flash-Lite (Free)'
-        : isMistral
-          ? 'Mistral Small (Free)'
-          : resolved,
+        : resolved,
     maxInputChars: 8000,
     // Nemotron spends max_tokens on internal reasoning trace first; budget generously
     defaultMaxTokens: isNemotron ? 900 : 800,
