@@ -8,6 +8,7 @@ import Image from 'next/image'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import InviteButton from '@/components/InviteButton'
 import AvatarCropModal from '@/components/AvatarCropModal'
+import { useI18n } from '@/lib/i18n'
 
 interface Profile {
   id: string
@@ -75,6 +76,7 @@ interface MutedUserRow {
 }
 
 export default function SettingsPage() {
+  const { t } = useI18n()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)

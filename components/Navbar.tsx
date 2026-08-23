@@ -157,7 +157,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-1 text-sm font-medium">
           <LanguageSwitcher />
           {!isFeedPage && (
-            <Link href="/search" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/search') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Paieška" aria-label="Paieška">
+            <Link href="/search" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/search') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.search', 'Paieška')} aria-label={t('nav.search', 'Paieška')}>
               <Search size={20} strokeWidth={isActive('/search') ? 2.5 : 1.5} />
             </Link>
           )}
@@ -166,10 +166,10 @@ export default function Navbar() {
             <>
               {!isFeedPage && (
                 <>
-                  <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Diskusijos" aria-label="Diskusijos">
+                  <Link href="/discussions" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/discussions') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.discussions', 'Diskusijos')} aria-label={t('nav.discussions', 'Diskusijos')}>
                     <MessageSquare size={20} strokeWidth={isActive('/discussions') ? 2.5 : 1.5} />
                   </Link>
-                  <Link href="/messages" className={`relative p-2.5 rounded-xl transition-all duration-200 ${isActive('/messages') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Žinutės" aria-label="Žinutės">
+                  <Link href="/messages" className={`relative p-2.5 rounded-xl transition-all duration-200 ${isActive('/messages') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.messages', 'Žinutės')} aria-label={t('nav.messages', 'Žinutės')}>
                     <MessagesSquare size={20} strokeWidth={isActive('/messages') ? 2.5 : 1.5} />
                     {unreadCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 bg-[#E94560] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
@@ -179,38 +179,38 @@ export default function Navbar() {
                   </Link>
                   <NotificationBell />
                   {!isProUser && (
-                    <Link href="/my-orders" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/my-orders') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Mano užsakymai" aria-label="Mano užsakymai">
+                    <Link href="/my-orders" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/my-orders') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.orders', 'Mano užsakymai')} aria-label={t('nav.orders', 'Mano užsakymai')}>
                       <ClipboardList size={20} />
                     </Link>
                   )}
                   {isProUser ? (
-                    <Link href="/pro" className={`flex items-center gap-1 rounded-xl p-2.5 transition-all duration-200 ${isActive('/pro') ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`} title="Verslo darbalaukis" aria-label="Verslo darbalaukis">
+                    <Link href="/pro" className={`flex items-center gap-1 rounded-xl p-2.5 transition-all duration-200 ${isActive('/pro') ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`} title={t('nav.pro', 'Verslo darbalaukis')} aria-label={t('nav.pro', 'Verslo darbalaukis')}>
                       <Briefcase size={20} />
                     </Link>
                   ) : (
-                    <Link href="/pricing" className={`flex items-center gap-1 rounded-xl p-2 text-xs font-semibold transition-all duration-200 ${isActive('/pricing') ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`} title="Verslo planai" aria-label="Verslo planai">
+                    <Link href="/pricing" className={`flex items-center gap-1 rounded-xl p-2 text-xs font-semibold transition-all duration-200 ${isActive('/pricing') ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`} title={t('nav.pricing', 'Verslo planai')} aria-label={t('nav.pricing', 'Verslo planai')}>
                       <Briefcase size={20} />
                       <span className="hidden xl:inline">Pro</span>
                     </Link>
                   )}
-                  <Link href="/bookmarks" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/bookmarks') ? 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Išsaugoti įrašai" aria-label="Išsaugoti įrašai">
+                  <Link href="/bookmarks" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/bookmarks') ? 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.bookmarks', 'Išsaugoti įrašai')} aria-label={t('nav.bookmarks', 'Išsaugoti įrašai')}>
                     <Bookmark size={20} strokeWidth={isActive('/bookmarks') ? 2.5 : 1.5} />
                   </Link>
-                  <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title="Nustatymai" aria-label="Nustatymai">
+                  <Link href="/settings" className={`p-2.5 rounded-xl transition-all duration-200 ${isActive('/settings') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800/50 hover:text-slate-900 dark:hover:text-gray-100'}`} title={t('nav.settings', 'Nustatymai')} aria-label={t('nav.settings', 'Nustatymai')}>
                     <Settings size={20} strokeWidth={isActive('/settings') ? 2.5 : 1.5} />
                   </Link>
                 </>
               )}
               {(role === 'admin' || role === 'moderator') && (
-                <Link href="/admin/dashboard" className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl transition-all duration-200" title="Administravimas" aria-label="Administravimas">
+                <Link href="/admin/dashboard" className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl transition-all duration-200" title={t('nav.admin', 'Administravimas')} aria-label={t('nav.admin', 'Administravimas')}>
                   <Shield size={20} />
                 </Link>
               )}
               <Link
                 href={profileHref}
                 className="ml-1 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                title="Profilis"
-                aria-label="Profilis"
+                title={t('nav.profile', 'Profilis')}
+                aria-label={t('nav.profile', 'Profilis')}
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white dark:ring-gray-900 shadow-sm">
                   {avatarUrl ? (
@@ -224,13 +224,13 @@ export default function Navbar() {
                   )}
                 </div>
               </Link>
-              <button onClick={signOut} className="bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium ml-1">Atsijungti</button>
+              <button onClick={signOut} className="bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium ml-1">{t('nav.logout', 'Atsijungti')}</button>
             </>
           ) : (
             <>
-              <Link href="/discussions" className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-100 transition-colors px-3">Diskusijos</Link>
+              <Link href="/discussions" className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-100 transition-colors px-3">{t('nav.discussions', 'Diskusijos')}</Link>
               <Link href="/auth/login" className="bg-[#1A1A2E] text-white px-6 py-2.5 rounded-full hover:bg-[#16213E] transition-all duration-200 shadow-sm text-sm font-semibold ml-1">
-                Prisijungti
+                {t('nav.login', 'Prisijungti')}
               </Link>
             </>
           )}
@@ -243,7 +243,7 @@ export default function Navbar() {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2.5 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 text-slate-600 dark:text-gray-400 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label={mobileMenuOpen ? 'Uždaryti meniu' : 'Atverti meniu'}
+            aria-label={mobileMenuOpen ? t('nav.closeMenu', 'Uždaryti meniu') : t('nav.openMenu', 'Atverti meniu')}
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -258,11 +258,11 @@ export default function Navbar() {
               <>
                 <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <MessageSquare size={20} />
-                  {t('nav.feed')}
+                  {t('nav.discussions', 'Diskusijos')}
                 </Link>
                 <Link href="/messages" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <MessagesSquare size={20} />
-                  {t('nav.messages')}
+                  {t('nav.messages', 'Žinutės')}
                   {unreadCount > 0 && (
                     <span className="bg-[#E94560] text-white text-xs px-2 py-0.5 rounded-full font-bold ml-auto">
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -272,24 +272,24 @@ export default function Navbar() {
                 {!isProUser && (
                   <Link href="/my-orders" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                     <ClipboardList size={20} />
-                    Mano užsakymai
+                    {t('nav.orders', 'Mano užsakymai')}
                   </Link>
                 )}
                 {isProUser ? (
                   <Link href="/pro" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-colors font-medium">
                     <Briefcase size={20} />
-                    Verslo darbalaukis
+                    {t('nav.pro', 'Verslo darbalaukis')}
                   </Link>
                 ) : (
                   <Link href="/pricing" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-colors font-medium">
                     <Briefcase size={20} />
-                    Verslo planai
+                    {t('nav.pricing', 'Verslo planai')}
                   </Link>
                 )}
                 {(role === 'admin' || role === 'moderator') && (
                   <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 transition-colors font-medium">
                     <Shield size={20} />
-                    Administravimas
+                    {t('nav.admin', 'Administravimas')}
                   </Link>
                 )}
                 <Link href={profileHref} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
@@ -304,15 +304,15 @@ export default function Navbar() {
                       </span>
                     )}
                   </div>
-                  {t('nav.profile')}
+                  {t('nav.profile', 'Profilis')}
                 </Link>
                 <Link href="/bookmarks" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 text-slate-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors font-medium">
                   <Bookmark size={20} />
-                  Išsaugoti įrašai
+                  {t('nav.bookmarks', 'Išsaugoti įrašai')}
                 </Link>
                 <Link href="/settings" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <Settings size={20} />
-                  {t('nav.settings')}
+                  {t('nav.settings', 'Nustatymai')}
                 </Link>
                 <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-gray-800 mt-2 pt-2 gap-3">
                   <LanguageSwitcher />
@@ -320,7 +320,7 @@ export default function Navbar() {
                 </div>
                 <div className="pt-1">
                   <button onClick={signOut} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-600 dark:text-gray-400 transition-colors font-medium text-left">
-                    {t('nav.logout')}
+                    {t('nav.logout', 'Atsijungti')}
                   </button>
                 </div>
               </>
@@ -328,11 +328,11 @@ export default function Navbar() {
               <>
                 <Link href="/discussions" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800/50 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-gray-100 transition-colors font-medium">
                   <MessageSquare size={20} />
-                  {t('nav.feed')}
+                  {t('nav.discussions', 'Diskusijos')}
                 </Link>
                 <div className="border-t border-slate-100 dark:border-gray-800 pt-2 mt-2">
                   <Link href="/auth/login" className="block text-center bg-[#1A1A2E] text-white px-6 py-3 rounded-full hover:bg-[#16213E] transition-all shadow-sm font-bold">
-                    {t('nav.login')}
+                    {t('nav.login', 'Prisijungti')}
                   </Link>
                 </div>
               </>

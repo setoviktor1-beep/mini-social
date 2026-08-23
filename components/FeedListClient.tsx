@@ -38,6 +38,8 @@ function appendUniquePosts(existing: any[], incoming: any[]) {
   return result
 }
 
+import { useI18n } from '@/lib/i18n'
+
 export default function FeedListClient(props: {
   initialPosts: any[]
   tab: TabKey
@@ -45,6 +47,7 @@ export default function FeedListClient(props: {
   currentUserRole?: string
 }) {
   const { initialPosts, tab, currentUserId, currentUserRole } = props
+  const { t } = useI18n()
   const [posts, setPosts] = useState<any[]>(() => dedupePosts(initialPosts || []))
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -163,7 +166,7 @@ export default function FeedListClient(props: {
       {isOffline && (
         <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-900/10 px-4 py-2.5 text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">
           <WifiOff size={14} />
-          Nėra interneto ryšio. Rodomi anksčiau įkelti įrašai.
+          {t('feed.offline', 'Nėra interneto ryšio. Rodomi anksčiau įkelti įrašai.')}
         </div>
       )}
 
@@ -173,7 +176,7 @@ export default function FeedListClient(props: {
             onClick={reloadFeed}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm bg-[#1A1A2E] hover:bg-[#16213E] text-white shadow-lg transition-all active:scale-95 animate-in slide-in-from-top-2 duration-300"
           >
-            Naujas įrašas ↑
+            {t('feed.newPostAvailable', 'Naujas įrašas ↑')}
           </button>
         </div>
       )}
@@ -191,12 +194,14 @@ export default function FeedListClient(props: {
           </div>
           <p className="text-slate-500 dark:text-gray-400 text-sm sm:text-base font-medium mb-1">
             {tab === 'following'
-              ? 'Sekami žmonės dar nieko nepaskelbė.'
+              ? t('feed.emptyFollowing', 'Sekami žmonės dar nieko nepaskelbė.')
               : tab === 'for_you'
-                ? 'Per pastarąsias 48 valandas populiarių įrašų dar nėra.'
-                : 'Įrašų dar nėra. Pradėkite pokalbį!'}
+                ? t('feed.emptyForYou', 'Per pastarąsias 48 valandas populiarių įrašų dar nėra.')
+                : t('feed.emptyDefault', 'Įrašų dar nėra. Pradėkite pokalbį!')}
           </p>
-          <p className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm">Pasidalinkite kuo nors įdomiu pirmieji.</p>
+          <p className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm">
+            {t('feed.emptySubtitle', 'Pasidalinkite kuo nors įdomiu pirmieji.')}
+          </p>
         </div>
       )}
 
@@ -209,13 +214,15 @@ export default function FeedListClient(props: {
 
       {!loading && loadError && (
         <div role="alert" className="flex flex-col items-center gap-3 p-6 sm:p-8 text-center">
-          <p className="text-sm text-slate-500 dark:text-gray-400">Nepavyko įkelti įrašų. Patikrinkite ryšį ir bandykite dar kartą.</p>
+          <p className="text-sm text-slate-500 dark:text-gray-400">
+            {t('feed.loadError', 'Nepavyko įkelti įrašų. Patikrinkite ryšį ir bandykite dar kartą.')}
+          </p>
           <button
             onClick={posts.length === 0 ? reloadFeed : loadMore}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 min-h-[44px] transition-all"
           >
             <RotateCw size={16} />
-            Bandyti dar kartą
+            {t('feed.tryAgain', 'Bandyti dar kartą')}
           </button>
         </div>
       )}
@@ -228,12 +235,14 @@ export default function FeedListClient(props: {
               onClick={loadMore}
               className="px-6 py-2.5 rounded-full font-semibold text-sm bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 min-h-[44px] transition-all hover:shadow-sm"
             >
-              Rodyti daugiau
+              {t('feed.loadMore', 'Rodyti daugiau')}
             </button>
           ) : (
             <div className="py-4">
               <div className="w-12 h-px bg-slate-200 dark:bg-gray-700 mx-auto mb-3" />
-              <p className="text-xs sm:text-sm text-slate-400 dark:text-gray-500">Peržiūrėjote visus įrašus.</p>
+              <p className="text-xs sm:text-sm text-slate-400 dark:text-gray-500">
+                {t('feed.reachedEnd', 'Peržiūrėjote visus įrašus.')}
+              </p>
             </div>
           ))}
         </div>

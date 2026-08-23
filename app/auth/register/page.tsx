@@ -6,11 +6,13 @@ import Link from 'next/link'
 import { CheckCircle, MapPin } from 'lucide-react'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import { normalizeNextPath } from '@/lib/auth-redirect'
+import { useI18n } from '@/lib/i18n'
 
 type RegisterField = 'fullName' | 'username' | 'email' | 'phone' | 'city' | 'country' | 'postalCode' | 'addressText' | 'password'
 type RegisterErrors = Partial<Record<RegisterField, string>>
 
 export default function Register() {
+  const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -203,9 +205,9 @@ export default function Register() {
           <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="text-green-500" size={32} />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">Sveiki atvykę į MiniSocial!</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">{t('auth.welcomeTitle', 'Sveiki atvykę į MiniSocial!')}</h1>
           <p className="text-[var(--text-secondary)] mb-6 text-sm sm:text-base">
-            Paskyra sukurta sėkmingai. Nukreipiame jus...
+            {t('auth.successRedirect', 'Paskyra sukurta sėkmingai. Nukreipiame jus...')}
           </p>
         </div>
       </div>
@@ -215,8 +217,8 @@ export default function Register() {
   return (
     <div className="max-w-md mx-auto mt-10 sm:mt-20 px-4 sm:px-0 pb-10">
       <div className="p-6 sm:p-10 bg-[var(--bg-secondary)] rounded-[var(--radius-lg)] border border-[var(--border-subtle)]">
-        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">Sukurti paskyrą</h1>
-        <p className="text-[var(--text-secondary)] mb-6 text-sm">Prisijunkite prie savo kaimynų bendruomenės.</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-primary)]">{t('auth.createAccount', 'Sukurti paskyrą')}</h1>
+        <p className="text-[var(--text-secondary)] mb-6 text-sm">{t('auth.joinCommunity', 'Prisijunkite prie savo kaimynų bendruomenės.')}</p>
 
         {error && (
           <div className="bg-red-500/10 text-red-400 border border-red-500/20 p-3 rounded-lg text-sm mb-4">
@@ -226,7 +228,7 @@ export default function Register() {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Vardas ir pavardė</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.fullName', 'Vardas ir pavardė')}</label>
             <input
               type="text"
               value={fullName}
@@ -244,7 +246,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Vartotojo vardas</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.username', 'Vartotojo vardas')}</label>
             <input
               type="text"
               value={username}
@@ -261,12 +263,12 @@ export default function Register() {
               placeholder="vardenis"
               required
             />
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">3-20 simbolių, tik raidės, skaičiai, _</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">{t('auth.usernameHint', '3-20 simbolių, tik raidės, skaičiai, _')}</p>
             {errors.username && <p className="mt-1 text-xs text-red-400">{errors.username}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">El. paštas</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.email', 'El. paštas')}</label>
             <input
               type="email"
               value={email}
@@ -283,7 +285,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Telefono numeris</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.phone', 'Telefono numeris')}</label>
             <input
               type="tel"
               value={phone}
@@ -302,7 +304,7 @@ export default function Register() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Miestas</label>
+              <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.city', 'Miestas')}</label>
               <input
                 type="text"
                 value={city}
@@ -320,7 +322,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Šalis</label>
+              <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.country', 'Šalis')}</label>
               <input
                 type="text"
                 value={country}
@@ -339,7 +341,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Slaptažodis</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.password', 'Slaptažodis')}</label>
             <input
               type="password"
               value={password}
@@ -359,7 +361,7 @@ export default function Register() {
           <div>
             <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">
               <MapPin size={14} className="inline mr-1 text-blue-400" />
-              Adresas
+              {t('auth.address', 'Adresas')}
             </label>
             {manualAddress ? (
               <>
@@ -383,7 +385,7 @@ export default function Register() {
                   onClick={() => setManualAddress(false)}
                   className="mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
                 >
-                  Naudoti adreso paiešką
+                  {t('auth.useAddressSearch', 'Naudoti adreso paiešką')}
                 </button>
               </>
             ) : (
@@ -413,7 +415,7 @@ export default function Register() {
                   }}
                   className="mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
                 >
-                  Įvesti adresą rankiniu būdu
+                  {t('auth.enterAddressManually', 'Įvesti adresą rankiniu būdu')}
                 </button>
               </>
             )}
@@ -421,7 +423,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Pašto kodas</label>
+            <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">{t('auth.postalCode', 'Pašto kodas')}</label>
             <input
               type="text"
               value={postalCode}
@@ -434,7 +436,7 @@ export default function Register() {
               className="w-full p-2.5 border border-[var(--border-subtle)] rounded-xl outline-none transition-all bg-[var(--bg-input)] text-[var(--text-primary)] min-h-[44px]"
               placeholder="LT-01001"
             />
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">Nebūtina, bet jei įvedate, naudokite realų pašto kodą.</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">{t('auth.postalCodeHint', 'Nebūtina, bet jei įvedate, naudokite realų pašto kodą.')}</p>
             {errors.postalCode && <p className="mt-1 text-xs text-red-400">{errors.postalCode}</p>}
           </div>
 
@@ -443,14 +445,14 @@ export default function Register() {
             className="w-full text-white py-3 rounded-full font-bold disabled:opacity-50 transition-colors min-h-[44px]"
             style={{ background: 'var(--accent-gradient)' }}
           >
-            {loading ? 'Kuriama paskyra...' : 'Registruotis'}
+            {loading ? t('auth.creatingAccount', 'Kuriama paskyra...') : t('auth.register', 'Registruotis')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
-          Jau turite paskyrą?{' '}
+          {t('auth.haveAccount', 'Jau turite paskyrą?')}{' '}
           <Link href={`/auth/login?next=${encodeURIComponent(nextPath)}`} className="text-blue-400 font-semibold hover:underline">
-            Prisijungti
+            {t('auth.login', 'Prisijungti')}
           </Link>
         </p>
       </div>

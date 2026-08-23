@@ -17,7 +17,10 @@ interface WhoToFollowRowProps {
   initiallyFollowing?: boolean
 }
 
+import { useI18n } from '@/lib/i18n'
+
 export default function WhoToFollowRow({ suggestion, currentUserId, initiallyFollowing = false }: WhoToFollowRowProps) {
+  const { t } = useI18n()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [following, setFollowing] = useState(initiallyFollowing)
@@ -102,7 +105,7 @@ export default function WhoToFollowRow({ suggestion, currentUserId, initiallyFol
             : 'bg-[#1A1A2E] text-white hover:bg-[#16213E] hover:shadow-md'
         }`}
       >
-        {loading ? '...' : following ? 'Following' : 'Follow'}
+        {loading ? '...' : following ? t('sidebar.following', 'Sekama') : t('sidebar.follow', 'Sekti')}
       </button>
     </div>
   )

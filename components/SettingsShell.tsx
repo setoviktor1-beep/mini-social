@@ -1,19 +1,22 @@
 'use client'
 
 import { Shield, User } from 'lucide-react'
-
-const tabs = [
-  { id: 'profile', label: 'Profilis', icon: User, hash: '' },
-  { id: 'account', label: 'Paskyra', icon: Shield, hash: '#account' },
-  { id: 'blocked', label: 'Užblokuoti', icon: Shield, hash: '#blocked' },
-]
+import { useI18n } from '@/lib/i18n'
 
 export default function SettingsShell({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n()
+
+  const tabs = [
+    { id: 'profile', label: t('settings.profile', 'Profilis'), icon: User, hash: '' },
+    { id: 'account', label: t('settings.account', 'Paskyra'), icon: Shield, hash: '#account' },
+    { id: 'blocked', label: t('settings.blockedUsers', 'Užblokuoti'), icon: Shield, hash: '#blocked' },
+  ]
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100">Nustatymai</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Tvarkykite savo profilio ir paskyros nustatymus</p>
+        <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100">{t('settings.title', 'Nustatymai')}</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">{t('settings.subtitle', 'Tvarkykite savo profilio ir paskyros nustatymus')}</p>
       </div>
       <div className="flex flex-col md:flex-row gap-6">
         <nav className="md:w-56 shrink-0">

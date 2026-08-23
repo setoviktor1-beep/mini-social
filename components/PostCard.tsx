@@ -11,16 +11,17 @@ import ParsedContent from '@/lib/parseContent'
 import { notifyMentions } from '@/lib/mentions'
 import { sendPushNotification } from '@/lib/pushNotify'
 import { extractYoutubeId, getYoutubeEmbedUrl, isOnlyYoutubeUrl, resolveSupabaseStorageUrl } from '@/lib/media'
+import { useI18n } from '@/lib/i18n'
 
 export type ReactionType = 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry'
 
-const REACTIONS: Record<ReactionType, { emoji: string; label: string }> = {
-  like: { emoji: '👍', label: 'Patinka' },
-  love: { emoji: '❤️', label: 'Super' },
-  laugh: { emoji: '😂', label: 'Juokinga' },
-  wow: { emoji: '😮', label: 'Įspūdinga' },
-  sad: { emoji: '😢', label: 'Liūdna' },
-  angry: { emoji: '😠', label: 'Piktina' },
+const REACTIONS: Record<ReactionType, { emoji: string; labelKey: string; defaultLabel: string }> = {
+  like: { emoji: '👍', labelKey: 'post.like', defaultLabel: 'Patinka' },
+  love: { emoji: '❤️', labelKey: 'post.love', defaultLabel: 'Super' },
+  laugh: { emoji: '😂', labelKey: 'post.laugh', defaultLabel: 'Juokinga' },
+  wow: { emoji: '😮', labelKey: 'post.wow', defaultLabel: 'Įspūdinga' },
+  sad: { emoji: '😢', labelKey: 'post.sad', defaultLabel: 'Liūdna' },
+  angry: { emoji: '😠', labelKey: 'post.angry', defaultLabel: 'Piktina' },
 }
 
 function PostMediaImage({ src }: { src: string }) {
@@ -123,6 +124,7 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, currentUserId, currentUserRole }: PostCardProps) {
+  const { t } = useI18n()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [userReaction, setUserReaction] = useState<ReactionType | null>(post.user_reaction ?? (post.user_liked ? 'like' : null))
@@ -341,16 +343,18 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
     postRepostCountValue,
   ])
 
+  const getReactionLabel = (type: ReactionType) => t(REACTIONS[type].labelKey, REACTIONS[type].defaultLabel)
+
   // A plain tap on the main reaction button always targets 'like'
   // specifically (see handleReact) — it does not toggle off whatever
   // reaction is currently active. Screen-reader text must describe that
   // real outcome: removing the reaction only when it's already 'like',
   // switching to 'like' otherwise. The chevron button opens the full picker.
   const mainButtonLabel = !userReaction
-    ? 'Reaguoti į įrašą (patinka)'
+    ? t('post.like', 'Patinka')
     : userReaction === 'like'
-      ? 'Reakcija: Patinka. Paspauskite, kad pašalintumėte.'
-      : `Reakcija: ${REACTIONS[userReaction].label}. Paspauskite, kad pakeistumėte į „Patinka“.`
+      ? `${t('post.like', 'Patinka')}`
+      : `${getReactionLabel(userReaction)}`
 
   const handleReact = async (type: ReactionType) => {
     if (!currentUserId || reactionRequestLockRef.current) return
@@ -1279,7 +1283,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 disabled={reactionLoading}
                 aria-label={mainButtonLabel}
                 aria-pressed={Boolean(userReaction)}
-                title={userReaction ? REACTIONS[userReaction].label : 'Reaguoti (paspauskite „Patinka“ arba atverkite visas reakcijas)'}
+                title={userReaction ? getReactionLabel(userReaction) : t('post.like', 'Patinka')}
                 className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${userReaction ? 'text-[#E94560]' : 'hover:text-[#E94560]'}`}
               >
                 {userReaction && userReaction !== 'like' ? (
@@ -1332,8 +1336,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         onFocus={() => setFocusedReactionIndex(index)}
                         onClick={() => void handleReact(type)}
                         onKeyDown={(event) => handleReactionMenuKeyDown(event, index)}
-                        title={REACTIONS[type].label}
-                        aria-label={userReaction === type ? `${REACTIONS[type].label} (pasirinkta). Paspauskite, kad pašalintumėte.` : REACTIONS[type].label}
+                        title={getReactionLabel(type)}
+                        aria-label={getReactionLabel(type)}
                         className={`flex h-11 w-11 items-center justify-center rounded-full text-lg transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${userReaction === type ? 'bg-slate-100 dark:bg-gray-800' : ''}`}
                       >
                         {REACTIONS[type].emoji}
@@ -1343,7 +1347,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 </>
               )}
             </div>
-            <button type="button" onClick={toggleComments} aria-expanded={showComments} aria-label={showComments ? 'Slėpti komentarus' : 'Rodyti komentarus'} className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${showComments ? 'text-blue-500 dark:text-blue-400' : 'hover:text-blue-500 dark:hover:text-blue-400'}`}>
+            <button type="button" onClick={toggleComments} aria-expanded={showComments} aria-label={showComments ? t('post.hide', 'Slėpti') : t('post.comments', 'Komentarai')} className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${showComments ? 'text-blue-500 dark:text-blue-400' : 'hover:text-blue-500 dark:hover:text-blue-400'}`}>
               <MessageCircle size={20} />
               <span className="text-sm font-medium">{commentCount}</span>
             </button>
@@ -1352,7 +1356,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 onClick={() => setShowRepostMenu(!showRepostMenu)}
                 aria-haspopup="menu"
                 aria-expanded={showRepostMenu}
-                aria-label={reposted ? 'Pakartotinio paskelbimo parinktys (jau pakartota)' : 'Pakartotinai paskelbti arba cituoti'}
+                aria-label={reposted ? t('post.repost', 'Pakartotinai paskelbta') : t('post.repost', 'Pakartotinai paskelbti')}
                 className={`flex items-center gap-1.5 sm:gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 ${reposted ? 'text-emerald-600 dark:text-emerald-400' : 'hover:text-emerald-600 dark:hover:text-emerald-400'}`}
               >
                 <Repeat2 size={20} />
@@ -1369,7 +1373,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       }}
                       className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
-                      {reposted ? 'Undo repost' : 'Repost'}
+                      {reposted ? t('post.repost', 'Atšaukti repost') : t('post.repost', 'Repost')}
                     </button>
                     <button
                       onClick={() => {
@@ -1378,7 +1382,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       }}
                       className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
-                      Quote
+                      {t('post.quote', 'Cituoti')}
                     </button>
                   </div>
                 </>
@@ -1390,7 +1394,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 onClick={() => setShowShareMenu(!showShareMenu)}
                 aria-haspopup="menu"
                 aria-expanded={showShareMenu}
-                aria-label="Dalintis įrašu"
+                aria-label={t('post.share', 'Dalintis įrašu')}
                 className="flex items-center gap-2 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 min-h-[44px] hover:scale-110"
               >
                 <Share2 size={20} />
@@ -1404,7 +1408,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                     >
                       {copied ? <Check size={16} className="text-emerald-500 dark:text-emerald-400" /> : <LinkIcon size={16} />}
-                      {copied ? 'Copied!' : 'Copy link'}
+                      {copied ? t('post.linkCopied', 'Nukopijuota!') : t('post.copyLink', 'Kopijuoti nuorodą')}
                     </button>
                     {typeof navigator !== 'undefined' && 'share' in navigator && (
                       <button
@@ -1412,7 +1416,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50 flex items-center gap-3 transition-colors text-slate-700 dark:text-gray-300 min-h-[44px]"
                       >
                         <Share2 size={16} />
-                        Share via...
+                        {t('post.share', 'Dalintis')}...
                       </button>
                     )}
                     <button
@@ -1439,8 +1443,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 type="button"
                 onClick={handleBookmark}
                 disabled={bookmarkLoading}
-                title={bookmarked ? 'Pašalinti iš išsaugotų' : 'Išsaugoti įrašą'}
-                aria-label={bookmarked ? 'Pašalinti iš išsaugotų' : 'Išsaugoti įrašą'}
+                title={bookmarked ? t('post.bookmarked', 'Išsaugota') : t('post.bookmark', 'Išsaugoti')}
+                aria-label={bookmarked ? t('post.bookmarked', 'Išsaugota') : t('post.bookmark', 'Išsaugoti')}
                 aria-pressed={bookmarked}
                 className={`flex items-center gap-2 transition-all duration-200 min-h-[44px] hover:scale-110 disabled:opacity-60 ${bookmarked ? 'text-amber-500 dark:text-amber-400' : 'hover:text-amber-500 dark:hover:text-amber-400'}`}
               >
@@ -1451,7 +1455,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             {currentUserId && !isOwner && (
               <button
                 onClick={() => setShowReportModal(true)}
-                aria-label="Pranešti apie įrašą"
+                aria-label={t('post.report', 'Pranešti apie įrašą')}
                 className="flex items-center gap-2 text-slate-400 dark:text-gray-500 hover:text-amber-500 dark:hover:text-amber-400 transition-all duration-200 ml-auto min-h-[44px] hover:scale-110"
               >
                 <AlertCircle size={18} />
@@ -1474,13 +1478,13 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 </div>
               ) : commentsError && comments.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-4 text-center">
-                  <p className="text-sm text-slate-500 dark:text-gray-400">Nepavyko įkelti komentarų.</p>
+                  <p className="text-sm text-slate-500 dark:text-gray-400">{t('post.commentLoadError', 'Nepavyko įkelti komentarų.')}</p>
                   <button
                     type="button"
                     onClick={loadComments}
                     className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 min-h-[36px] transition-all"
                   >
-                    Bandyti dar kartą
+                    {t('post.tryAgain', 'Bandyti dar kartą')}
                   </button>
                 </div>
               ) : (
@@ -1490,7 +1494,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   {comments.length === 0 && (
                     <div className="text-center py-4">
                       <MessageCircle size={24} className="mx-auto text-slate-300 dark:text-gray-600 mb-2" />
-                      <p className="text-sm text-slate-400 dark:text-gray-500">Komentarų dar nėra. Būkite pirmi!</p>
+                      <p className="text-sm text-slate-400 dark:text-gray-500">{t('post.noComments', 'Komentarų dar nėra. Būkite pirmi!')}</p>
                     </div>
                   )}
                   {commentsHasMore && (
@@ -1501,12 +1505,12 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         disabled={loadingMoreComments}
                         className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700 disabled:opacity-60 min-h-[36px] transition-all"
                       >
-                        {loadingMoreComments ? 'Kraunama...' : 'Rodyti daugiau komentarų'}
+                        {loadingMoreComments ? t('composer.searching', 'Kraunama...') : t('post.showMoreComments', 'Rodyti daugiau komentarų')}
                       </button>
                     </div>
                   )}
                   {commentsError && comments.length > 0 && (
-                    <p className="text-center text-xs text-slate-400 dark:text-gray-500">Nepavyko įkelti daugiau komentarų. Bandykite dar kartą.</p>
+                    <p className="text-center text-xs text-slate-400 dark:text-gray-500">{t('post.commentLoadError', 'Nepavyko įkelti daugiau komentarų. Bandykite dar kartą.')}</p>
                   )}
                 </>
               )}
@@ -1516,12 +1520,12 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                   {replyingTo && (
                     <div className="flex items-center justify-between gap-2 rounded-full bg-blue-50 dark:bg-blue-900/30 px-3 sm:px-4 py-1.5 text-xs text-blue-700 dark:text-blue-400">
                       <span className="truncate">
-                        Atsakoma {replyingTo.name ? `vartotojui ${replyingTo.name}` : 'į komentarą'}
+                        {replyingTo.name ? `${t('post.replyingTo', 'Atsakoma')} @${replyingTo.name}` : t('post.reply', 'Atsakoma į komentarą')}
                       </span>
                       <button
                         type="button"
                         onClick={cancelReply}
-                        aria-label="Atšaukti atsakymą"
+                        aria-label={t('common.cancel', 'Atšaukti')}
                         className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 min-w-[24px] min-h-[24px] flex items-center justify-center shrink-0"
                       >
                         <X size={14} />
@@ -1544,8 +1548,8 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                         type="text"
                         value={commentText}
                         onChange={e => { setCommentText(e.target.value); setCommentError('') }}
-                        placeholder={replyingTo ? 'Parašykite atsakymą...' : 'Parašykite komentarą...'}
-                        aria-label={replyingTo ? `Atsakymo tekstas${replyingTo.name ? ` vartotojui ${replyingTo.name}` : ''}` : 'Komentaro tekstas'}
+                        placeholder={replyingTo ? t('post.writeReply', 'Parašykite atsakymą...') : t('post.writeComment', 'Parašykite komentarą...')}
+                        aria-label={replyingTo ? t('post.writeReply', 'Parašykite atsakymą...') : t('post.writeComment', 'Parašykite komentarą...')}
                         onKeyDown={(event) => {
                           if (event.key === 'Escape' && replyingTo) {
                             event.preventDefault()
@@ -1560,7 +1564,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     <button
                       type="submit"
                       disabled={!commentText.trim() || commentLoading}
-                      aria-label={replyingTo ? 'Paskelbti atsakymą' : 'Paskelbti komentarą'}
+                      aria-label={replyingTo ? t('post.reply', 'Atsakyti') : t('post.comments', 'Komentuoti')}
                       className="bg-[#1A1A2E] text-white p-2 rounded-full hover:bg-[#16213E] disabled:opacity-50 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center shadow-sm hover:shadow-md self-end"
                     >
                       <Send size={16} />
@@ -1576,7 +1580,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowQuoteModal(false)}>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">Quote Post</h3>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">{t('post.quote', 'Cituoti įrašą')}</h3>
                   <button onClick={() => setShowQuoteModal(false)} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
                     <X size={20} />
                   </button>
@@ -1584,7 +1588,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 <textarea
                   value={quoteText}
                   onChange={(e) => setQuoteText(e.target.value)}
-                  placeholder="Add your comment..."
+                  placeholder={t('post.writeComment', 'Parašykite komentarą...')}
                   className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 resize-none min-h-[110px] bg-slate-50 dark:bg-gray-800/50 text-slate-800 dark:text-gray-200"
                   maxLength={2000}
                 />
@@ -1601,14 +1605,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     onClick={() => setShowQuoteModal(false)}
                     className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-semibold min-h-[44px] hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
-                    Cancel
+                    {t('common.cancel', 'Atšaukti')}
                   </button>
                   <button
                     onClick={handleCreateQuote}
                     disabled={quoteLoading || !quoteText.trim()}
                     className="px-5 py-2.5 rounded-full bg-[#1A1A2E] hover:bg-[#16213E] text-white font-semibold disabled:opacity-50 min-h-[44px] transition-all shadow-sm"
                   >
-                    {quoteLoading ? 'Posting...' : 'Post'}
+                    {quoteLoading ? t('composer.posting', 'Skelbiama...') : t('composer.post', 'Skelbti')}
                   </button>
                 </div>
               </div>
@@ -1620,7 +1624,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowEditModal(false)}>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">Redaguoti įrašą</h3>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">{t('post.edit', 'Redaguoti įrašą')}</h3>
                   <button onClick={() => { setShowEditModal(false); setEditError('') }} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
                     <X size={20} />
                   </button>
@@ -1628,7 +1632,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                 <textarea
                   value={editedContent}
                   onChange={(e) => { setEditedContent(e.target.value); setEditError('') }}
-                  placeholder="Ką galvojate?"
+                  placeholder={t('composer.placeholder', 'Ką galvojate?')}
                   className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-blue-300 dark:focus:border-blue-700 focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 resize-none min-h-[120px] bg-slate-50 dark:bg-gray-800/50 text-slate-800 dark:text-gray-200"
                   maxLength={2000}
                   autoFocus
@@ -1641,14 +1645,14 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                     onClick={() => { setShowEditModal(false); setEditError('') }}
                     className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-semibold min-h-[44px] hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
-                    Atšaukti
+                    {t('common.cancel', 'Atšaukti')}
                   </button>
                   <button
                     onClick={handleEdit}
                     disabled={editLoading || !editedContent.trim()}
                     className="px-5 py-2.5 rounded-full bg-[#1A1A2E] hover:bg-[#16213E] text-white font-semibold disabled:opacity-50 min-h-[44px] transition-all shadow-sm"
                   >
-                    {editLoading ? 'Saugoma...' : 'Išsaugoti'}
+                    {editLoading ? t('post.save', 'Saugoma...') : t('post.save', 'Išsaugoti')}
                   </button>
                 </div>
               </div>
@@ -1659,20 +1663,20 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
           {showDeleteConfirm && (
             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowDeleteConfirm(false)}>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-gray-100">Ištrinti įrašą?</h3>
-                <p className="text-slate-500 dark:text-gray-400 text-sm mb-4 sm:mb-6">Šio veiksmo negalima atšaukti. Įrašas bus pašalintas.</p>
+                <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-gray-100">{t('post.deleteConfirmTitle', 'Ištrinti įrašą?')}</h3>
+                <p className="text-slate-500 dark:text-gray-400 text-sm mb-4 sm:mb-6">{t('post.deleteConfirmText', 'Šio veiksmo negalima atšaukti. Įrašas bus pašalintas.')}</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
                     className="flex-1 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 py-2.5 rounded-full font-semibold hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors min-h-[44px]"
                   >
-                    Atšaukti
+                    {t('common.cancel', 'Atšaukti')}
                   </button>
                   <button
                     onClick={handleDelete}
                     className="flex-1 bg-red-500 dark:bg-red-600 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 dark:hover:bg-red-700 transition-colors min-h-[44px]"
                   >
-                    Ištrinti
+                    {t('post.delete', 'Ištrinti')}
                   </button>
                 </div>
               </div>
@@ -1684,19 +1688,19 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
             <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setShowReportModal(false)}>
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">Report Post</h3>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-gray-100">{t('post.report', 'Pranešti apie įrašą')}</h3>
                   <button onClick={() => setShowReportModal(false)} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
                     <X size={20} />
                   </button>
                 </div>
                 {reportSent ? (
-                  <p className="text-emerald-600 dark:text-emerald-400 font-bold text-center py-4">Report submitted. Thank you!</p>
+                  <p className="text-emerald-600 dark:text-emerald-400 font-bold text-center py-4">{t('post.reportSubmitted', 'Pranešimas išsiųstas. Ačiū!')}</p>
                 ) : (
                   <>
                     <textarea
                       value={reportReason}
                       onChange={e => setReportReason(e.target.value)}
-                      placeholder="Why are you reporting this post?"
+                      placeholder={t('post.reportReasonPlaceholder', 'Kodėl pranešate apie šį įrašą?')}
                       className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-red-300 dark:focus:border-red-700 focus:ring-2 focus:ring-red-500/10 dark:focus:ring-red-500/20 resize-none min-h-[100px] bg-slate-50 dark:bg-gray-800/50 text-slate-800 dark:text-gray-200"
                       maxLength={500}
                     />
@@ -1705,7 +1709,7 @@ export default function PostCard({ post, currentUserId, currentUserRole }: PostC
                       disabled={!reportReason.trim()}
                       className="mt-3 w-full bg-red-500 dark:bg-red-600 text-white py-2.5 rounded-full font-semibold hover:bg-red-600 dark:hover:bg-red-700 disabled:opacity-50 transition-colors min-h-[44px]"
                     >
-                      Submit Report
+                      {t('post.reportSubmit', 'Pateikti pranešimą')}
                     </button>
                   </>
                 )}

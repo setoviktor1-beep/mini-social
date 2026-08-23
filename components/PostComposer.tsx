@@ -6,6 +6,7 @@ import { Image as ImageIcon, Video, Film, Send, X, Sparkles, Loader2, Check, Lin
 import Image from 'next/image'
 import { notifyMentions, detectMentionTrigger, type MentionTrigger } from '@/lib/mentions'
 import { extractYoutubeId, normalizeYoutubeUrl, resolveSupabaseStorageUrl, extractFirstPreviewableUrl } from '@/lib/media'
+import { useI18n } from '@/lib/i18n'
 
 interface MentionSuggestion {
   id: string
@@ -99,6 +100,7 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 }
 
 export default function PostComposer({ userId }: { userId: string }) {
+  const { t } = useI18n()
   const [content, setContent] = useState('')
   const [youtube, setYoutube] = useState('')
   const [files, setFiles] = useState<File[]>([])
@@ -680,7 +682,7 @@ export default function PostComposer({ userId }: { userId: string }) {
                 selectMention(mentionResults[mentionActiveIndex])
               }
             }}
-            placeholder="Ką galvojate?"
+            placeholder={t('composer.placeholder', "Ką galvojate?")}
             maxLength={MAX_CONTENT_LENGTH}
             role="combobox"
             aria-expanded={Boolean(mentionTrigger && !mentionDismissed && (mentionLoading || mentionResults.length > 0))}
@@ -702,7 +704,7 @@ export default function PostComposer({ userId }: { userId: string }) {
               className="absolute left-1 top-full z-20 mt-1 w-64 max-w-[calc(100%-0.5rem)] rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg overflow-hidden"
             >
               {mentionLoading && mentionResults.length === 0 ? (
-                <div className="px-3 py-2.5 text-sm text-slate-400 dark:text-gray-500">Ieškoma...</div>
+                <div className="px-3 py-2.5 text-sm text-slate-400 dark:text-gray-500">{t('composer.searching', 'Ieškoma...')}</div>
               ) : (
                 mentionResults.map((user, index) => (
                   <button
@@ -861,7 +863,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             }`}
           >
             <ImageIcon size={18} />
-            <span>Nuotraukos{files.length > 0 ? ` (${files.length}/${MAX_ATTACHMENTS})` : ''}</span>
+            <span>{t('composer.addImage', 'Nuotraukos')}{files.length > 0 ? ` (${files.length}/${MAX_ATTACHMENTS})` : ''}</span>
           </label>
           <label
             htmlFor={videoInputId}
@@ -872,7 +874,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             }`}
           >
             <Film size={18} />
-            <span>Vaizdo įrašas</span>
+            <span>{t('composer.addVideo', 'Vaizdo įrašas')}</span>
           </label>
           <div className="flex min-h-[44px] items-center gap-2 text-sm text-purple-600 focus-within:text-purple-700 hover:bg-purple-50 px-2 rounded-lg transition-colors">
             <Video size={18} className="flex-shrink-0" />
@@ -900,7 +902,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             className="flex min-h-[44px] items-center gap-2 text-sm px-2 rounded-lg transition-colors text-violet-600 hover:text-violet-700 hover:bg-violet-50 disabled:text-slate-300 disabled:cursor-not-allowed"
           >
             <Sparkles size={18} />
-            <span>AI pagalba</span>
+            <span>{t('composer.aiTools', 'AI įrankiai')}</span>
           </button>
         </div>
 
@@ -908,13 +910,13 @@ export default function PostComposer({ userId }: { userId: string }) {
           <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-3 space-y-3">
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => handleAiAction('rewrite')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
-                {aiLoading === 'rewrite' ? <Loader2 size={14} className="animate-spin" /> : null} Perrašyti
+                {aiLoading === 'rewrite' ? <Loader2 size={14} className="animate-spin" /> : null} {t('composer.aiRewrite', 'Pagerinti')}
               </button>
               <button type="button" onClick={() => handleAiAction('spelling')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
-                {aiLoading === 'spelling' ? <Loader2 size={14} className="animate-spin" /> : null} Taisyti rašybą
+                {aiLoading === 'spelling' ? <Loader2 size={14} className="animate-spin" /> : null} {t('composer.aiSpelling', 'Taisyti klaidas')}
               </button>
               <button type="button" onClick={() => handleAiAction('hashtags')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
-                {aiLoading === 'hashtags' ? <Loader2 size={14} className="animate-spin" /> : null} #Hashtag&apos;ai
+                {aiLoading === 'hashtags' ? <Loader2 size={14} className="animate-spin" /> : null} {t('composer.aiHashtags', '#Žymos')}
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -925,16 +927,17 @@ export default function PostComposer({ userId }: { userId: string }) {
                 <option value="entuziastingą">entuziastingą</option>
               </select>
               <button type="button" onClick={() => handleAiAction('tone')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
-                {aiLoading === 'tone' ? <Loader2 size={14} className="animate-spin" /> : null} Keisti toną
+                {aiLoading === 'tone' ? <Loader2 size={14} className="animate-spin" /> : null} {t('composer.aiTone', 'Tonas')}
               </button>
               <select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)} className="min-h-[36px] rounded-full border border-violet-200 bg-white dark:bg-gray-900 px-2 text-sm text-violet-700">
-                <option value="anglų">į anglų</option>
-                <option value="lietuvių">į lietuvių</option>
-                <option value="rusų">į rusų</option>
-                <option value="lenkų">į lenkų</option>
+                <option value="anglų">English</option>
+                <option value="lietuvių">Lietuvių</option>
+                <option value="rusų">Русский</option>
+                <option value="lenkų">Polski</option>
+                <option value="ukrainiečių">Українська</option>
               </select>
               <button type="button" onClick={() => handleAiAction('translate')} disabled={Boolean(aiLoading)} className="min-h-[36px] px-3 rounded-full bg-white dark:bg-gray-900 border border-violet-200 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5">
-                {aiLoading === 'translate' ? <Loader2 size={14} className="animate-spin" /> : null} Versti
+                {aiLoading === 'translate' ? <Loader2 size={14} className="animate-spin" /> : null} {t('composer.aiTranslate', 'Versti')}
               </button>
             </div>
 
@@ -952,10 +955,10 @@ export default function PostComposer({ userId }: { userId: string }) {
                     onClick={applyAiSuggestion}
                     className="min-h-[36px] px-4 rounded-full bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 flex items-center gap-1.5"
                   >
-                    <Check size={14} /> Naudoti
+                    <Check size={14} /> {t('composer.aiApply', 'Naudoti')}
                   </button>
                   <button type="button" onClick={() => { setAiSuggestion(''); setAiSuggestionAction(null) }} className="min-h-[36px] px-4 rounded-full border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-400 text-sm hover:bg-slate-50 dark:hover:bg-gray-800/50">
-                    Atmesti
+                    {t('common.cancel', 'Atmesti')}
                   </button>
                 </div>
               </div>
@@ -963,9 +966,6 @@ export default function PostComposer({ userId }: { userId: string }) {
           </div>
         )}
 
-        <p className="text-xs text-slate-400 dark:text-gray-500">
-          Enter palieka naują eilutę. YouTube nuorodą galite dėti į atskirą lauką arba vieną pačią į posto tekstą. Nuotraukas taip pat galite tempti ir paleisti čia.
-        </p>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className={`text-xs ${nearLimit ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-400 dark:text-gray-500'}`}>
@@ -973,7 +973,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             </span>
             {aiAssistedApplied && (
               <span className="flex items-center gap-1 text-xs font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
-                <Sparkles size={12} /> AI redaguota
+                <Sparkles size={12} /> AI
               </span>
             )}
           </div>
@@ -983,7 +983,7 @@ export default function PostComposer({ userId }: { userId: string }) {
             disabled={loading}
             className="min-h-[44px] rounded-full bg-gradient-to-r from-[#1A1A2E] to-[#16213E] px-6 py-2 font-semibold text-white hover:shadow-lg hover:shadow-slate-900/20 dark:hover:shadow-black/40 disabled:opacity-50 flex items-center gap-2 transition-all hover:-translate-y-0.5"
           >
-            {loading ? (uploadStep || 'Skelbiama...') : <><Send size={16}/> Skelbti</>}
+            {loading ? (uploadStep || t('composer.posting', 'Skelbiama...')) : <><Send size={16}/> {t('composer.post', 'Skelbti')}</>}
           </button>
         </div>
       </div>

@@ -5,8 +5,10 @@ import { usePathname } from 'next/navigation'
 import { Home, Store, Search, MessagesSquare, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/backend-client'
+import { useI18n } from '@/lib/i18n'
 
 export default function BottomNav() {
+  const { t } = useI18n()
   const pathname = usePathname()
   const [username, setUsername] = useState<string | null>(null)
   const [unread, setUnread] = useState(0)
@@ -60,11 +62,11 @@ export default function BottomNav() {
   const homeHref = loggedIn ? '/home' : '/'
 
   const tabs = [
-    { href: homeHref, icon: Home, label: 'Pradžia' },
-    { href: '/services', icon: Store, label: 'Paslaugos' },
-    { href: '/search', icon: Search, label: 'Paieška' },
-    { href: '/messages', icon: MessagesSquare, label: 'Žinutės', badge: unread },
-    { href: profileHref, icon: User, label: 'Profilis', matchPrefix: '/u/' },
+    { href: homeHref, icon: Home, label: t('nav.home', 'Pradžia') },
+    { href: '/services', icon: Store, label: t('nav.services', 'Paslaugos') },
+    { href: '/search', icon: Search, label: t('nav.search', 'Paieška') },
+    { href: '/messages', icon: MessagesSquare, label: t('nav.messages', 'Žinutės'), badge: unread },
+    { href: profileHref, icon: User, label: t('nav.profile', 'Profilis'), matchPrefix: '/u/' },
   ]
 
   function isActive(tab: typeof tabs[0]) {
