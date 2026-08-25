@@ -3,6 +3,7 @@ import { assertValidUserId, verifyOrGetThreadOwnership } from './security/isolat
 import { buildServerContext } from './context'
 import { routeAiRequest } from './router'
 import { isOmniRouterConfigured, OmniMessage, OpenAiToolCall } from './omnirouter'
+import { callOpenClaw, isOpenClawEnabled } from './openclaw'
 import { saveUserMemory } from './memory'
 import { buildToolSchemas, executeTool, ALLOWED_TOOLS_DEFINITIONS } from './tools'
 import { validateAndSanitizeAiOutput } from './security/output-guard'
@@ -59,7 +60,7 @@ export interface ComposeResult {
 export class MiniSocialAiGateway {
   /**
    * Unified chat method for MiniSocial.
-   * Enforces server-side history retrieval, bounded agentic tool-calling loop (max 3 rounds),
+   * Enforces server-side history retrieval, OpenClaw harness integration with bounded tool-calling loop (max 3 rounds),
    * strict RLS, and output sanitization.
    */
   async chat(params: ChatParams): Promise<ChatResult> {
@@ -77,7 +78,7 @@ export class MiniSocialAiGateway {
 
     assertValidUserId(userId)
 
-    if (!isOmniRouterConfigured()) {
+    if (!isOmniRouterConfigured() && !isOpenClawEnabled()) {
       throw new AiError('AI_UNAVAILABLE', 'AI paslauga šiuo metu nepasiekiama.', { status: 503 })
     }
 
@@ -137,15 +138,58 @@ export class MiniSocialAiGateway {
       round++
 
       const isFinalAllowedRound = round === MAX_TOOL_ROUNDS
-      const response = await routeAiRequest({
-        task: round === 1 ? 'chat' : 'tools',
-        model,
-        messages: currentMessages,
-        tools: isFinalAllowedRound ? undefined : tools,
-        toolChoice: isFinalAllowedRound ? 'none' : 'auto',
-        maxTokens,
-        isPrivate: true,
-      })
+      let response: {
+        content: string | null
+        toolCalls: OpenAiToolCall[]
+        finishReason?: string
+        model: string
+        provider: string
+        usage: {
+          promptTokens: number
+          completionTokens: number
+          totalTokens: number
+        }
+      }
+
+      if (isOpenClawEnabled()) {
+        try {
+          response = await callOpenClaw({
+            userId,
+            threadId: verified.threadId,
+            messages: currentMessages,
+            tools: isFinalAllowedRound ? undefined : tools,
+            toolChoice: isFinalAllowedRound ? 'none' : 'auto',
+            maxTokens,
+            model,
+            isPrivate: true,
+          })
+        } catch (openclawErr) {
+          console.warn('[AI Gateway] OpenClaw execution error, falling back to OmniRouter:', openclawErr)
+          if (isOmniRouterConfigured()) {
+            response = await routeAiRequest({
+              task: round === 1 ? 'chat' : 'tools',
+              model,
+              messages: currentMessages,
+              tools: isFinalAllowedRound ? undefined : tools,
+              toolChoice: isFinalAllowedRound ? 'none' : 'auto',
+              maxTokens,
+              isPrivate: true,
+            })
+          } else {
+            throw openclawErr
+          }
+        }
+      } else {
+        response = await routeAiRequest({
+          task: round === 1 ? 'chat' : 'tools',
+          model,
+          messages: currentMessages,
+          tools: isFinalAllowedRound ? undefined : tools,
+          toolChoice: isFinalAllowedRound ? 'none' : 'auto',
+          maxTokens,
+          isPrivate: true,
+        })
+      }
 
       lastModel = response.model
       lastProvider = response.provider

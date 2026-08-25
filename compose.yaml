@@ -138,9 +138,9 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
-    env_file: ${APP_ENV_FILE:-.env.production}
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-mini_social}:${POSTGRES_PASSWORD}@mini-social-db:5432/${POSTGRES_DB:-mini_social}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-20}
       POSTGREST_URL: http://mini-social-postgrest:3000
       REDIS_URL: redis://mini-social-redis:6379
       S3_ENDPOINT: http://mini-social-minio:9000
@@ -148,6 +148,55 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       S3_PUBLIC_URL: ${S3_PUBLIC_URL:-https://mini-social.online/media}
       NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_URL:-https://mini-social.online/media}
+      OPENCLAW_INTERNAL_URL: ${OPENCLAW_INTERNAL_URL:-http://mini-social-openclaw:18789}
+      OPENCLAW_URL: ${OPENCLAW_URL:-http://mini-social-openclaw:18789}
+      MINISOCIAL_AGENT_INTERNAL_SECRET: ${MINISOCIAL_AGENT_INTERNAL_SECRET:-${OPENCLAW_GATEWAY_TOKEN:-}}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      AI_AGENT_BACKEND: ${AI_AGENT_BACKEND:-openclaw}
+      AI_OPENCLAW_ENABLED: ${AI_OPENCLAW_ENABLED:-true}
+      APP_URL: ${APP_URL:-https://mini-social.online}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://mini-social.online}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-https://mini-social.online}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      AUTH_REQUIRE_EMAIL_VERIFICATION: ${AUTH_REQUIRE_EMAIL_VERIFICATION:-false}
+      AUTH_TRUSTED_ORIGINS: ${AUTH_TRUSTED_ORIGINS:-https://mini-social.online,https://www.mini-social.online}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+      NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: ${NEXT_PUBLIC_GOOGLE_AUTH_ENABLED:-false}
+      NEXT_PUBLIC_PASSWORD_RESET_ENABLED: ${NEXT_PUBLIC_PASSWORD_RESET_ENABLED:-false}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_BASIC: ${STRIPE_PRICE_BASIC:-}
+      STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
+      STRIPE_PRICE_ENTERPRISE: ${STRIPE_PRICE_ENTERPRISE:-}
+      STRIPE_PRICE_ID_5: ${STRIPE_PRICE_ID_5:-}
+      STRIPE_PRICE_ID_10: ${STRIPE_PRICE_ID_10:-}
+      STRIPE_PRICE_ID_20: ${STRIPE_PRICE_ID_20:-}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_EMAIL: ${VAPID_EMAIL:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OMNIROUTER_API_KEY: ${OMNIROUTER_API_KEY:-}
+      OMNIROUTER_BASE_URL: ${OMNIROUTER_BASE_URL:-https://api.omniroute.ai/v1}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      AI_PRIMARY_MODEL: ${AI_PRIMARY_MODEL:-}
+      AI_FALLBACK_MODEL: ${AI_FALLBACK_MODEL:-}
+      AI_REASONING_MODEL: ${AI_REASONING_MODEL:-}
+      AI_GEMMA_MODEL: ${AI_GEMMA_MODEL:-}
+      PRICE_GEMINI_PER_1K: ${PRICE_GEMINI_PER_1K:-}
     ports:
       - 127.0.0.1:3100:3000
     healthcheck:
@@ -176,6 +225,46 @@ services:
       - traefik.http.middlewares.mini-social-security.headers.contentTypeNosniff=true
       - traefik.http.middlewares.mini-social-security.headers.referrerPolicy=strict-origin-when-cross-origin
       - traefik.http.services.mini-social.loadbalancer.server.port=3000
+
+  mini-social-openclaw:
+    container_name: mini-social-openclaw
+    build:
+      context: ./infra/openclaw
+    image: mini-social-openclaw:local
+    restart: unless-stopped
+    expose:
+      - "18789"
+    environment:
+      OPENCLAW_PORT: "18789"
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:?OPENCLAW_GATEWAY_TOKEN is required}
+      OPENCLAW_AI_BASE_URL: ${OPENCLAW_AI_BASE_URL:-${OMNIROUTER_BASE_URL:-https://api.omniroute.ai/v1}}
+      OPENCLAW_AI_API_KEY: ${OPENCLAW_AI_API_KEY:-${OMNIROUTER_API_KEY}}
+      OPENCLAW_PRIMARY_MODEL: ${OPENCLAW_PRIMARY_MODEL:-${AI_PRIMARY_MODEL:-nvidia/nemotron-3-ultra-550b-a55b:free}}
+      OPENCLAW_FALLBACK_MODEL: ${OPENCLAW_FALLBACK_MODEL:-${AI_FALLBACK_MODEL:-google/gemini-3.5-flash-lite}}
+      OPENCLAW_GEMMA_MODEL: ${OPENCLAW_GEMMA_MODEL:-${AI_GEMMA_MODEL:-google/gemma-4-31b-it:free}}
+    volumes:
+      - mini-social-openclaw-data:/app/data
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+          pids: 150
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      backend:
+        aliases: [mini-social-openclaw]
+      agent-egress: {}
 
   agent-cron:
     image: mini-social-app:local
@@ -235,6 +324,8 @@ services:
 networks:
   backend:
     internal: true
+  agent-egress:
+    driver: bridge
   coolify:
     external: true
 
@@ -243,3 +334,4 @@ volumes:
   postgres_backups:
   redis_data:
   minio_data:
+  mini-social-openclaw-data:
